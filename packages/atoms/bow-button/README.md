@@ -1,13 +1,12 @@
 # @arrow-warfare/bow-button
 
-`<aw-bow-button>`, the bow on a touch screen. Thumb on it, pull down: the distance is the draw, full at `range` pixels. Sideways the thumb turns. At full draw it anchors and the thumb aims both ways. Back on the button (within `cancel` pixels) lets the bow down, then letting go doesn't shoot.
+`<aw-bow-button>`, the bow on a touch screen. Hold a thumb on it to draw (the game draws by time and sets `--pull` for the ring). The same thumb aims every way. Let go within `edge` pixels of the window's right edge to shoot, anywhere else lets the bow down.
 
 | Member | Description |
 | --- | --- |
-| `range` | Pixels of pull for a full draw, default 120 |
-| `cancel` | Pixels around the start that let the bow down, default 26 |
-| `pull`, `anchored` | 0..1, and whether full draw was reached |
+| `edge` | Width of the shoot strip at the right edge, default 90 |
+| `shoot` | The thumb is in the strip (also the `shooting` attribute) |
 | `active`, `disabled` | Reflected, `disabled` only dims it |
-| `drawstart`, `drawmove`, `drawend` | `{ pull, dx, dy, anchored }`, `dx`/`dy` are pixels to aim by |
+| `drawstart`, `drawmove`, `drawend` | `{ dx, dy, shoot }`, `dx`/`dy` are pixels to aim by |
 
 Its size is the `--size` custom property.

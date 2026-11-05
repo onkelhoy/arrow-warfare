@@ -22,7 +22,7 @@ type Looker = { x: number; y: number; startX: number; startY: number; at: number
 
 /**
  * What the player asks for, from any device. Touch: the joystick on the left moves, dragging anywhere else
- * looks, the bow button draws and aims, a tap picks up. Desktop: click to lock the mouse and look, WASD or
+ * looks, holding the bow button draws (by time) and aims, letting go in the strip at the right edge shoots, a tap picks up. Desktop: click to lock the mouse and look, WASD or
  * the arrows to walk, hold space to draw, click to pick up, E pulls an arrow out of myself.
  */
 export class Controls {
@@ -38,9 +38,11 @@ export class Controls {
     free = false;
     /** Space is down. */
     space = false;
-    /** A thumb is on the bow button, and its pull 0..1. */
+    /** A thumb is on the bow button, and it's in the shoot strip. */
     thumb = false;
-    pull = 0;
+    shoot = false;
+    /** The shoot strip at the right edge, shown while drawing. */
+    readonly strip: HTMLElement;
     /** Taps since the last `taps()`, in CSS pixels on the page. */
     private tapped: [number, number][] = [];
     /** Asked to pull an arrow out of myself (E, or the button) since the last `pulls()`. */
@@ -53,7 +55,9 @@ export class Controls {
         this.joystick.className = "aw-play-stick";
         this.bow = document.createElement("aw-bow-button") as BowButton;
         this.bow.className = "aw-play-bow";
-        root.append(this.surface, this.joystick, this.bow);
+        this.strip = document.createElement("div");
+        this.strip.className = "aw-play-strip";
+        root.append(this.surface, this.joystick, this.bow, this.strip);
 
         this.surface.addEventListener("pointerdown", this.handledown);
         this.surface.addEventListener("pointermove", this.handlemove);
@@ -68,12 +72,13 @@ export class Controls {
         window.addEventListener("blur", this.handleblur);
     }
 
-    /** Puts the bow button where the settings say, its full pull a share of the screen's height. */
-    placeBow(place: BowPlace, height: number) {
+    /** Puts the bow button where the settings say, the shoot strip a share of the screen's width. */
+    placeBow(place: BowPlace, width: number) {
         this.bow.style.setProperty("--size", `${place.size}px`);
         this.bow.style.left = `calc(${place.x * 100}% - ${place.size / 2}px)`;
         this.bow.style.top = `calc(${place.y * 100}% - ${place.size / 2}px)`;
-        this.bow.range = Math.max(80, Math.min(220, height * .3));
+        this.bow.edge = Math.max(60, Math.min(130, width * .12));
+        this.strip.style.width = `${this.bow.edge}px`;
     }
 
     /** -1..1 each: x right, y forward. */
@@ -128,6 +133,7 @@ export class Controls {
         this.surface.remove();
         this.joystick.remove();
         this.bow.remove();
+        this.strip.remove();
     }
 
     private handledown = (event: PointerEvent) => {
@@ -173,11 +179,13 @@ export class Controls {
         this.lookers.delete(event.pointerId);
     }
 
-    /** The bow button: its pull, and the same thumb turning the view. */
+    /** The bow button: held, in the shoot strip, and the same thumb turning the view. */
     private handledraw = (event: Event) => {
-        const { pull, dx, dy } = (event as CustomEvent<DrawEvent>).detail;
+        const { dx, dy, shoot } = (event as CustomEvent<DrawEvent>).detail;
         this.thumb = event.type !== "drawend";
-        this.pull = pull;
+        this.shoot = shoot;
+        this.strip.classList.toggle("on", this.thumb);
+        this.strip.classList.toggle("hot", this.thumb && shoot);
         this.turnX += dx * TOUCH_TURN;
         this.turnY += dy * TOUCH_TURN;
     }

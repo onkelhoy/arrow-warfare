@@ -1,6 +1,6 @@
 {
   "name": "@arrow-warfare/bow-button",
-  "description": "The bow button: thumb on it, pull down to draw, aim with the same thumb, let go to shoot.",
+  "description": "The bow button: hold to draw, aim with the same thumb, let go at the right edge to shoot.",
   "keywords": [
     "papit",
     "typescript",

@@ -6,34 +6,29 @@ import sheet from "./style.css" with { type: "css" };
 import type { DrawEvent } from "./types";
 
 /**
- * The bow button. Put a thumb on it and pull down: how far down is how far the bow is drawn, full at
- * `range` pixels. Sideways the same thumb turns. Once fully drawn the bow stays drawn and the thumb aims
- * freely, up and down too. Back on the button (within `cancel` pixels) the bow comes down, then letting
- * go doesn't shoot. Letting go anywhere else shoots.
+ * The bow button. Hold a thumb on it and the bow draws by time (the game decides how fast). The same
+ * thumb aims freely, every direction. Let go in the shoot strip at the right edge of the screen (`edge`
+ * pixels wide) and it shoots, let go anywhere else and the bow comes down.
  *
  * @element aw-bow-button
  *
- * @property {number} range pixels of pull for a full draw
- * @property {number} cancel pixels around the start where the bow comes down
+ * @property {number} edge pixels from the right edge of the window where letting go shoots
  * @property {boolean} active a thumb is on it (reflected)
  * @property {boolean} disabled can't draw now, shown dimmed (reflected). It still tells about the thumb
  *
  * @fires drawstart {DrawEvent} the thumb went down on it
  * @fires drawmove {DrawEvent} the thumb moved
- * @fires drawend {DrawEvent} the thumb let go, `pull` is what was drawn
+ * @fires drawend {DrawEvent} the thumb let go, `shoot` says if it was in the strip
  */
 export class BowButton extends CustomElement {
     static sheet = sheet;
 
-    @property({ type: Number }) range: number = 120;
-    @property({ type: Number }) cancel: number = 26;
+    @property({ type: Number }) edge: number = 90;
     @property({ type: Boolean, reflect: true }) active: boolean = false;
     @property({ type: Boolean, reflect: true }) disabled: boolean = false;
 
-    /** 0..1. */
-    pull = 0;
-    /** Fully drawn once, the thumb aims both ways now. */
-    anchored = false;
+    /** The thumb is in the shoot strip. */
+    shoot = false;
 
     private pointer: number | null = null;
     private startX = 0;
@@ -46,8 +41,8 @@ export class BowButton extends CustomElement {
         this.addEventListener("pointerdown", this.handledown);
         this.addEventListener("pointermove", this.handlemove);
         this.addEventListener("pointerup", this.handleup);
-        this.addEventListener("pointercancel", this.handleup);
-        this.addEventListener("lostpointercapture", this.handleup);
+        this.addEventListener("pointercancel", this.handlecancel);
+        this.addEventListener("lostpointercapture", this.handlecancel);
         this.addEventListener("contextmenu", this.handlemenu);
     }
 
@@ -56,12 +51,16 @@ export class BowButton extends CustomElement {
         this.removeEventListener("pointerdown", this.handledown);
         this.removeEventListener("pointermove", this.handlemove);
         this.removeEventListener("pointerup", this.handleup);
-        this.removeEventListener("pointercancel", this.handleup);
-        this.removeEventListener("lostpointercapture", this.handleup);
+        this.removeEventListener("pointercancel", this.handlecancel);
+        this.removeEventListener("lostpointercapture", this.handlecancel);
         this.removeEventListener("contextmenu", this.handlemenu);
     }
 
     private handlemenu = (event: Event) => event.preventDefault();
+
+    private inStrip(x: number) {
+        return x >= window.innerWidth - this.edge;
+    }
 
     private handledown = (event: PointerEvent) => {
         if (this.pointer !== null) return;
@@ -71,8 +70,7 @@ export class BowButton extends CustomElement {
         this.setPointerCapture(event.pointerId);
         this.startX = this.lastX = event.clientX;
         this.startY = this.lastY = event.clientY;
-        this.pull = 0;
-        this.anchored = false;
+        this.shoot = false;
         this.active = true;
         this.show(0, 0);
         this.fire("drawstart", 0, 0);
@@ -83,37 +81,33 @@ export class BowButton extends CustomElement {
         const dx = event.clientX - this.lastX, dy = event.clientY - this.lastY;
         this.lastX = event.clientX;
         this.lastY = event.clientY;
-        const offsetX = event.clientX - this.startX, offsetY = event.clientY - this.startY;
-        const home = Math.hypot(offsetX, offsetY) <= this.cancel;
-
-        if (this.anchored && home) this.anchored = false;
-        let aimY = 0;
-        if (this.anchored)
-        {
-            this.pull = 1;
-            aimY = dy;
-        }
-        else
-        {
-            this.pull = home ? 0 : Math.max(0, Math.min(1, offsetY / this.range));
-            if (this.pull >= 1) this.anchored = true;
-        }
-        this.show(offsetX, offsetY);
-        this.fire("drawmove", dx, aimY);
+        this.shoot = this.inStrip(event.clientX);
+        this.show(event.clientX - this.startX, event.clientY - this.startY);
+        this.fire("drawmove", dx, dy);
     }
 
     private handleup = (event: PointerEvent) => {
         if (event.pointerId !== this.pointer) return;
+        this.shoot = this.inStrip(event.clientX);
+        this.finish();
+    }
+
+    private handlecancel = (event: PointerEvent) => {
+        if (event.pointerId !== this.pointer) return;
+        this.shoot = false;
+        this.finish();
+    }
+
+    private finish() {
         this.pointer = null;
         this.active = false;
         this.show(0, 0);
         this.fire("drawend", 0, 0);
-        this.pull = 0;
-        this.anchored = false;
+        this.shoot = false;
     }
 
     private fire(type: string, dx: number, dy: number) {
-        this.dispatchEvent(new CustomEvent<DrawEvent>(type, { detail: { pull: this.pull, dx, dy, anchored: this.anchored }, bubbles: true, composed: true }));
+        this.dispatchEvent(new CustomEvent<DrawEvent>(type, { detail: { dx, dy, shoot: this.shoot }, bubbles: true, composed: true }));
     }
 
     /** The string from the button to the thumb. */
@@ -121,7 +115,7 @@ export class BowButton extends CustomElement {
         const length = Math.hypot(x, y);
         this.style.setProperty("--string-length", `${length}px`);
         this.style.setProperty("--string-angle", `${Math.atan2(y, x) - Math.PI / 2}rad`);
-        this.style.setProperty("--pull", String(this.pull));
+        this.toggleAttribute("shooting", this.shoot);
     }
 
     render() {

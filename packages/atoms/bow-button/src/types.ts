@@ -1,2 +1,2 @@
-/** `pull` is 0..1. `dx`, `dy` are CSS pixels the thumb moved for aiming since the last event. */
-export type DrawEvent = { pull: number; dx: number; dy: number; anchored: boolean };
+/** `dx`, `dy` are CSS pixels the thumb moved for aiming since the last event. `shoot`: the thumb is in the shoot strip. */
+export type DrawEvent = { dx: number; dy: number; shoot: boolean };

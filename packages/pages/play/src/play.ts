@@ -116,7 +116,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         layer.setting.width = Math.max(1, Math.round(play.clientWidth * density()));
         layer.setting.height = Math.max(1, Math.round(play.clientHeight * density()));
         layer.resize();
-        controls.placeBow(settings().bow, play.clientHeight);
+        controls.placeBow(settings().bow, play.clientWidth);
     };
     const camera = new Camera({ fov: 1.1, near: .05, far: 220 });
     layer.camera = camera;
@@ -174,7 +174,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     size();
     window.addEventListener("resize", size);
-    const stopBow = effect(() => controls.placeBow(settings().bow, play.clientHeight));
+    const stopBow = effect(() => controls.placeBow(settings().bow, play.clientWidth));
 
     // ------------------------------------------------------------------ the round
 
@@ -677,6 +677,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     let kills = 0;
     let recorded = 0;
     let wanted = false;
+    /** This draw started from the bow button (it shoots only in the strip). */
+    let byThumb = false;
     let creak = 0;
     let feet = 0;
     const whooshed = new Set<string>();
@@ -708,13 +710,18 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         {
             if (quiver <= 0) sound("empty");
             else draw.start(quiver);
+            byThumb = controls.thumb;
         }
         wanted = want;
         if (draw.phase === "drawing")
         {
-            if (controls.thumb) draw.pull(controls.pull, dt);
-            else if (controls.space) draw.hold(dt);
-            if (!want) fire(draw.release());
+            draw.hold(dt);
+            // a thumb lets go: shoots only in the strip at the right edge
+            if (!want)
+            {
+                if (byThumb && !controls.shoot) draw.cancel();
+                else fire(draw.release());
+            }
             // a creak each step of the pull, the string stretching higher
             const step = Math.floor(draw.amount * 5);
             if (step > creak)
@@ -726,6 +733,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         }
         else creak = 0;
         fire(draw.update(dt));
+        controls.bow.style.setProperty("--pull", String(draw.phase === "drawing" ? draw.amount : 0));
 
         // my feet in the grass, a hop on one leg, a heartbeat when I'm spent
         if (alive)
