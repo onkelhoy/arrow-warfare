@@ -21,7 +21,13 @@ const TRAIL_FADE = 450;
 
 export type Landed = { arrow: Arrow; kind: "ground" | "wood" | "wall" };
 /** `local` is where it went in, in the part's own space. */
-export type Struck = { arrow: Arrow; id: string; hit: BodyHit; place: BodyPlace; local: { point: Vec; direction: Vec }; at: Vec };
+export type Struck = { arrow: Arrow; id: string; hit: BodyHit; place: BodyPlace; local: { point: Vec; direction: Vec }; at: Vec; speed: number };
+
+/** Metres an arrow at `speed` goes on past where it would stop: none when weak, out the other side when strong. */
+export function pierce(speed: number, zone: string) {
+    const strength = Math.max(0, Math.min(1, (speed - 15) / 15));
+    return strength * (zone === "head" || zone === "torso" ? .6 : .3);
+}
 type RigOf = (id: string) => Rig | null;
 
 /**
@@ -87,11 +93,16 @@ export class Arrows {
                     const place = body.rig.where;
                     const hit = hitBody(place, from, to, body.rig.capsules);
                     if (!hit) continue;
+                    // where it went in, before it goes deeper
+                    const at = body.rig.world(hit.point);
+                    // a strong arrow goes on through and out the other side
+                    const depth = pierce(Math.hypot(arrow.vx, arrow.vy, arrow.vz), hit.zone);
+                    hit.point = [hit.point[0] + hit.direction[0] * depth, hit.point[1] + hit.direction[1] * depth, hit.point[2] + hit.direction[2] * depth];
                     const local = { point: body.rig.toPart(hit.part, hit.point), direction: body.rig.toPart(hit.part, hit.direction, 0) };
                     arrow.rest = { in: "body", id: body.id };
                     arrow.local = local;
                     this.parts.set(arrow.shot.id, hit.part);
-                    struck.push({ arrow, id: body.id, hit, place: { ...place }, local, at: body.rig.world(hit.point) });
+                    struck.push({ arrow, id: body.id, hit, place: { ...place }, local, at, speed: Math.hypot(arrow.vx, arrow.vy, arrow.vz) });
                     return true;
                 }
                 return false;
