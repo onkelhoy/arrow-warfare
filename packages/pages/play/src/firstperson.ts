@@ -6,6 +6,8 @@ import { arrow, ARROW_LENGTH, beam, bow, BOW, hand } from "@arrow-warfare/world"
 /** Camera space: x right, y up, -z ahead. Where the grip is held, lowered and up for a shot. */
 const LOW = { at: [.24, -.36, -.5] as Vec3, yaw: .35, pitch: .1, roll: -1.05 };
 const AIM = { at: [-.08, -.1, -.78] as Vec3, yaw: 0, pitch: 0, roll: .6 };
+/** Metres ahead where the nocked arrow points: the middle of the view, so the shot goes where I look. */
+const CONVERGE = 30;
 /** Up for a shot the bow leans over, fully drawn it stands nearly upright. */
 const UPRIGHT = .12;
 /** How far behind the tips the nock comes at a full draw, in bow space. */
@@ -41,6 +43,9 @@ export class FirstPerson {
         this.arms = renderer.batch(beam(5), front);
     }
 
+    /** Where the nocked arrow's tip is and where it points, in the world, while drawing. */
+    release: { from: Vec3; direction: Vec3 } | null = null;
+
     /** The string snaps forward and the bow jumps. */
     shot() {
         this.kick = 1;
@@ -74,7 +79,8 @@ export class FirstPerson {
         const tremble = draw.tired * amount * .006;
         const yaw = (LOW.yaw + (AIM.yaw - LOW.yaw) * r) * side + Math.sin(this.clock * 31) * tremble;
         const pitch = LOW.pitch + (AIM.pitch - LOW.pitch) * r + Math.sin(this.clock * 27 + 1) * tremble;
-        const aimRoll = AIM.roll + (UPRIGHT - AIM.roll) * amount;
+        // the top leans right for a right handed archer (towards the drawing hand)
+        const aimRoll = -(AIM.roll + (UPRIGHT - AIM.roll) * amount);
         const roll = (LOW.roll + (aimRoll - LOW.roll) * r) * side;
         // drawn, the limbs bend back and get a touch shorter
         const bend = 1 + amount * .9, shorter = 1 - amount * .06;
@@ -102,10 +108,17 @@ export class FirstPerson {
         const nocked = drawing && arrows > 0;
         if (nocked)
         {
-            const tip = inBow(.018 * side, .012, tipZ + PULL * amount - ARROW_LENGTH);
+            // the nock on the string, the tip pointing at where I look: the shot leaves from here
             const back = inBow(.018 * side, .012, tipZ + PULL * amount);
+            const dx = -back[0], dy = -back[1], dz = -CONVERGE - back[2];
+            const length = Math.hypot(dx, dy, dz);
+            const tip: Vec3 = [back[0] + dx / length * ARROW_LENGTH, back[1] + dy / length * ARROW_LENGTH, back[2] + dz / length * ARROW_LENGTH];
             this.beam(this.arrow, 0, tip, back, 1, this.feathers, true);
+            const from = point(this.cameraMatrix, tip), to = point(this.cameraMatrix, [tip[0] + dx, tip[1] + dy, tip[2] + dz]);
+            const reach = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
+            this.release = { from, direction: [(to[0] - from[0]) / reach, (to[1] - from[1]) / reach, (to[2] - from[2]) / reach] };
         }
+        else this.release = null;
         this.arrow.count = nocked ? 1 : 0;
 
         // the left hand on the grip, the right on the string when drawing

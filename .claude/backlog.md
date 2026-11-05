@@ -242,6 +242,9 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - Drawing hand in settings (right by default, saved): left handed mirrors the bow, others see it.
 - The bow leans over when up and stands nearly upright at full draw.
 - White trails behind flying arrows, mine longer and brighter, widening with distance so they stay visible.
+- Unlimited arrows on localhost, for developing.
+- The bow leans right by default (left handed: left). A shot leaves from the nocked arrow, which points at the middle of the view 30 m out.
+- My trail stays whole for the flight (up to 1.8 s) and fades out together once the arrow lands.
 - Hits feel like one thump that springs back (a punch) instead of a rattle. The tunnel vision has no blur (it would cost every frame).
 
 ## Open questions

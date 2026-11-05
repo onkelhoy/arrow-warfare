@@ -9,12 +9,14 @@ const OWN_GRACE = 300;
 export const REACH = { side: 1.6, low: -.4, high: 2.6 };
 
 /** A white trail behind each flying arrow: seconds it lasts and how thick it starts. Mine shows more. */
-const TRAIL = { mine: { life: .9, width: .018, brightness: 1.6 }, others: { life: .25, width: .014, brightness: 1.1 } };
+const TRAIL = { mine: { life: 1.8, width: .018, brightness: 1.6 }, others: { life: .25, width: .014, brightness: 1.1 } };
 
 /** Metres from the bow before a trail starts. */
 const TRAIL_START = 2;
 
 type Point = { x: number; y: number; z: number; at: number };
+/** ms a trail takes to fade once its arrow has landed. */
+const TRAIL_FADE = 450;
 
 export type Landed = { arrow: Arrow; kind: "ground" | "wood" | "wall" };
 export type Struck = { arrow: Arrow; id: string; hit: BodyHit; place: BodyPlace };
@@ -28,6 +30,8 @@ export class Arrows {
     private batch: Batch;
     private trail: Batch;
     private trails = new Map<string, Point[]>();
+    /** When each arrow stopped, for the trail's fade. */
+    private landed = new Map<string, number>();
     private colours = new Map<string, Vec3>();
     private viewProjection = new Float32Array(16);
 
@@ -144,7 +148,14 @@ export class Arrows {
             }
             if (!points) continue;
             while (points.length && now - points[0].at > trail.life * 1000) points.shift();
-            if (points.length < 2)
+            // landed: the whole trail fades together, it doesn't shrink back to the arrow
+            let fade = 1;
+            if (arrow.rest || arrow.gone)
+            {
+                if (!this.landed.has(id)) this.landed.set(id, now);
+                fade = 1 - (now - this.landed.get(id)!) / TRAIL_FADE;
+            }
+            if (points.length < 2 || fade <= 0)
             {
                 if (arrow.rest || arrow.gone) this.trails.delete(id);
                 continue;
@@ -154,7 +165,9 @@ export class Arrows {
                 const a = points[i], b = points[i + 1];
                 const length = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
                 if (length < 1e-4) continue;
-                const fresh = 1 - (now - (a.at + b.at) / 2) / (trail.life * 1000);
+                // mine stay full along the whole flight, the others' thin out towards the tail
+                const age = (now - (a.at + b.at) / 2) / (trail.life * 1000);
+                const fresh = (arrow.shot.by === this.me ? Math.min(1, (1 - age) * 3) : 1 - age) * fade;
                 if (fresh <= 0) continue;
                 const far = Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]);
                 const width = trail.width * fresh * Math.max(1, far / 3);

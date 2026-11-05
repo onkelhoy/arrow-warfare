@@ -118,7 +118,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     // ------------------------------------------------------------------ the round
 
-    let quiver = state.rules.arrows > 0 ? state.rules.arrows : Infinity;
+    // unlimited while developing on this machine
+    const local = ["localhost", "127.0.0.1"].includes(location.hostname);
+    let quiver = state.rules.arrows > 0 && !local ? state.rules.arrows : Infinity;
     let shots = 0;
     const dead = new Set<string>();
     let over = false;
@@ -238,13 +240,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const fire = (event: DrawEvent) => {
         if (!event || event.kind !== "shot" || quiver <= 0) return;
         quiver--;
+        // from the arrow on my bow, else from my eyes along the view
         const m = camera.worldMatrix;
-        const dx = -m[8], dy = -m[9], dz = -m[10];
-        const length = Math.hypot(dx, dy, dz) || 1;
+        const length = Math.hypot(m[8], m[9], m[10]) || 1;
+        const forward: Vec = [-m[8] / length, -m[9] / length, -m[10] / length];
+        const release = firstPerson.release ?? { from: [m[12] + forward[0] * .3, m[13] + forward[1] * .3, m[14] + forward[2] * .3] as Vec, direction: forward };
         const shot: Shot = {
             id: `${me}:${++shots}`, by: me, time: net.shared(),
-            x: m[12] + dx / length * .3, y: m[13] + dy / length * .3 - .04, z: m[14] + dz / length * .3,
-            dx: dx / length, dy: dy / length, dz: dz / length,
+            x: release.from[0], y: release.from[1], z: release.from[2],
+            dx: release.direction[0], dy: release.direction[1], dz: release.direction[2],
             speed: speedOf(event.power),
         };
         broadcast("shoot", shot);
