@@ -63,9 +63,9 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 ### F2. Sound
 - [x] Web Audio core: master, music, sounds gains, unlock on first tap
 - [x] `asset/audio/songs.json` with `lobby` and `game` arrays, plays them as playlists (shuffle, next on end, crossfade on switch)
-- [ ] Music dip in slow motion and kill cam
-- [ ] Sound effects (stand-ins made in code: creak, twang, thunk in wood and ground, body hit, kill thunk, panting, pickup, empty): string stretch (rising with draw), release twang, whoosh (3D panned by distance), thunk in wood, thunk in ground, hit body, grunt, pickup, footsteps in grass, hop, heartbeat when low on energy, panting
-- [ ] Sources and licences in `CREDITS.md`
+- [x] Music dip in slow motion and kill cam
+- [x] Sound effects (stand-ins made in code: creak, twang, thunk in wood and ground, body hit, kill thunk, panting, pickup, empty): string stretch (rising with draw), release twang, whoosh (3D panned by distance), thunk in wood, thunk in ground, hit body, grunt, pickup, footsteps in grass, hop, heartbeat when low on energy, panting
+- [x] Sources and licences in `CREDITS.md`
 
 ### F3. Settings and corner controls
 - [x] Saved on the device: name, volumes, mute, look sensitivity, bow button place
@@ -108,7 +108,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 **Chat** (plain text only)
 - [x] Everyone's chat in the lobby, all the time
 - [x] Team chat once you're in a team (a tab next to everyone's chat)
-- [ ] During play: the dead chat (see F13)
+- [x] During play: the dead chat (see F13)
 
 **Other**
 - [x] Menu: name (saved), host a game, or arrive by link (asks for the password if there is one)
@@ -120,7 +120,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Friendly fire: always on for now, maybe a setting later
 - [x] Damage: arcade (any body hit kills) or injuries (see F10)
 - [x] Time of day: by clock (default) or fixed (night, dawn, noon, sunset)
-- [ ] Rounds: one, or best of N
+- [x] Rounds: one, or best of N
 
 ### F7. Renderer (`render`)
 - [x] Mesh from arrays, flat shaded toon material with vertex colours
@@ -174,10 +174,10 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Desktop: mouse look with pointer lock, WASD, hold space to draw, click to pick up
 
 ### F13. Spectate and kill cam
-- [ ] Ring buffer of the last seconds of the match
-- [ ] On death: slow motion of the shooter drawing, ride the arrow, see the hit
-- [ ] Then spectate: follow a living player in third person, tap to switch
-- [ ] Dead chat (only dead players and the lobby see it)
+- [x] Ring buffer of the last seconds of the match
+- [x] On death: slow motion of the shooter drawing, ride the arrow, see the hit
+- [x] Then spectate: follow a living player in third person, tap to switch
+- [x] Dead chat (only dead players and the lobby see it)
 
 ### F14. HUD
 - [x] Arrow count. No crosshair: a marker only on a hit (red on a kill), with shake and vibration
@@ -210,7 +210,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 2. **A field to walk in** (F7 basics, F8, F12 basic, F9 movement): host starts, everyone walks the same meadow and sees each other.
 3. **Shoot each other** (F9 archery, F14, F15 basic): arrows, hits, deaths, last one wins, results.
 4. **Silly bodies** (F11, F10, F14 energy/damage, F14b, F6 damage + time of day): rig, walk, hop, injuries, the play demo with controls.
-5. **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
+5. ✅ **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
 6. **Polish** (F16, quality, glb if wanted).
 
 ---
