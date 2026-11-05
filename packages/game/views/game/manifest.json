@@ -2,6 +2,7 @@
     "name": "Arrow Warfare",
     "short_name": "Arrows",
     "description": "A silly first person archer battle in a fairytale meadow.",
+    "id": "./",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
