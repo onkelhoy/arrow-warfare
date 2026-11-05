@@ -1,0 +1,17 @@
+{
+    "name": "Arrow Warfare",
+    "short_name": "Arrows",
+    "description": "A silly first person archer battle in a fairytale meadow.",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#3d6b2a",
+    "theme_color": "#3d6b2a",
+    "icons": [
+        { "src": "manifest.logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+        { "src": "manifest.logo-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+        { "src": "manifest.logo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "manifest.logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    ]
+}

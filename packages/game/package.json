@@ -8,6 +8,7 @@
   ],
   "version": "0.0.1",
   "scripts": {
+    "prebuild": "node bin/sync-assets.mjs && node bin/icons.mjs",
     "build": "npx @papit/build -- --error --ancestors",
     "watch": "tsc -w",
     "start": "npm run build && npx @papit/server --info --live",
