@@ -5,7 +5,7 @@ Atomic design. A package only depends on layers below or beside it.
 | Folder | What goes there |
 | --- | --- |
 | `foundations/` | No UI of its own: `core` (settings, config, colours), `net` (lobby, room, clock), `sound`, `render` (WebGL2 renderer) |
-| `atoms/` | Small elements: `qr-code`, `share-link`, `joystick`, `color-swatch` |
+| `atoms/` | Small elements: `qr-code`, `share-link`, `joystick` |
 | `molecules/` | Elements made of atoms: `invite-dialog`, `corner`, `chat`, `touch-layout` |
 | `pages/` | One per screen: `menu`, `lobby`, `play`, `results` |
 

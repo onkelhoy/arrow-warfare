@@ -12,11 +12,11 @@ Proposed, waiting for confirmation. Delete this file when every task is done.
 8. **Lobby network**: `foundations/net`, port cowboy's chord lobby and config, lobby name `arrow-warfare`
 9. **Room + invite**: host creates a mesh room, invite link, `molecules/invite-dialog`, join by link with host wait
 10. **Menu page**: name (saved), host a game, arriving by link joins (password prompt if needed). *Push.*
-11. **Lobby page, open phase**: player list "name (colour)", colour picking with taken colours, host settles clashes, skin colour
+11. **Lobby page, open phase**: player list "name (colour)". The host gives each player a random unused colour and skin colour automatically
 12. **Chat**: `molecules/chat`, everyone's chat, plain text
 13. **Host panel**: tabs Invite, Game (name, password, max players), Players (ping, weak connection warning, kick), Rules (arrow count for now). Players see it read-only
 14. **Lock**: the host locks and unlocks the room, nobody joins while locked
-15. **Teams**: Teams tab when locked: create, add players from the list, team colour, delete. No teams = free for all
+15. **Teams**: Teams tab when locked: create, add players from the list, delete. A team gets a random colour and all its members wear it. No teams = free for all
 16. **Team names and team chat**: ideas, the first becomes the name, then voting on a little sign board. Team chat tab
 17. **Ready and start**: ready toggles, the host can force a player or team after a delay, shared clock 3 2 1, then a placeholder play page. *Push.*
 

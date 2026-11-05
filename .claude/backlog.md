@@ -35,7 +35,6 @@ packages/
   atoms/
     qr-code/  share-link/      copied from cowboy
     joystick/                  touch joystick element
-    color-swatch/              a colour you can pick, shows taken
   molecules/
     invite-dialog/             QR + link + copy
     corner/                    fullscreen, music, volume, mute
@@ -43,7 +42,7 @@ packages/
     touch-layout/              place your controls
   pages/
     menu/                      name, host or join
-    lobby/                     players, colours, settings, ready, chat
+    lobby/                     players, host panel, teams, ready, chat
     play/                      the 3D game (world, players, arrows, HUD, spectate, kill cam)
     results/                   end screen and stats
 asset/audio/songs/             your songs
@@ -79,7 +78,7 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [ ] Invite dialog: QR code, link, copy/share button
 - [ ] Join by link, wait for a sleeping host, clear errors
 - [ ] Shared clock (pings), host migration
-- [ ] Message types: hello/profile, colour claim, game info, lock, teams, team name idea/vote, rules, ready, force ready, chat, team chat, start, pose, shoot, hit, pickup, death, end
+- [ ] Message types: hello/profile, colour assignment, game info, lock, teams, team name idea/vote, rules, ready, force ready, chat, team chat, start, pose, shoot, hit, pickup, death, end
 - [ ] Password through the webrtc network password, max players and the lock through the room's `accept`
 - [ ] Ping per player from the clock pings
 - [ ] Binary pose packing to keep 10 phones light (9 links each)
@@ -89,7 +88,7 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 The lobby has phases, and the host panel (tabs) is open the whole time.
 
 **Phases**
-1. **Open**: the host creates a game and invites. Players join with their name and pick a colour (taken colours are greyed out, the host settles clashes) and a skin colour. The list reads "henry (red)".
+1. **Open**: the host creates a game and invites. Players join with their name. Nobody picks a colour: the host's game quietly gives everyone a random unused colour and a random skin colour. The list reads "henry (red)".
 2. **Locked**: the host presses continue. Nobody new can join and the player list is final, so teams can be made.
 3. **Ready**: everyone presses ready. After a short delay the host can force a player, or a whole team, to ready.
 4. **Countdown**: the host starts, the shared clock gives 3, 2, 1, and play begins.
@@ -98,7 +97,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] **Invite**: QR code, link, copy/share (hidden once locked)
 - [ ] **Game**: game name, optional password, max players. More than 10 is allowed, for computers
 - [ ] **Players**: the list, ping per player with a weak connection warning, kick
-- [ ] **Teams** (only once locked): create a team, add players from the list, set the team colour, delete the team. No teams means free for all. One vs all is just a team of one against the rest
+- [ ] **Teams** (only once locked): create a team, add players from the list, delete the team. Each team gets a random unused colour and every member wears it, replacing their own. No teams means free for all. One vs all is just a team of one against the rest
 - [ ] **Rules**: see F6
 - [ ] Players see every tab read-only, so everyone knows the rules
 
@@ -160,7 +159,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Pull an arrow out of yourself (and it goes in your quiver)
 
 ### F11. Characters and animation
-- [ ] Silly body: big torso, short tiny legs, round head, colour = clothes, skin colour picked
+- [ ] Silly body: big torso, short tiny legs, round head, colour = clothes (team colour in a team), random skin colour
 - [ ] Armature rig with rigid parts
 - [ ] Procedural walk: feet plant with IK, step when the foot is too far behind
 - [ ] Hop, sit, draw pose, aim with the upper body following pitch
@@ -201,7 +200,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 
 ## Milestones
 
-1. **Together in a lobby** (F1, F2 playlists, F3, F4 lobby/room/invite, F5, F6 tab with what exists): open a link, pick names and colours, chat, the host locks, makes teams, everyone readies, 3 2 1. Deployed.
+1. **Together in a lobby** (F1, F2 playlists, F3, F4 lobby/room/invite, F5, F6 tab with what exists): open a link, give a name, get a colour, chat, the host locks, makes teams, everyone readies, 3 2 1. Deployed.
 2. **A field to walk in** (F7 basics, F8, F12 basic, F9 movement): host starts, everyone walks the same meadow and sees each other.
 3. **Shoot each other** (F9 archery, F14, F15 basic): arrows, hits, deaths, last one wins, results.
 4. **Silly bodies** (F11, F10): rig, walk, hop, injuries.
@@ -215,5 +214,4 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - Torso hit: dead at once, or two torso hits?
 - Can you pick up arrows while drawing? Can the dead drop their quiver?
 - Friendly fire: default on or off?
-- With teams, do clothes take the team colour (and the player colour becomes a trim), or does the player keep their own colour?
 - ~~Repo~~: github.com/onkelhoy/arrow-warfare, live at https://onkelhoy.github.io/arrow-warfare/ (static `--base /arrow-warfare/`).

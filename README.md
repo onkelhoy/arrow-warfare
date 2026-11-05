@@ -7,7 +7,7 @@ Play it at <https://onkelhoy.github.io/arrow-warfare/>.
 ## How a game goes
 
 1. Give yourself a name and host a game. Share the QR code or link.
-2. Friends open the link, give a name and pick a colour.
+2. Friends open the link, and give a name. Everyone gets a random colour.
 3. The host locks the game, makes teams if they want (no teams is free for all) and sets the rules, such as how many arrows everyone gets.
 4. Everyone presses ready, then 3, 2, 1.
 5. Shoot, pick arrows up, survive. The dead watch the shot that got them in slow motion, then spectate and chat.
