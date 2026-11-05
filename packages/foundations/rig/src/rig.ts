@@ -89,6 +89,8 @@ export class Rig {
 
     /** 0 standing .. 1 sitting, eased. */
     private low = 0;
+    /** 1 standing up, down to 0 sitting, crawling or lying dead: how much of a shadow to cast. */
+    get upright() { return this.where.tip ? 0 : 1 - this.low; }
     /** 0 bow low .. 1 up for a shot, eased. */
     private raise = 0;
     private hop = 0;

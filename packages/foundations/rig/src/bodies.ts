@@ -70,13 +70,17 @@ export class Bodies {
     }
 
     draw(rigs: { rig: Rig; look: Look }[]) {
-        let body = 0, arms = 0, legs = 0, hands = 0, feet = 0, bows = 0, nocked = 0;
+        let body = 0, shadows = 0, arms = 0, legs = 0, hands = 0, feet = 0, bows = 0, nocked = 0;
         for (const { rig, look } of rigs)
         {
             const place = rig.place;
-            // a dark spot on the ground under the body
-            const x = place[12], z = place[14];
-            this.shadows.place(body, x, rig.ground(x, z) + .03, z, 0, 0, 0, 1.1);
+            // a soft spot on the ground under the body, none when it's down there itself
+            const x = place[12], z = place[14], upright = rig.upright;
+            if (upright > .3)
+            {
+                this.shadows.place(shadows, x, rig.ground(x, z) + .03, z, 0, 0, 0, .8 + .3 * upright);
+                this.shadows.tint(shadows++, [1, 1, 1]);
+            }
             multiply(this.world, place, rig.torso);
             multiply(this.world, this.world, compose(this.local, 0, 0, 0, 0, 0, 0, 0, 1, rig.heave, 1));
             this.torsos.matrix(body, this.world);
@@ -122,7 +126,8 @@ export class Bodies {
                 nocked++;
             }
         }
-        this.torsos.count = this.heads.count = this.shadows.count = body;
+        this.torsos.count = this.heads.count = body;
+        this.shadows.count = shadows;
         this.arms.count = arms;
         this.legs.count = legs;
         this.hands.count = hands;

@@ -205,11 +205,11 @@ export function hand(): MeshData {
     return new MeshBuilder().ball("#ffffff", { scale: [.045, .05, .055], tint: 1 }, 1).build();
 }
 
-/** A soft dark spot on the grass under a tree or a player, 1 m across. Shadows on the cheap. */
+/** A soft darker grass spot on the grass under a tree or a player, 1 m across. Shadows on the cheap. */
 export function blob(): MeshData {
     const builder = new MeshBuilder();
     const sides = 12;
-    const inner: Vec3 = [.3, .47, .2], outer: Vec3 = [.36, .55, .23];
+    const inner: Vec3 = [.36, .54, .22], outer: Vec3 = [.41, .6, .25];
     for (let i = 0; i < sides; i++)
     {
         const a = (i / sides) * Math.PI * 2, b = ((i + 1) / sides) * Math.PI * 2;
