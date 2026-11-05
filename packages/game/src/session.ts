@@ -1,4 +1,4 @@
-import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, MAX_DEFAULT, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Results, type Rules } from "@arrow-warfare/core";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Results, type Rules } from "@arrow-warfare/core";
 import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, Room, ROOM_MEDIA, type Invite, type Lobby } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
@@ -247,6 +247,8 @@ export class Session {
         if (change.arrows !== undefined) state.rules.arrows = Math.max(0, Math.min(10, Math.round(change.arrows)));
         if (change.trees && TREE_AMOUNTS.includes(change.trees)) state.rules.trees = change.trees;
         if (change.size && MAP_SIZES.includes(change.size)) state.rules.size = change.size;
+        if (change.damage && DAMAGES.includes(change.damage)) state.rules.damage = change.damage;
+        if (change.time && TIMES.includes(change.time)) state.rules.time = change.time;
         this.publish();
     }
 

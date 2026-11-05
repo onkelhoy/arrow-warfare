@@ -85,6 +85,20 @@
         "small": "Small",
         "medium": "Medium",
         "large": "Large"
+      },
+      "damage": "Damage",
+      "damages": {
+        "arcade": "Arcade: any hit kills",
+        "injuries": "Injuries"
+      },
+      "damageNote": "Injuries: the head and body kill. A hit arm shakes, a hit leg makes you hop.",
+      "time": "Time of day",
+      "times": {
+        "clock": "By each player's clock",
+        "night": "Night",
+        "dawn": "Dawn",
+        "noon": "Noon",
+        "sunset": "Sunset"
       }
     },
     "colour": {
@@ -183,7 +197,8 @@
       "alive": "Alive",
       "back": "Back to the lobby",
       "rematch": "Rematch",
-      "wait": "Waiting for the host..."
+      "wait": "Waiting for the host...",
+      "taken": "Hits taken"
     },
     "layout": {
       "open": "Place the bow button",

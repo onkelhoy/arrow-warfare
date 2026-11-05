@@ -42,6 +42,9 @@ export class Draw {
     pant = 0;
     /** Time for the sway's wobble, seconds. */
     private clock = Math.random() * 100;
+    /** A hurt arm: the most the pull grows a second (Infinity is free), and extra shake in radians. */
+    rate = Infinity;
+    shake = 0;
 
     /** Whether a draw can start (not panting). `arrows` is what's in the quiver. */
     canStart(arrows: number) {
@@ -55,14 +58,16 @@ export class Draw {
         return true;
     }
 
-    /** Touch: the pull from the thumb, 0..1. */
-    pull(amount: number) {
-        if (this.phase === "drawing") this.amount = Math.max(0, Math.min(1, amount));
+    /** Touch: the pull from the thumb, 0..1. A hurt arm only gets there slowly. */
+    pull(amount: number, dt = 0) {
+        if (this.phase !== "drawing") return;
+        const want = Math.max(0, Math.min(1, amount));
+        this.amount = want > this.amount && Number.isFinite(this.rate) ? Math.min(want, this.amount + this.rate * dt) : want;
     }
 
     /** Keyboard: drawing by holding, `dt` in seconds. */
     hold(dt: number) {
-        if (this.phase === "drawing") this.amount = Math.min(1, this.amount + dt / KEY_DRAW);
+        if (this.phase === "drawing") this.amount = Math.min(1, this.amount + (Number.isFinite(this.rate) ? Math.min(dt / KEY_DRAW, this.rate * dt) : dt / KEY_DRAW));
     }
 
     /** Lets go: a shot if it was drawn enough, else the bow comes down. */
@@ -135,9 +140,9 @@ export class Draw {
     get sway(): [number, number] {
         const drawn = this.phase === "drawing" ? this.amount : 0;
         const panting = this.phase === "panting" ? this.pant / PANT : 0;
-        const size = drawn * (SWAY_BASE + SWAY_TIRED * this.tired ** 1.5) + panting * .012;
+        const size = drawn * (SWAY_BASE + SWAY_TIRED * this.tired ** 1.5 + this.shake) + panting * .012;
         if (size <= 0) return [0, 0];
-        const t = this.clock * (1 + this.tired * 1.4);
+        const t = this.clock * (1 + this.tired * 1.4 + this.shake * 120);
         const yaw = Math.sin(t * 1.3) * .6 + Math.sin(t * 2.9 + 1.7) * .3 + Math.sin(t * 5.3 + .4) * .1;
         const pitch = Math.sin(t * 1.1 + 2.1) * .55 + Math.sin(t * 2.3 + .3) * .35 + Math.sin(t * 6.1) * .1;
         // panting heaves up and down with the breath

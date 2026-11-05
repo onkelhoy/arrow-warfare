@@ -85,6 +85,20 @@
         "small": "Liten",
         "medium": "Mellan",
         "large": "Stor"
+      },
+      "damage": "Skada",
+      "damages": {
+        "arcade": "Arkad: varje träff dödar",
+        "injuries": "Skador"
+      },
+      "damageNote": "Skador: huvudet och kroppen dödar. En träffad arm skakar, ett träffat ben får dig att hoppa.",
+      "time": "Tid på dygnet",
+      "times": {
+        "clock": "Efter varje spelares klocka",
+        "night": "Natt",
+        "dawn": "Gryning",
+        "noon": "Mitt på dagen",
+        "sunset": "Solnedgång"
       }
     },
     "colour": {
@@ -183,7 +197,8 @@
       "alive": "Levde",
       "back": "Tillbaka till lobbyn",
       "rematch": "Igen",
-      "wait": "Väntar på värden..."
+      "wait": "Väntar på värden...",
+      "taken": "Träffad"
     },
     "layout": {
       "open": "Placera bågknappen",

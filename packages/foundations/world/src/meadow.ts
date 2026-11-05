@@ -64,6 +64,18 @@ export class Meadow extends GameObject {
         if (name === "night") this.addFireflies();
     }
 
+    /** Another time of day, straight away: the light, and the fireflies at night. */
+    palette(name: PaletteName) {
+        this.renderer.light = structuredClone(PALETTES[name]);
+        if (name === "night" && !this.fireflies) this.addFireflies();
+        if (name !== "night" && this.fireflies)
+        {
+            this.renderer.removeBatch(this.fireflies);
+            this.fireflies = null;
+            this.flies.length = 0;
+        }
+    }
+
     override update(dt: number) {
         if (!this.fireflies) return;
         this.clock += dt;

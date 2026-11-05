@@ -1,0 +1,46 @@
+@import "@papit/theme";
+
+body {
+    background-color: var(--background, light-dark(oklch(96% 0 0), oklch(17% 0 0)));
+    color: var(--text, #080808);
+    margin: 0;
+    background-image: radial-gradient(circle at 50% 50%, var(--foreground-light) 1px, transparent 0);
+    background-size: 20px 20px;
+    width: 100vw;
+    height: 100vh;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.stats {
+    position: fixed;
+    inset: auto auto 1rem 1rem;
+    margin: 0;
+    font: 12px ui-monospace, monospace;
+    color: var(--text, #080808);
+}
+
+.panel {
+    position: fixed;
+    inset: 1rem 1rem auto auto;
+    display: grid;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    border-radius: .75rem;
+    background: color-mix(in oklch, var(--background, white) 85%, transparent);
+    font: 13px system-ui, sans-serif;
+
+    label {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    input {
+        inline-size: 6rem;
+    }
+}

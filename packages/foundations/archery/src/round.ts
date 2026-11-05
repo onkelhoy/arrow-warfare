@@ -23,7 +23,7 @@ export class Tally {
         let stats = this.stats.get(id);
         if (!stats)
         {
-            stats = { id, shots: 0, hits: 0, kills: 0, longest: 0, picked: 0, alive: 0, won: false };
+            stats = { id, shots: 0, hits: 0, kills: 0, longest: 0, picked: 0, taken: 0, alive: 0, won: false };
             this.stats.set(id, stats);
         }
         return stats;
@@ -38,6 +38,11 @@ export class Tally {
         stats.hits++;
         if (kill) stats.kills++;
         stats.longest = Math.max(stats.longest, Math.round(distance * 10) / 10);
+    }
+
+    /** An arrow went into `id`. */
+    taken(id: string) {
+        this.of(id).taken++;
     }
 
     picked(by: string) {

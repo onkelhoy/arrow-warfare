@@ -22,18 +22,28 @@ export type Team = { id: string; colour: number; ideas: Idea[] };
 export type TreeAmount = "none" | "few" | "many";
 export type MapSize = "small" | "medium" | "large";
 
+/** Arcade: any hit kills. Injuries: the head and torso kill, arms and legs wound. */
+export type Damage = "arcade" | "injuries";
+/** The light: each player's own clock, or the same hour for everyone. */
+export type TimeOfDay = "clock" | "night" | "dawn" | "noon" | "sunset";
+
 export type Rules = {
     /** Arrows per player, 0 is unlimited. */
     arrows: number;
     /** Trees in the meadow, the forest wall is always there. */
     trees: TreeAmount;
     size: MapSize;
+    damage: Damage;
+    time: TimeOfDay;
 };
 
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
 export const MAP_SIZES: MapSize[] = ["small", "medium", "large"];
 
-export const RULES_DEFAULT: Rules = { arrows: 4, trees: "few", size: "medium" };
+export const DAMAGES: Damage[] = ["arcade", "injuries"];
+export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
+
+export const RULES_DEFAULT: Rules = { arrows: 4, trees: "few", size: "medium", damage: "injuries", time: "clock" };
 
 export type GameState = {
     host: string;
@@ -64,6 +74,8 @@ export type PlayerStats = {
     /** Metres, the longest shot that hit. */
     longest: number;
     picked: number;
+    /** Arrows that hit them, wounds and the last one. */
+    taken: number;
     /** ms they lived, the whole round for the ones standing at the end. */
     alive: number;
     won: boolean;

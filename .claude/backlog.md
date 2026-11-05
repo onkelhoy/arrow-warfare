@@ -119,7 +119,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Trees in the field: none, few, many; map size: small, medium, large
 - [x] Friendly fire: always on for now, maybe a setting later
 - [ ] Damage: arcade (any body hit kills) or injuries (see F10)
-- [ ] Time of day: by clock (default) or fixed
+- [ ] Time of day: by clock (default) or fixed (night, dawn, noon, sunset)
 - [ ] Rounds: one, or best of N
 
 ### F7. Renderer (`render`)
@@ -185,6 +185,10 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Players left / team status
 - [x] Countdown and banners (you died, you win, a draw)
 - [ ] Energy, injury marks (milestone 4)
+- [ ] Damage darkens the screen edges, more with every hit taken, tinted a little red
+
+### F14b. Play demo view
+- [ ] The play view runs the game inside a papit codeblock preview, with controls next to it: time of day, seed, rules (arrows, trees, size, damage), bots on/off, injure me (arm, leg, both legs)
 
 ### F15. Results
 - [x] Winner, or draw
@@ -205,7 +209,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 1. **Together in a lobby** (F1, F2 playlists, F3, F4 lobby/room/invite, F5, F6 tab with what exists): open a link, give a name, get a colour, chat, the host locks, makes teams, everyone readies, 3 2 1. Deployed.
 2. **A field to walk in** (F7 basics, F8, F12 basic, F9 movement): host starts, everyone walks the same meadow and sees each other.
 3. **Shoot each other** (F9 archery, F14, F15 basic): arrows, hits, deaths, last one wins, results.
-4. **Silly bodies** (F11, F10): rig, walk, hop, injuries.
+4. **Silly bodies** (F11, F10, F14 energy/damage, F14b, F6 damage + time of day): rig, walk, hop, injuries, the play demo with controls.
 5. **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
 6. **Polish** (F16, quality, glb if wanted).
 

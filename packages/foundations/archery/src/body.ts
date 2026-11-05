@@ -1,13 +1,15 @@
 /**
- * Where a player can be hit: capsules on the stand-in body, in its own space (feet at 0, facing -z, right
- * is +x). They follow the body as it's placed, tipping over included.
+ * Where a player can be hit: capsules in the body's own space (feet at 0, facing -z, right is +x). They
+ * follow the body as it's placed, tipping over included. The rig gives them from its bones, `CAPSULES`
+ * is the body standing still.
  */
 
 export type Zone = "head" | "torso" | "leftArm" | "rightArm" | "leftLeg" | "rightLeg";
 export const ZONES: Zone[] = ["head", "torso", "leftArm", "rightArm", "leftLeg", "rightLeg"];
 
 export type Vec = [number, number, number];
-type Capsule = { zone: Zone; a: Vec; b: Vec; radius: number };
+/** `part` names the bone it's on, a stuck arrow rides along with it. */
+export type Capsule = { zone: Zone; part?: string; a: Vec; b: Vec; radius: number };
 
 export const CAPSULES: Capsule[] = [
     { zone: "head", a: [0, 1.17, 0], b: [0, 1.3, 0], radius: .25 },
@@ -42,13 +44,13 @@ export function toLocal(place: BodyPlace, world: Vec, w = 1): Vec {
     return [lx, dy * ct + z1 * st, -dy * st + z1 * ct];
 }
 
-export type BodyHit = { zone: Zone; t: number; point: Vec; direction: Vec };
+export type BodyHit = { zone: Zone; part: string; t: number; point: Vec; direction: Vec };
 
 /**
  * The first capsule the segment `from → to` goes through, `t` 0..1 along it. `point` and `direction` are in
  * body space, so a stuck arrow can ride along.
  */
-export function hitBody(place: BodyPlace, from: Vec, to: Vec): BodyHit | null {
+export function hitBody(place: BodyPlace, from: Vec, to: Vec, capsules: Capsule[] = CAPSULES): BodyHit | null {
     const a = toLocal(place, from), b = toLocal(place, to);
     // far away: skip the capsules
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2 - .7, mz = (a[2] + b[2]) / 2;
@@ -56,7 +58,7 @@ export function hitBody(place: BodyPlace, from: Vec, to: Vec): BodyHit | null {
     if (Math.hypot(mx, my, mz) > half + 1.2) return null;
 
     let best: BodyHit | null = null;
-    for (const capsule of CAPSULES)
+    for (const capsule of capsules)
     {
         const [s, , distance] = closest(a, b, capsule.a, capsule.b);
         if (distance > capsule.radius || (best && s >= best.t)) continue;
@@ -65,7 +67,7 @@ export function hitBody(place: BodyPlace, from: Vec, to: Vec): BodyHit | null {
         // back up from the closest point to about where the arrow went in
         const back = Math.sqrt(Math.max(0, capsule.radius ** 2 - distance ** 2)) * .6;
         const t = Math.max(0, s - back / length);
-        best = { zone: capsule.zone, t, point: [a[0] + (b[0] - a[0]) * t + direction[0] * .1, a[1] + (b[1] - a[1]) * t + direction[1] * .1, a[2] + (b[2] - a[2]) * t + direction[2] * .1], direction };
+        best = { zone: capsule.zone, part: capsule.part ?? capsule.zone, t, point: [a[0] + (b[0] - a[0]) * t + direction[0] * .1, a[1] + (b[1] - a[1]) * t + direction[1] * .1, a[2] + (b[2] - a[2]) * t + direction[2] * .1], direction };
     }
     return best;
 }

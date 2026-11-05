@@ -46,14 +46,14 @@ export function mountResults(root: HTMLElement, { state, me, host, onBack, onRem
         <h1>${title}</h1>
         <div class="aw-results-table">
             <table>
-                <thead><tr>${["player", "kills", "shots", "hits", "rate", "longest", "picked", "alive"].map(key => `<th>${t(`results.${key}`)}</th>`).join("")}</tr></thead>
+                <thead><tr>${["player", "kills", "shots", "hits", "rate", "longest", "picked", "taken", "alive"].map(key => `<th>${t(`results.${key}`)}</th>`).join("")}</tr></thead>
                 <tbody>${rows.map(stats => {
                     const found = player(stats.id);
                     const rate = stats.shots ? Math.round(stats.hits / stats.shots * 100) : 0;
                     return `<tr class="${stats.won ? "won" : ""} ${stats.id === me ? "me" : ""}">
                         <td>${found ? dot(wears(state, found)) : ""}${escape(found?.name ?? "?")}</td>
                         <td>${stats.kills}</td><td>${stats.shots}</td><td>${stats.hits}</td><td>${rate}%</td>
-                        <td>${stats.longest ? `${stats.longest.toFixed(1)} m` : "–"}</td><td>${stats.picked}</td><td>${seconds(stats.alive)}</td>
+                        <td>${stats.longest ? `${stats.longest.toFixed(1)} m` : "–"}</td><td>${stats.picked}</td><td>${stats.taken ?? 0}</td><td>${seconds(stats.alive)}</td>
                     </tr>`;
                 }).join("")}</tbody>
             </table>

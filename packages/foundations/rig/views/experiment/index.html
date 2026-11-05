@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rig | experiment</title>
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css" />
+
+    <script type="module" defer src="main.ts"></script>
+</head>
+
+<body>
+    <canvas>Your browser does not support HTML canvas</canvas>
+    <form class="panel">
+        <label>Walk speed <input name="speed" type="range" min="0" max="4.6" step=".1" value="1.6"></label>
+        <label>Draw <input name="draw" type="range" min="0" max="1" step=".01" value="0"></label>
+        <label>Pitch <input name="pitch" type="range" min="-1.2" max="1.2" step=".05" value="0"></label>
+        <label>Left arm hurt <input name="leftArm" type="checkbox"></label>
+        <label>Right arm hurt <input name="rightArm" type="checkbox"></label>
+        <label>Left leg hurt <input name="leftLeg" type="checkbox"></label>
+        <label>Right leg hurt <input name="rightLeg" type="checkbox"></label>
+        <label>Resting <input name="resting" type="checkbox"></label>
+        <label>Panting <input name="panting" type="checkbox"></label>
+        <label>Left handed <input name="left" type="checkbox"></label>
+        <label>Dead <input name="dead" type="checkbox"></label>
+        <label>Show hit capsules <input name="capsules" type="checkbox"></label>
+    </form>
+    <p class="stats">The middle one walks in a circle with your settings. Around it: standing, drawing, hopping, sitting, dead.</p>
+</body>
+
+</html>
