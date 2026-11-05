@@ -54,33 +54,33 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 ## Features
 
 ### F1. Project setup
-- [ ] `CLAUDE.md`, README, GitHub repo + remote, correct repo URLs in `package.json`
-- [ ] Folder layout above, `game/` app package
-- [ ] `npm start` shows every package's views, `npm run pages` builds `docs/`
-- [ ] `pages.yml`: push to `main` deploys to GitHub Pages
-- [ ] Root `asset/` copied into the app (songs, logo), page icons and manifest
+- [x] `CLAUDE.md`, README, GitHub repo + remote, correct repo URLs in `package.json`
+- [x] Folder layout above, `game/` app package
+- [x] `npm start` shows every package's views, `npm run pages` builds `docs/`
+- [x] `pages.yml`: push to `main` deploys to GitHub Pages
+- [x] Root `asset/` copied into the app (songs, logo), page icons and manifest
 
 ### F2. Sound
-- [ ] Web Audio core: master, music, sounds gains, unlock on first tap
-- [ ] `asset/audio/songs.json` with `lobby` and `game` arrays, plays them as playlists (shuffle, next on end, crossfade on switch)
+- [x] Web Audio core: master, music, sounds gains, unlock on first tap
+- [x] `asset/audio/songs.json` with `lobby` and `game` arrays, plays them as playlists (shuffle, next on end, crossfade on switch)
 - [ ] Music dip in slow motion and kill cam
 - [ ] Sound effects: string stretch (rising with draw), release twang, whoosh (3D panned by distance), thunk in wood, thunk in ground, hit body, grunt, pickup, footsteps in grass, hop, heartbeat when low on energy, gnome throw-back
 - [ ] Sources and licences in `CREDITS.md`
 
 ### F3. Settings and corner controls
-- [ ] Saved on the device: name, volumes, mute, touch layout, sensitivity
-- [ ] Corner buttons like cowboy: fullscreen, music on/off, volume
+- [ ] Saved on the device: name, volumes, mute (done), touch layout, sensitivity
+- [x] Corner buttons like cowboy: fullscreen, music on/off, volume
 - [ ] Ask for landscape during play
 
 ### F4. Networking
-- [ ] Lobby: port cowboy's chord lobby (oldest wins, race guard, merge, retry, waking server)
-- [ ] Room: host creates a mesh room inside the lobby, invite link `?game=…&host=…&by=…`
-- [ ] Invite dialog: QR code, link, copy/share button
-- [ ] Join by link, wait for a sleeping host, clear errors
-- [ ] Shared clock (pings), host migration
+- [x] Lobby: port cowboy's chord lobby (oldest wins, race guard, merge, retry, waking server)
+- [x] Room: host creates a mesh room inside the lobby, invite link `?game=…&host=…&by=…`
+- [x] Invite dialog: QR code, link, copy/share button
+- [x] Join by link, wait for a sleeping host, clear errors
+- [ ] Shared clock (pings) (done), host migration (not yet: when the host leaves, the game ends for everyone)
 - [ ] Message types: hello/profile, colour assignment, game info, lock, teams, team name idea/vote, rules, ready, force ready, chat, team chat, start, pose, shoot, hit, pickup, death, end
-- [ ] Password through the webrtc network password, max players and the lock through the room's `accept`
-- [ ] Ping per player from the clock pings
+- [x] Password, max players, the lock and kicks: app level, the host answers each guest's hello with `state` or `denied {reason}` (see notes)
+- [x] Ping per player from the clock pings
 - [ ] Binary pose packing to keep 10 phones light (9 links each)
 - [ ] Late joiner while a round runs waits in the lobby or spectates
 
@@ -94,28 +94,28 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 4. **Countdown**: the host starts, the shared clock gives 3, 2, 1, and play begins.
 
 **Host panel, tabs**
-- [ ] **Invite**: QR code, link, copy/share (hidden once locked)
-- [ ] **Game**: game name, optional password, max players. More than 10 is allowed, for computers
-- [ ] **Players**: the list, ping per player with a weak connection warning, kick
-- [ ] **Teams** (only once locked): create a team, add players from the list, delete the team. Each team gets a random unused colour and every member wears it, replacing their own. No teams means free for all. One vs all is just a team of one against the rest
+- [x] **Invite**: QR code, link, copy/share (hidden once locked)
+- [x] **Game**: game name, optional password, max players. More than 10 is allowed, for computers
+- [x] **Players**: the list, ping per player with a weak connection warning, kick
+- [x] **Teams** (only once locked): create a team, add players from the list, delete the team. Each team gets a random unused colour and every member wears it, replacing their own. No teams means free for all. One vs all is just a team of one against the rest
 - [ ] **Rules**: see F6
-- [ ] Players see every tab read-only, so everyone knows the rules
+- [x] Players see every tab read-only, so everyone knows the rules
 
 **Team names**
-- [ ] Team members write name ideas. The first one becomes the name straight away
-- [ ] Once there's more than one idea, members vote on them, shown like a little wooden sign or banner board. Most votes wins, and on a tie the earliest idea wins
+- [x] Team members write name ideas. The first one becomes the name straight away
+- [x] Once there's more than one idea, members vote on them, shown like a little wooden sign or banner board. Most votes wins, and on a tie the earliest idea wins
 
 **Chat** (plain text only)
-- [ ] Everyone's chat in the lobby, all the time
-- [ ] Team chat once you're in a team (a tab next to everyone's chat)
+- [x] Everyone's chat in the lobby, all the time
+- [x] Team chat once you're in a team (a tab next to everyone's chat)
 - [ ] During play: the dead chat (see F13)
 
 **Other**
-- [ ] Menu: name (saved), host a game, or arrive by link (asks for the password if there is one)
-- [ ] The host can go back from locked to open (to let someone in late)
+- [x] Menu: name (saved), host a game, or arrive by link (asks for the password if there is one)
+- [x] The host can go back from locked to open (to let someone in late)
 
 ### F6. Rules (host, Rules tab)
-- [ ] Arrows per player: 1–10 or unlimited (default 4)
+- [x] Arrows per player: 1–10 or unlimited (default 4)
 - [ ] Trees in the field: none, few, many; map size: small, medium, large
 - [ ] Friendly fire on or off (when there are teams)
 - [ ] Damage: arcade (any body hit kills) or injuries (see F10)
@@ -208,6 +208,14 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 6. **Polish** (F16, quality, glb if wanted).
 
 ---
+
+## Notes from milestone 1 (for the owner to review)
+- **Papit, api-extractor**: `@papit/bundle-ts` silently writes no `bundle.d.ts` when a public signature uses a lib type like `Iterable` or `Map` (api-extractor throws "Unable to follow symbol", the build still says nothing and exits 0). Worked around here with arrays and a private map. Worth reporting.
+- **Papit, carried join refused**: a join into a `ParentBootstrap` room that the host's `accept` refuses seemed to time out on the guest ("join timed out") instead of rejecting with `rejected`. So `accept` isn't used; the host answers the hello with a reason instead. Not dug into further.
+- The password lives only on the host, it's never sent out. A wrong one keeps the guest connected and asks again.
+- Ready only works once locked. Everyone ready starts the 3 2 1 by itself (one player alone too, handy for testing). The host can force ready 15 s after locking.
+- Selects in the Game and Rules tabs are native `<select>`: papit has no select yet.
+- Tested with playwright against a local signal server: host, password join, chat, lock (a late guest is turned away), teams, name ideas, team chat tab, ready, 3 2 1, play, back, kick. Not yet tested on real phones or the public signal server.
 
 ## Open questions
 - Draw vs look on touch (F12).
