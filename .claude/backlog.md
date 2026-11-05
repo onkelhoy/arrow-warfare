@@ -64,7 +64,7 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [x] Web Audio core: master, music, sounds gains, unlock on first tap
 - [x] `asset/audio/songs.json` with `lobby` and `game` arrays, plays them as playlists (shuffle, next on end, crossfade on switch)
 - [ ] Music dip in slow motion and kill cam
-- [ ] Sound effects: string stretch (rising with draw), release twang, whoosh (3D panned by distance), thunk in wood, thunk in ground, hit body, grunt, pickup, footsteps in grass, hop, heartbeat when low on energy, gnome throw-back
+- [ ] Sound effects: string stretch (rising with draw), release twang, whoosh (3D panned by distance), thunk in wood, thunk in ground, hit body, grunt, pickup, footsteps in grass, hop, heartbeat when low on energy, panting
 - [ ] Sources and licences in `CREDITS.md`
 
 ### F3. Settings and corner controls
@@ -117,9 +117,8 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 ### F6. Rules (host, Rules tab)
 - [x] Arrows per player: 1–10 or unlimited (default 4)
 - [x] Trees in the field: none, few, many; map size: small, medium, large
-- [ ] Friendly fire on or off (when there are teams)
+- [ ] Friendly fire: always on for now (milestone 3), maybe a setting later
 - [ ] Damage: arcade (any body hit kills) or injuries (see F10)
-- [ ] Gnomes on or off (arrows out of bounds come back)
 - [ ] Time of day: by clock (default) or fixed
 - [ ] Rounds: one, or best of N
 
@@ -144,10 +143,10 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 ### F9. Player and archery
 - [ ] First person camera (done), see your own body, bow and arms
 - [ ] Move fast when not aiming (done), slow while drawing
-- [ ] Draw, hold, release: power by draw time, slight sway when held long
+- [ ] Draw, hold, release: power by pull (touch) or time (space), heavier look while drawn. Held too long: growing sway, tunnel vision, the arrow slips (where you point + sway), then panting
 - [ ] Arrows: ballistic flight, stick into trees, ground and players
-- [ ] Limited quiver (setting), pick up arrows from the ground, trees, bodies, and out of yourself
-- [ ] Gnome return: an arrow out of bounds lands back near the edge a few seconds later, pointing in
+- [ ] Limited quiver (setting), pick up arrows by tapping them (about 3 m, not while drawing) from the ground, trees, bodies, and out of yourself
+- [ ] Arrows flying out stick in the forest wall at the edge (gnomes moved to `finesse.md`)
 - [ ] Hit zones: head, torso, left/right arm, left/right leg
 - [ ] Other players: interpolated poses, aim direction (done), draw state
 
@@ -169,9 +168,9 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 ### F12. Touch controls
 - [x] Joystick element for moving
 - [x] Look by dragging anywhere else
-- [ ] Drawing vs looking: **open, you're thinking about it.** Options: a draw button you place (hold to draw, drag on it to aim), or hold still on the look side to start drawing
+- [ ] Drawing vs looking: a bow button near the top, right of center. Pull down to draw (distance is power), the same thumb aims, back to the button cancels, let go shoots. The joystick stays as it is (ideas in `finesse.md`)
 - [ ] Place your own controls: an edit mode on the 2D layer to drag and resize them, saved
-- [ ] Desktop: mouse look with pointer lock, WASD (done), hold mouse to draw
+- [ ] Desktop: mouse look with pointer lock, WASD (done), hold space to draw, click to pick up
 
 ### F13. Spectate and kill cam
 - [ ] Ring buffer of the last seconds of the match
@@ -180,7 +179,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Dead chat (only dead players and the lobby see it)
 
 ### F14. HUD
-- [ ] Arrow count, energy, crosshair while drawing, injury marks
+- [ ] Arrow count, energy, injury marks. No crosshair: a marker only on a hit (red on a kill), with shake and vibration
 - [ ] Kill feed ("henry (red) shot anna (blue) in the leg")
 - [ ] Players left / team status
 - [ ] Countdown and banners
@@ -226,8 +225,6 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - The models are stand-ins (a body and a head), the rig comes in milestone 4.
 
 ## Open questions
-- Draw vs look on touch (F12).
-- Torso hit: dead at once, or two torso hits?
-- Can you pick up arrows while drawing? Can the dead drop their quiver?
-- Friendly fire: default on or off?
+- Torso hit: dead at once, or two torso hits? (milestone 3: any hit kills)
+- Can the dead drop their quiver?
 - ~~Repo~~: github.com/onkelhoy/arrow-warfare, live at https://onkelhoy.github.io/arrow-warfare/ (static `--base /arrow-warfare/`).
