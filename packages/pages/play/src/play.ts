@@ -14,6 +14,7 @@ import { Controls } from "./controls";
 import { FirstPerson } from "./firstperson";
 import { Hud, nameTag } from "./hud";
 import { Others } from "./others";
+import { Replay } from "./replay";
 import { Walker } from "./walker";
 import sheet from "./style.css" with { type: "css" };
 
@@ -62,7 +63,7 @@ const SETTLE = 2200;
 const SHOW_WINNER = 3200;
 
 /** `point` and `direction` are in the hit part's own space, `at` is where in the world. */
-type Hit = { arrow: string; victim: string; zone: Zone; part: string; point: Vec; direction: Vec; place: BodyPlace; at: Vec; distance: number };
+type Hit = { arrow: string; victim: string; zone: Zone; part: string; point: Vec; direction: Vec; place: BodyPlace; at: Vec; distance: number; time: number };
 
 /**
  * The round in first person. Everyone builds the same field from the state's seed and rules, starts at
@@ -131,6 +132,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const mine = player(me);
     const firstPerson = new FirstPerson(renderer, rgb(SKINS[mine?.skin ?? 0] ?? SKINS[0]), colourOf(me), colourOf(me));
     const arrows = new Arrows(renderer, field, me, colourOf);
+    const replay = new Replay();
 
     size();
     window.addEventListener("resize", size);
@@ -174,12 +176,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const unlisten = [
         net.onFast((data, sender) => {
             const pose = unpackPose(data);
-            if (pose) others.receive(sender, pose);
+            if (!pose || !player(sender)) return;
+            others.receive(sender, pose);
+            if (!dead.has(sender)) replay.pose(sender, pose);
         }),
 
         net.on("shoot", (shot: Shot, sender) => {
             if (shot?.by !== sender || !player(sender) || ![shot.time, shot.x, shot.y, shot.z, shot.dx, shot.dy, shot.dz, shot.speed].every(Number.isFinite)) return;
             if (!arrows.add(shot)) return;
+            replay.shot(shot);
             tally.shot(sender);
             if (sender !== me) sound("twang", [shot.x, shot.y, shot.z], .8);
         }),
@@ -191,6 +196,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             // arcade: every hit kills. Injuries: the head and torso do, arms and legs wound
             const lethal = !injuries || LETHAL.includes(hit.zone);
             const { victim } = hit;
+            const time = Number.isFinite(hit.time) ? hit.time : net.shared();
+            replay.hit({ arrow: hit.arrow, victim, zone: hit.zone, part: hit.part, point: hit.point, direction: hit.direction, place: hit.place, at: hit.at, time, lethal });
             tally.taken(victim);
             if (victim !== me) lethal ? others.kill(victim, hit.place) : others.hurt(victim, hit.zone);
             sound("body", hit.at);
@@ -210,12 +217,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 if (player(shooter)) tally.hit(shooter, hit.distance, false);
                 hud.line(`${tag(shooter)} ${t(shooter === victim ? "hud.hitSelf" : "hud.hit")} ${shooter === victim ? "" : tag(victim)} ${t(`hud.zone.${hit.zone}`)}`);
             }
-            else if (host && !dead.has(victim) && !over) broadcast("death", { id: victim, by: shooter, zone: hit.zone, distance: hit.distance });
+            else if (host && !dead.has(victim) && !over) broadcast("death", { id: victim, by: shooter, zone: hit.zone, distance: hit.distance, arrow: hit.arrow });
         }),
 
-        net.on("death", ({ id, by, zone, distance }, sender) => {
+        net.on("death", ({ id, by, zone, distance, arrow }, sender) => {
             if (sender !== state.host || dead.has(id)) return;
             dead.add(id);
+            replay.death({ id, by, arrow: String(arrow ?? ""), time: replay.hits.get(arrow)?.time ?? net.shared() });
             tally.death(id, net.shared());
             if (player(by)) tally.hit(by, Number(distance) || 0, true);
             hud.line(`${tag(by)} ${t(by === id ? "hud.shotSelf" : "hud.shot")} ${by === id ? "" : tag(id)} ${t(`hud.zone.${zone}`)}`);
@@ -330,6 +338,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     const hint = play.querySelector<HTMLElement>(".aw-play-hint")!;
     let sent = 0;
+    let recorded = 0;
     let wanted = false;
     let creak = 0;
     // a game object, so it runs before the frame is drawn and the camera is where I am now
@@ -387,7 +396,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         for (const { arrow, id, hit, place, local, at } of flown.struck)
         {
             const distance = Math.hypot(at[0] - arrow.shot.x, at[2] - arrow.shot.z);
-            struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance });
+            struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance, time: arrow.at });
         }
         arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
 
@@ -416,15 +425,21 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         controls.bow.disabled = quiver <= 0 || draw.phase === "panting";
         hint.hidden = coarse || controls.locked;
 
-        if (now - sent >= 1000 / POSE_RATE)
+        const pose = {
+            time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
+            draw: draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
+            wounds: wounds.bits, resting: wounds.resting,
+        };
+        // mine, a little more often than it's sent, while I'm alive
+        if (walker.alive && now - recorded >= 1000 / 30)
+        {
+            recorded = now;
+            replay.pose(me, pose);
+        }
+        if (now - sent >= 1000 / POSE_RATE && walker.alive)
         {
             sent = now;
-            const peers = everyone().filter(id => id !== me);
-            net.sendFast(peers, packPose({
-                time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
-                draw: draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
-                wounds: wounds.bits, resting: wounds.resting,
-            }));
+            net.sendFast(everyone().filter(id => id !== me), packPose(pose));
         }
     };
     engine.start();
@@ -434,7 +449,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
     const debug: PlayDebug = {
-        walker, draw, arrows, others, hud, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
+        walker, draw, arrows, others, hud, replay, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
         /** The view's "injure me": a wound as if an arrow went in, or `null` heals everything. */
         injure(zone: Zone | null) {
             if (!zone) return wounds.heal();

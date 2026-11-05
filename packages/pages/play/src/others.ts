@@ -160,7 +160,7 @@ export class Others {
 }
 
 /** The pose at `time`, blended between the two around it, carried on a little past the newest. */
-function sample(poses: Pose[], time: number): Pose {
+export function sample(poses: Pose[], time: number): Pose {
     const last = poses[poses.length - 1];
     if (time >= last.time)
     {
