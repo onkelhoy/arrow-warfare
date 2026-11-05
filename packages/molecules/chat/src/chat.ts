@@ -13,13 +13,13 @@ const KEEP = 100;
  * Plain text chat. The everyone tab is always there, the team tab only while `team(true)`.
  * `onSend(text, team)` is called with what was written, the lines come back through `add`.
  */
-export function mountChat(root: HTMLElement, onSend: (text: string, team: boolean) => void) {
+export function mountChat(root: HTMLElement, onSend: (text: string, team: boolean) => void, labels: { all?: string } = {}) {
     adopt(sheet);
     const chat = document.createElement("section");
     chat.className = "aw-chat";
     chat.innerHTML = `
         <div class="aw-chat-tabs" role="tablist">
-            <button role="tab" data-tab="all" aria-selected="true">${t("chat.everyone")}</button>
+            <button role="tab" data-tab="all" aria-selected="true">${labels.all ?? t("chat.everyone")}</button>
             <button role="tab" data-tab="team" aria-selected="false" hidden>${t("chat.team")}</button>
         </div>
         <ol class="aw-chat-lines" data-tab="all" aria-live="polite"></ol>

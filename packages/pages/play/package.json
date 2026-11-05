@@ -50,7 +50,8 @@
     "@arrow-warfare/bow-button": "*",
     "@arrow-warfare/sound": "*",
     "@papit/signals": "*",
-    "@arrow-warfare/rig": "*"
+    "@arrow-warfare/rig": "*",
+    "@arrow-warfare/chat": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

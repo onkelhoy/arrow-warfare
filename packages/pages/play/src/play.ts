@@ -1,8 +1,9 @@
 import "@papit/button";
+import { mountChat } from "@arrow-warfare/chat";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
 import { Draw, heading, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
-import { adopt, COLOURS, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
+import { adopt, CHAT_LENGTH, COLOURS, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig } from "@arrow-warfare/rig";
@@ -148,6 +149,22 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         return nameTag(found?.name ?? "?", COLOURS[found ? wears(state, found) : 0].hex);
     };
     const mine = player(me);
+    // the chat of the dead: only they send and see it
+    const deadChat = document.createElement("div");
+    deadChat.className = "aw-play-dead";
+    deadChat.hidden = true;
+    deadChat.innerHTML = `<button class="aw-play-dead-toggle" type="button">${t("chat.dead")}</button><div class="aw-play-dead-panel" hidden></div>`;
+    play.append(deadChat);
+    const deadToggle = deadChat.querySelector<HTMLButtonElement>("button")!;
+    const deadPanel = deadChat.querySelector<HTMLElement>(".aw-play-dead-panel")!;
+    const chat = mountChat(deadPanel, text => {
+        const to = [...new Set([...dead, me])];
+        net.send(to, "deadchat", { text });
+    }, { all: t("chat.dead") });
+    deadToggle.addEventListener("click", () => {
+        deadPanel.hidden = !deadPanel.hidden;
+        deadToggle.classList.remove("unread");
+    });
     const firstPerson = new FirstPerson(renderer, rgb(SKINS[mine?.skin ?? 0] ?? SKINS[0]), colourOf(me), colourOf(me));
     const arrows = new Arrows(renderer, field, me, colourOf);
     const replay = new Replay();
@@ -523,6 +540,16 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (host) check();
         }),
 
+        net.on("deadchat", ({ text }, sender) => {
+            const found = player(sender);
+            // only the dead talk, and only the dead listen
+            if (!found || walker.alive || (!dead.has(sender) && sender !== me) || typeof text !== "string") return;
+            const clean = text.replace(/\s+/g, " ").trim().slice(0, CHAT_LENGTH);
+            if (!clean) return;
+            chat.add({ from: sender, name: found.name, colour: wears(state, found), text: clean, team: false });
+            if (deadPanel.hidden) deadToggle.classList.add("unread");
+        }),
+
         net.on("pick", ({ arrow: id }, sender) => {
             if (!host || over) return;
             const arrow = arrows.all.get(id);
@@ -727,6 +754,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         hud.pickable(canPick && controls.locked && !!arrows.pickable(width / 2, height / 2, radius * .6, walker.body, now, camera, width, height, rigOf));
         for (let i = controls.pulls(); i > 0; i--) pullOut();
 
+        deadChat.hidden = walker.alive;
         hud.arrows(quiver);
         hud.kills(kills);
         hud.tired(draw.tunnel);
@@ -819,6 +847,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             arrows.destroy();
             film.destroy();
             winnerSign.remove();
+            deadChat.remove();
             horns.remove();
             blood.destroy();
             firstPerson.destroy();

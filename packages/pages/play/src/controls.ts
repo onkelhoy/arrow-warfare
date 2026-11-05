@@ -189,7 +189,7 @@ export class Controls {
     }
 
     private handlekey = (event: KeyboardEvent) => {
-        if ((event.target as HTMLElement)?.closest?.("input, textarea, [contenteditable]")) return;
+        if ((event.target as HTMLElement)?.closest?.("input, textarea, [contenteditable], pap-input")) return;
         if (event.code === "Space")
         {
             event.preventDefault();

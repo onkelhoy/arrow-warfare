@@ -501,3 +501,39 @@
 .aw-play-horn:last-child {
     --flip: -1;
 }
+
+/* the chat of the dead: a button, and a small panel over the bottom left */
+.aw-play-dead {
+    position: absolute;
+    z-index: 3;
+    inset: auto auto max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    display: grid;
+    gap: 6px;
+    inline-size: min(320px, 60vw);
+    color: #2b1d10;
+}
+
+.aw-play-dead-toggle {
+    justify-self: start;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 85%);
+    color: inherit;
+    font: 600 13px ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+    cursor: pointer;
+}
+
+.aw-play-dead-toggle.unread::after {
+    content: " •";
+    color: #e2553d;
+}
+
+.aw-play-dead .aw-chat-lines {
+    max-block-size: 8rem;
+    min-block-size: 3rem;
+}
+
+.aw-play-dead .aw-chat-tabs {
+    display: none;
+}
