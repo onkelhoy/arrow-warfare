@@ -19,10 +19,21 @@ export type Idea = { id: string; by: string; text: string; votes: string[] };
 
 export type Team = { id: string; colour: number; ideas: Idea[] };
 
+export type TreeAmount = "none" | "few" | "many";
+export type MapSize = "small" | "medium" | "large";
+
 export type Rules = {
     /** Arrows per player, 0 is unlimited. */
     arrows: number;
+    /** Trees in the meadow, the forest wall is always there. */
+    trees: TreeAmount;
+    size: MapSize;
 };
+
+export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
+export const MAP_SIZES: MapSize[] = ["small", "medium", "large"];
+
+export const RULES_DEFAULT: Rules = { arrows: 4, trees: "few", size: "medium" };
 
 export type GameState = {
     host: string;
@@ -44,7 +55,7 @@ export type ChatLine = { from: string; name: string; colour: number; text: strin
 
 export const MAX_DEFAULT = 10;
 export const MAX_LIMIT = 32;
-export const ARROWS_DEFAULT = 4;
+export const ARROWS_DEFAULT = RULES_DEFAULT.arrows;
 export const NAME_IDEA_LENGTH = 24;
 export const CHAT_LENGTH = 200;
 /** ms after locking before the host can force someone ready. */

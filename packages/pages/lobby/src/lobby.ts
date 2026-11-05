@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, ARROWS_DEFAULT, COLOURS, escape, FORCE_AFTER, MAX_LIMIT, NAME_IDEA_LENGTH, t, teamName, WEAK_PING, wears, type ChatLine, type GameState, type Player, type Rules } from "@arrow-warfare/core";
+import { adopt, ARROWS_DEFAULT, COLOURS, escape, FORCE_AFTER, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, RULES_DEFAULT, t, teamName, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type GameState, type MapSize, type Player, type Rules, type TreeAmount } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -77,6 +77,12 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                         ${Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("")}
                         <option value="0">${t("rules.unlimited")}</option>
                     </select></label>
+                    <label>${t("rules.trees")} <select name="trees">
+                        ${TREE_AMOUNTS.map(amount => `<option value="${amount}">${t(`rules.tree.${amount}`)}</option>`).join("")}
+                    </select></label>
+                    <label>${t("rules.size")} <select name="size">
+                        ${MAP_SIZES.map(size => `<option value="${size}">${t(`rules.map.${size}`)}</option>`).join("")}
+                    </select></label>
                 </div>
             </pap-tabpanel>
         </pap-tabs>
@@ -112,6 +118,10 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     password.addEventListener("input", () => actions.game({ password: password.value ?? "" }));
     max.addEventListener("change", () => actions.game({ max: Number(max.value) }));
     arrows.addEventListener("change", () => actions.rules({ arrows: Number(arrows.value) }));
+    const trees = find<HTMLSelectElement>("select[name=trees]");
+    const size = find<HTMLSelectElement>("select[name=size]");
+    trees.addEventListener("change", () => actions.rules({ trees: trees.value as TreeAmount }));
+    size.addEventListener("change", () => actions.rules({ size: size.value as MapSize }));
 
     /** A field being typed in keeps what's typed. */
     const set = (field: Field | HTMLSelectElement, value: string) => {
@@ -249,11 +259,13 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         showTab("invite", !locked);
         showTab("teams", locked);
 
-        for (const field of [gameName, password, max, arrows]) field.toggleAttribute("disabled", !host);
+        for (const field of [gameName, password, max, arrows, trees, size]) field.toggleAttribute("disabled", !host);
         set(gameName, state.name);
         if (!host) set(password, state.password ? "••••" : "");
         set(max, String(state.max));
         set(arrows, String(state.rules.arrows ?? ARROWS_DEFAULT));
+        set(trees, state.rules.trees ?? RULES_DEFAULT.trees);
+        set(size, state.rules.size ?? RULES_DEFAULT.size);
 
         draw(".aw-players", players());
         draw(".aw-teams", teams());

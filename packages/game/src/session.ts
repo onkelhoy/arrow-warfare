@@ -1,4 +1,4 @@
-import { ARROWS_DEFAULT, CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, MAX_DEFAULT, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, SKINS, wears, type ChatLine, type GameState, type Rules } from "@arrow-warfare/core";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, MAX_DEFAULT, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Rules } from "@arrow-warfare/core";
 import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, Room, type Invite, type Lobby } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
@@ -68,7 +68,7 @@ export class Session {
             phase: "open",
             lockedAt: 0,
             go: 0,
-            rules: { arrows: ARROWS_DEFAULT },
+            rules: { ...RULES_DEFAULT },
             players: [],
             teams: [],
         };
@@ -241,6 +241,8 @@ export class Session {
         const state = this.state;
         if (!state || !this.isHost) return;
         if (change.arrows !== undefined) state.rules.arrows = Math.max(0, Math.min(10, Math.round(change.arrows)));
+        if (change.trees && TREE_AMOUNTS.includes(change.trees)) state.rules.trees = change.trees;
+        if (change.size && MAP_SIZES.includes(change.size)) state.rules.size = change.size;
         this.publish();
     }
 

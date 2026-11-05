@@ -68,7 +68,19 @@
     },
     "rules": {
       "arrows": "Pilar per spelare",
-      "unlimited": "Obegränsat"
+      "unlimited": "Obegränsat",
+      "trees": "Träd på ängen",
+      "tree": {
+        "none": "Inga",
+        "few": "Några",
+        "many": "Många"
+      },
+      "size": "Ängens storlek",
+      "map": {
+        "small": "Liten",
+        "medium": "Mellan",
+        "large": "Stor"
+      }
     },
     "colour": {
       "red": "röd",

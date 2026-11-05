@@ -3,7 +3,7 @@
 Host starts, everyone walks the same meadow and sees each other. Covers F7 basics, F8, F12 basic, F9 movement, plus the views and theme fix.
 
 ## Where we are
-Confirmed, running all tasks. Next: task 8.
+Confirmed, running all tasks. Next: task 9.
 
 ## Views and theme (first, small)
 Found: every view except `game` puts `@import "@papit/theme"` in an inline `<style>`. The dev server only rewrites bare `@import`s in served `.css` files, so the browser asks for `views/x/@papit/theme`, gets a 500, and the hardcoded `#9fd6f0` sky blue shows instead of the theme.
@@ -17,7 +17,7 @@ Found: every view except `game` puts `@import "@papit/theme"` in an inline `<sty
 - [x] **5. Low-poly models in code** (in `render` or a `models` part of `world`): tree (a few kinds), grass tuft, flower, mushroom, stone, log, and a placeholder player (round head, big torso, in their colour). Silly bodies proper come in milestone 4. View: all models side by side.
 - [x] **6. `world` foundation** (`foundations/world`). Seeded: the same seed builds the same field on every phone. Gentle heightmap ground, forest wall at the edge, trees by setting, grass, flowers, mushrooms, stones, a log or stump. Spawn points spread apart, by team. Collision data: trunk circles and the edge. View: a meadow from a seed you type in, orbit camera.
 - [x] **7. Time of day.** Palettes for night, dawn gold, noon and sunset (copied from cowboy's atmosphere) driving sky, sun, fog and light colours, from the clock by default. Fireflies at night.
-- [ ] **8. Rules: trees and map size.** Rules tab gets trees (none, few, many) and map size (small, medium, large). They go into `Rules` and into the world.
+- [x] **8. Rules: trees and map size.** Rules tab gets trees (none, few, many) and map size (small, medium, large). They go into `Rules` and into the world.
 - [ ] **9. `joystick` atom** (`aw-joystick`, made with `npm run create`). Touch joystick that appears where you put your thumb on its side, gives a direction and strength. View with a codeblock preview.
 - [ ] **10. Controls.** Touch: joystick on the left, look by dragging anywhere else. Desktop: pointer lock mouse look and WASD. Sensitivity saved in settings. Drawing the bow is milestone 3 and stays open (F12 question).
 - [ ] **11. First person movement.** Camera at eye height, follows the ground, a little head bob. Fast walk (slow-while-drawing comes with the bow). Circle collision against trunks and the forest edge.

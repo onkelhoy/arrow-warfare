@@ -68,7 +68,19 @@
     },
     "rules": {
       "arrows": "Arrows per player",
-      "unlimited": "Unlimited"
+      "unlimited": "Unlimited",
+      "trees": "Trees in the meadow",
+      "tree": {
+        "none": "None",
+        "few": "A few",
+        "many": "Many"
+      },
+      "size": "Meadow size",
+      "map": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      }
     },
     "colour": {
       "red": "red",
