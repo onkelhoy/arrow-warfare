@@ -43,7 +43,7 @@
       "title": "3, 2, 1... kör!",
       "back": "Tillbaka till lobbyn",
       "waitHost": "Väntar på att värden går tillbaka till lobbyn.",
-      "hint": "Klicka för att se dig om, gå med WASD",
+      "hint": "Klicka för att se dig om, WASD för att gå, håll mellanslag för att spänna",
       "turn": "Vänd telefonen på sidan 🔄"
     },
     "lobby": {
@@ -126,7 +126,8 @@
       "open": "Öppet: vänner kan gå med. Värden låser spelet när alla är här.",
       "locked": "Låst: tryck på redo. {count} av {total} redo.",
       "countdown": "Gör dig redo...",
-      "play": "Spelar"
+      "play": "Spelar",
+      "results": "Rundan är slut"
     },
     "status": {
       "joining": "Går med i spelet...",
@@ -142,6 +143,51 @@
       "locked": "Spelet är låst eller fullt. Be värden låsa upp.",
       "full": "Spelet är fullt.",
       "gone": "Ingen svarade på länken. Spelet kan vara slut, be om en ny länk."
+    },
+    "hud": {
+      "arrow": "pil",
+      "arrows": "pilar",
+      "unlimited": "Obegränsat med pilar",
+      "left": "{count} kvar",
+      "shot": "sköt",
+      "shotSelf": "sköt sig själv",
+      "youDied": "{name} fick dig",
+      "youSelf": "Du sköt dig själv",
+      "youWin": "Du vann!",
+      "wins": "{name} vann!",
+      "draw": "Oavgjort!",
+      "zone": {
+        "head": "i huvudet",
+        "torso": "i kroppen",
+        "leftArm": "i vänster arm",
+        "rightArm": "i höger arm",
+        "leftLeg": "i vänster ben",
+        "rightLeg": "i höger ben"
+      }
+    },
+    "results": {
+      "title": "Rundan är slut",
+      "wins": "{name} vann!",
+      "you": "Du vann!",
+      "draw": "Oavgjort!",
+      "player": "Spelare",
+      "shots": "Skott",
+      "hits": "Träffar",
+      "rate": "Träffsäkerhet",
+      "kills": "Fällda",
+      "longest": "Längsta",
+      "picked": "Upplockade",
+      "alive": "Levde",
+      "back": "Tillbaka till lobbyn",
+      "rematch": "Igen",
+      "wait": "Väntar på värden..."
+    },
+    "layout": {
+      "open": "Placera bågknappen",
+      "title": "Dra bågknappen dit tummen vill ha den",
+      "size": "Storlek",
+      "reset": "Återställ",
+      "done": "Klar"
     }
   }
 }

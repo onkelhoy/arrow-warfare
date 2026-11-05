@@ -104,3 +104,157 @@
 .aw-play [hidden] {
     display: none;
 }
+
+.aw-play-bow {
+    position: absolute;
+    z-index: 1;
+    display: none;
+}
+
+@media (pointer: coarse) {
+    .aw-play-bow {
+        display: block;
+    }
+}
+
+.aw-hud {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    color: white;
+    font: 600 14px ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
+}
+
+.aw-hud-tunnel {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 22%, rgb(12 8 4 / 70%) 55%, rgb(12 8 4 / 97%) 85%);
+}
+
+.aw-hud-marker {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    inline-size: 26px;
+    block-size: 26px;
+    translate: -50% -50%;
+    opacity: 0;
+
+    i {
+        position: absolute;
+        inset: 50% auto auto 50%;
+        inline-size: 3px;
+        block-size: 9px;
+        background: white;
+        border-radius: 2px;
+        box-shadow: 0 0 3px rgb(0 0 0 / 50%);
+        translate: -50% -50%;
+    }
+
+    i:nth-child(1) { rotate: 45deg; translate: calc(-50% + 7px) calc(-50% - 7px); }
+    i:nth-child(2) { rotate: -45deg; translate: calc(-50% - 7px) calc(-50% - 7px); }
+    i:nth-child(3) { rotate: -45deg; translate: calc(-50% + 7px) calc(-50% + 7px); }
+    i:nth-child(4) { rotate: 45deg; translate: calc(-50% - 7px) calc(-50% + 7px); }
+}
+
+.aw-hud-marker.kill i {
+    background: #ff3b2f;
+}
+
+.aw-hud-marker.show {
+    animation: aw-hud-marker 420ms ease-out;
+}
+
+@keyframes aw-hud-marker {
+    0% { opacity: 1; scale: 1.5; }
+    25% { opacity: 1; scale: 1; }
+    100% { opacity: 0; scale: 1; }
+}
+
+.aw-hud-hand {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    inline-size: 22px;
+    block-size: 22px;
+    translate: -50% -50%;
+    fill: none;
+    stroke: white;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 60%));
+    opacity: .85;
+}
+
+.aw-hud-left {
+    position: absolute;
+    inset: max(12px, env(safe-area-inset-top)) 0 auto 0;
+    text-align: center;
+}
+
+.aw-hud-feed {
+    position: absolute;
+    inset: 56px auto auto max(12px, env(safe-area-inset-left));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+
+    li {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgb(0 0 0 / 30%);
+        animation: aw-hud-in 200ms ease-out;
+    }
+}
+
+.aw-hud-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    span {
+        inline-size: 8px;
+        block-size: 8px;
+        border-radius: 50%;
+        border: 1px solid white;
+    }
+}
+
+@keyframes aw-hud-in {
+    from { opacity: 0; translate: -8px 0; }
+}
+
+.aw-hud-quiver {
+    position: absolute;
+    inset: auto max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) auto;
+    font-size: 15px;
+
+    b {
+        font-size: 22px;
+    }
+}
+
+.aw-hud-quiver.empty {
+    color: #ffb4a8;
+}
+
+.aw-hud-banner {
+    position: absolute;
+    inset: 28% 0 auto 0;
+    text-align: center;
+    font-size: 28px;
+    font-weight: 800;
+    animation: aw-hud-banner 300ms ease-out;
+}
+
+.aw-hud-banner.win {
+    color: #ffe27a;
+}
+
+@keyframes aw-hud-banner {
+    from { opacity: 0; scale: .8; }
+}

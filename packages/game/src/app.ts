@@ -5,6 +5,7 @@ import { mountLobby } from "@arrow-warfare/lobby";
 import { mountMenu } from "@arrow-warfare/menu";
 import { ANCHORS, APP, BEACON, HANDSHAKE_TIMEOUT, httpUrl, Lobby, LOBBY_NAME, parseInvite, RESCAN, RTC, signalUrl, withoutInvite } from "@arrow-warfare/net";
 import { mountPlay } from "@arrow-warfare/play";
+import { mountResults } from "@arrow-warfare/results";
 import { Sound } from "@arrow-warfare/sound";
 
 import { Session, type End } from "./session";
@@ -62,6 +63,7 @@ export async function startApp(root: HTMLElement = document.body) {
         const entry = current as ReturnType<typeof mountMenu>;
         let page: ReturnType<typeof mountLobby> | null = null;
         let playing: Playing | null = null;
+        let results: Screen | null = null;
         let phase = "";
 
         const session: Session = new Session(lobby, () => settings().name, {
@@ -90,7 +92,11 @@ export async function startApp(root: HTMLElement = document.body) {
                 if (state.phase === "countdown" && phase !== "countdown") page.countdown(session.local(state.go));
                 if (state.phase === "play" && !playing)
                 {
-                    playing = mountPlay(screen, { state, me: session.me, host: session.isHost, net: session.net(), onBack: () => session.back() });
+                    playing = mountPlay(screen, {
+                        state, me: session.me, host: session.isHost, net: session.net(), sound,
+                        onBack: () => session.back(),
+                        onEnd: ended => session.finish(ended),
+                    });
                     page.element.hidden = true;
                     sound.playlist("game");
                 }
@@ -101,6 +107,21 @@ export async function startApp(root: HTMLElement = document.body) {
                     playing = null;
                     page.element.hidden = false;
                     sound.playlist("lobby");
+                }
+                if (state.phase === "results" && !results && state.results)
+                {
+                    results = mountResults(screen, {
+                        state, me: session.me, host: session.isHost,
+                        onBack: () => session.back(),
+                        onRematch: () => session.rematch(),
+                    });
+                    page.element.hidden = true;
+                }
+                else if (state.phase !== "results" && results)
+                {
+                    results.remove();
+                    results = null;
+                    page.element.hidden = state.phase === "play";
                 }
                 phase = state.phase;
             },
@@ -114,6 +135,7 @@ export async function startApp(root: HTMLElement = document.body) {
             end(reason: End) {
                 stopName();
                 playing?.remove();
+                results?.remove();
                 history.replaceState(null, "", withoutInvite(location.href));
                 menu(reason === "left" ? "" : t(`end.${reason}`));
             },

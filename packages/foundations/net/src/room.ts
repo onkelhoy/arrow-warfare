@@ -108,8 +108,10 @@ export class Room {
         return shared - this.offset;
     }
 
+    /** Returns a function that stops listening. */
     on(type: string, handler: Handler) {
         this.handlers.set(type, [...(this.handlers.get(type) ?? []), handler]);
+        return () => { this.handlers.set(type, (this.handlers.get(type) ?? []).filter(other => other !== handler)); };
     }
 
     onLink(handler: (peer: string, open: boolean) => void) {

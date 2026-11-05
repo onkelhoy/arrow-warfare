@@ -1,0 +1,55 @@
+{
+  "name": "@arrow-warfare/results",
+  "description": "The end of a round: the winner or a draw, and everyone's stats.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "results"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/pages/results",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/pages/results"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/button": "*",
+    "@arrow-warfare/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
+  },
+  "papit": {
+    "publish": false,
+    "type": "web-component",
+    "main": "results",
+    "htmlprefix": "aw"
+  }
+}

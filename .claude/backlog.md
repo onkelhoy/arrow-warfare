@@ -64,11 +64,11 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [x] Web Audio core: master, music, sounds gains, unlock on first tap
 - [x] `asset/audio/songs.json` with `lobby` and `game` arrays, plays them as playlists (shuffle, next on end, crossfade on switch)
 - [ ] Music dip in slow motion and kill cam
-- [ ] Sound effects: string stretch (rising with draw), release twang, whoosh (3D panned by distance), thunk in wood, thunk in ground, hit body, grunt, pickup, footsteps in grass, hop, heartbeat when low on energy, panting
+- [ ] Sound effects (stand-ins made in code: creak, twang, thunk in wood and ground, body hit, kill thunk, panting, pickup, empty): string stretch (rising with draw), release twang, whoosh (3D panned by distance), thunk in wood, thunk in ground, hit body, grunt, pickup, footsteps in grass, hop, heartbeat when low on energy, panting
 - [ ] Sources and licences in `CREDITS.md`
 
 ### F3. Settings and corner controls
-- [ ] Saved on the device: name, volumes, mute, look sensitivity (done), touch layout
+- [x] Saved on the device: name, volumes, mute, look sensitivity, bow button place
 - [x] Corner buttons like cowboy: fullscreen, music on/off, volume
 - [x] Ask for landscape during play
 
@@ -117,7 +117,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 ### F6. Rules (host, Rules tab)
 - [x] Arrows per player: 1–10 or unlimited (default 4)
 - [x] Trees in the field: none, few, many; map size: small, medium, large
-- [ ] Friendly fire: always on for now (milestone 3), maybe a setting later
+- [x] Friendly fire: always on for now, maybe a setting later
 - [ ] Damage: arcade (any body hit kills) or injuries (see F10)
 - [ ] Time of day: by clock (default) or fixed
 - [ ] Rounds: one, or best of N
@@ -141,14 +141,15 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Collisions: trunks and the edge
 
 ### F9. Player and archery
-- [ ] First person camera (done), see your own body, bow and arms
-- [ ] Move fast when not aiming (done), slow while drawing
-- [ ] Draw, hold, release: power by pull (touch) or time (space), heavier look while drawn. Held too long: growing sway, tunnel vision, the arrow slips (where you point + sway), then panting
-- [ ] Arrows: ballistic flight, stick into trees, ground and players
-- [ ] Limited quiver (setting), pick up arrows by tapping right on them, standing close (about 1.5 m, not while drawing) from the ground, trees, bodies, and out of yourself
-- [ ] Arrows flying out stick in the forest wall at the edge (gnomes moved to `finesse.md`)
-- [ ] Hit zones: head, torso, left/right arm, left/right leg
-- [ ] Other players: interpolated poses, aim direction (done), draw state
+- [x] First person camera, see your own bow and arms (the body comes with the rig)
+- [x] Move fast when not aiming, slow while drawing
+- [x] Draw, hold, release: power by pull (touch) or time (space), heavier look while drawn. Held too long: growing sway, tunnel vision, the arrow slips (where you point + sway), then panting
+- [x] Arrows: ballistic flight, stick into trees, ground and players
+- [x] Limited quiver (setting), pick up arrows by tapping near them on screen, standing close (about 1.5 m, not while drawing) from the ground, trees, bodies
+- [ ] Out of yourself (with injuries)
+- [x] Arrows flying out stick in the forest wall at the edge (gnomes moved to `finesse.md`)
+- [x] Hit zones: head, torso, left/right arm, left/right leg
+- [x] Other players: interpolated poses, aim direction, draw state, bow held low or up, panting
 
 ### F10. Injuries (when the setting is on)
 - [ ] Head or torso: dead
@@ -162,15 +163,15 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Armature rig with rigid parts
 - [ ] Procedural walk: feet plant with IK, step when the foot is too far behind
 - [ ] Hop, sit, draw pose, aim with the upper body following pitch
-- [ ] Death: fall over (simple ragdoll or a tipping animation)
+- [ ] Death: fall over (a tipping stand-in is in, the real one with the rig)
 - [ ] Arrows stuck in bodies show and move with the bone
 
 ### F12. Touch controls
 - [x] Joystick element for moving
 - [x] Look by dragging anywhere else
-- [ ] Drawing vs looking: a bow button near the top, right of center. Pull down to draw (distance is power), the same thumb aims, back to the button cancels, let go shoots. The joystick stays as it is (ideas in `finesse.md`)
-- [ ] Place your own controls: an edit mode on the 2D layer to drag and resize them, saved
-- [ ] Desktop: mouse look with pointer lock, WASD (done), hold space to draw, click to pick up
+- [x] Drawing vs looking: a bow button near the top, right of center. Pull down to draw (distance is power), the same thumb aims, back to the button cancels, let go shoots. The joystick stays as it is (ideas in `finesse.md`)
+- [x] Place your own controls: drag and resize the bow button (settings), saved
+- [x] Desktop: mouse look with pointer lock, WASD, hold space to draw, click to pick up
 
 ### F13. Spectate and kill cam
 - [ ] Ring buffer of the last seconds of the match
@@ -179,15 +180,17 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Dead chat (only dead players and the lobby see it)
 
 ### F14. HUD
-- [ ] Arrow count, energy, injury marks. No crosshair: a marker only on a hit (red on a kill), with shake and vibration
-- [ ] Kill feed ("henry (red) shot anna (blue) in the leg")
-- [ ] Players left / team status
-- [ ] Countdown and banners
+- [x] Arrow count. No crosshair: a marker only on a hit (red on a kill), with shake and vibration
+- [x] Kill feed ("henry (red) shot anna (blue) in the leg")
+- [x] Players left / team status
+- [x] Countdown and banners (you died, you win, a draw)
+- [ ] Energy, injury marks (milestone 4)
 
 ### F15. Results
-- [ ] Winner, or draw
-- [ ] Per player: arrows shot, hits, hit rate, kills, longest shot, picked up, damage taken, time alive
-- [ ] Back to lobby, rematch
+- [x] Winner, or draw
+- [x] Per player: arrows shot, hits, hit rate, kills, longest shot, picked up, time alive
+- [ ] Damage taken (with injuries)
+- [x] Back to lobby, rematch
 
 ### F16. Phone polish
 - [ ] Test on real phones, find the player limit
@@ -223,6 +226,17 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - Tested in headless Chrome: three tabs through lobby, 3 2 1, walking (poses all on the lossy channel), back to the lobby. A phone sized touch run: joystick, drag to look, the turn-sideways prompt. 60 fps on an M3 at 3x. Not yet on a real phone.
 - Look speed is in the settings dialog (corner).
 - The models are stand-ins (a body and a head), the rig comes in milestone 4.
+
+## Notes from milestone 3 (for the owner to review)
+- New packages: `foundations/archery` (draw, fatigue, flight, hit zones, stats), `atoms/bow-button`, `molecules/touch-layout`, `pages/results`. Sound effects are made in code (`sound/src/sfx.ts`) until real ones come.
+- **Bow button:** pull down sets the power, sideways turns. At full pull it anchors and the thumb aims both ways (so pulling down doesn't tip the view). Back on the button lets the bow down. Placed in settings → "Place the bow button" (touch only).
+- **Fatigue:** steady for 2 s at a strong draw, then sway grows, tunnel vision from 4.5 s, the arrow slips at 7.5 s, then 3.2 s of panting. Rest gets it back twice as fast. Numbers are in `archery/src/draw.ts`.
+- **Shots:** full draw 52 m/s, weakest 14 m/s, a flat full shot from standing lands about 25 m out. Every phone flies every arrow from the shared clock.
+- **Hits:** the one hit decides and tells everyone, the host turns it into a death. Every hit kills for now. The host waits 2.2 s after a death before calling the end, so a last trade is a draw. A round started with one side (testing alone) doesn't end by itself.
+- **Pickup:** within 1.6 m sideways, a tap within about 14% of the screen height of the arrow (nearest wins), the host settles who got it.
+- **Vibration** is Android only. iPhone gets the shakes and sounds.
+- My own right hand isn't drawn, at a full draw it's right at the eye. Feathers take the shooter's colour.
+- Tested headless: shooting, hits on the stand-ins (the play view judges them), pickup, slip and panting, the bow button with real touches, and two browsers through the real app: shot, hit decided by the guest, death, results, rematch. Not on a real phone yet.
 
 ## Open questions
 - Torso hit: dead at once, or two torso hits? (milestone 3: any hit kills)

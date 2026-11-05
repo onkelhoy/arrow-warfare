@@ -43,7 +43,7 @@
       "title": "3, 2, 1... go!",
       "back": "Back to the lobby",
       "waitHost": "Waiting for the host to go back to the lobby.",
-      "hint": "Click to look around, walk with WASD",
+      "hint": "Click to look around, WASD to walk, hold space to draw",
       "turn": "Turn your phone sideways 🔄"
     },
     "lobby": {
@@ -126,7 +126,8 @@
       "open": "Open: friends can join. The host locks the game when everyone's here.",
       "locked": "Locked: press ready. {count} of {total} ready.",
       "countdown": "Get ready...",
-      "play": "Playing"
+      "play": "Playing",
+      "results": "Round over"
     },
     "status": {
       "joining": "Joining the game...",
@@ -142,6 +143,51 @@
       "locked": "That game is locked or full. Ask the host to unlock it.",
       "full": "That game is full.",
       "gone": "Nobody answered that link. The game may be over, ask for a new link."
+    },
+    "hud": {
+      "arrow": "arrow",
+      "arrows": "arrows",
+      "unlimited": "Unlimited arrows",
+      "left": "{count} left",
+      "shot": "shot",
+      "shotSelf": "shot themselves",
+      "youDied": "{name} got you",
+      "youSelf": "You shot yourself",
+      "youWin": "You win!",
+      "wins": "{name} wins!",
+      "draw": "Draw!",
+      "zone": {
+        "head": "in the head",
+        "torso": "in the body",
+        "leftArm": "in the left arm",
+        "rightArm": "in the right arm",
+        "leftLeg": "in the left leg",
+        "rightLeg": "in the right leg"
+      }
+    },
+    "results": {
+      "title": "Round over",
+      "wins": "{name} wins!",
+      "you": "You win!",
+      "draw": "A draw!",
+      "player": "Player",
+      "shots": "Shots",
+      "hits": "Hits",
+      "rate": "Hit rate",
+      "kills": "Kills",
+      "longest": "Longest",
+      "picked": "Picked up",
+      "alive": "Alive",
+      "back": "Back to the lobby",
+      "rematch": "Rematch",
+      "wait": "Waiting for the host..."
+    },
+    "layout": {
+      "open": "Place the bow button",
+      "title": "Drag the bow button where your thumb likes it",
+      "size": "Size",
+      "reset": "Reset",
+      "done": "Done"
     }
   }
 }

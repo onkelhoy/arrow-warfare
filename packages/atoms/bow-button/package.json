@@ -1,0 +1,61 @@
+{
+  "name": "@arrow-warfare/bow-button",
+  "description": "The bow button: thumb on it, pull down to draw, aim with the same thumb, let go to shoot.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "bow-button"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build --error",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/atoms/bow-button",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/atoms/bow-button"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/web-component": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@papit/theme": "*",
+    "@papit/codeblock": "*"
+  },
+  "papit": {
+    "publish": false,
+    "type": "web-component",
+    "main": "bow-button",
+    "htmlprefix": "aw",
+    "components": {
+      "bow-button": {
+        "className": "BowButton",
+        "htmlprefix": "aw"
+      }
+    }
+  }
+}

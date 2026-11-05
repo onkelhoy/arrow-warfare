@@ -1,6 +1,6 @@
 {
   "name": "@arrow-warfare/play",
-  "description": "The play screen, a placeholder until the meadow exists.",
+  "description": "The round in first person: walk, draw, shoot, pick up, the HUD.",
   "keywords": [
     "papit",
     "typescript",
@@ -45,7 +45,11 @@
     "@arrow-warfare/net": "*",
     "@arrow-warfare/render": "*",
     "@arrow-warfare/world": "*",
-    "@arrow-warfare/joystick": "*"
+    "@arrow-warfare/joystick": "*",
+    "@arrow-warfare/archery": "*",
+    "@arrow-warfare/bow-button": "*",
+    "@arrow-warfare/sound": "*",
+    "@papit/signals": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

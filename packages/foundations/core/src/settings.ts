@@ -11,11 +11,20 @@ export type Settings = {
     volumes: Volumes;
     /** How fast dragging or the mouse turns the view, 1 is normal. */
     sensitivity: number;
+    /** Where the bow button sits on a touch screen. */
+    bow: BowPlace;
 };
+
+/** The bow button's middle as fractions of the screen (0..1), and its size in CSS pixels. */
+export type BowPlace = { x: number; y: number; size: number };
+
+/** Near the top, a bit right of the middle. */
+export const BOW_PLACE: BowPlace = { x: .62, y: .17, size: 76 };
+export const BOW_SIZE = { min: 48, max: 140 };
 
 export const SENSITIVITY = { min: .3, max: 3 };
 
-export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1 };
+export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1, bow: { ...BOW_PLACE } };
 
 const volume = (value: unknown, fallback: number) =>
     typeof value === "number" && value >= 0 && value <= 1 ? value : fallback;
@@ -41,7 +50,14 @@ export function parseSettings(saved: string | null): Settings {
             sounds: volume(raw?.volumes?.sounds, sounds),
         },
         sensitivity: typeof raw?.sensitivity === "number" && raw.sensitivity >= SENSITIVITY.min && raw.sensitivity <= SENSITIVITY.max ? raw.sensitivity : 1,
+        bow: parseBow(raw?.bow),
     };
+}
+
+function parseBow(raw: Partial<BowPlace> | undefined): BowPlace {
+    const fraction = (value: unknown, fallback: number) => typeof value === "number" && value >= 0 && value <= 1 ? value : fallback;
+    const size = typeof raw?.size === "number" && raw.size >= BOW_SIZE.min && raw.size <= BOW_SIZE.max ? raw.size : BOW_PLACE.size;
+    return { x: fraction(raw?.x, BOW_PLACE.x), y: fraction(raw?.y, BOW_PLACE.y), size };
 }
 
 function read() {

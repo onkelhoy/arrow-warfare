@@ -1,6 +1,6 @@
 /** The lobby as the host decides it, sent whole to everyone when it changes. */
 
-export type Phase = "open" | "locked" | "countdown" | "play";
+export type Phase = "open" | "locked" | "countdown" | "play" | "results";
 
 export type Player = {
     id: string;
@@ -51,6 +51,30 @@ export type GameState = {
     rules: Rules;
     players: Player[];
     teams: Team[];
+    /** The last round's end, while the phase is `results`. */
+    results: Results | null;
+};
+
+/** One player's round. */
+export type PlayerStats = {
+    id: string;
+    shots: number;
+    hits: number;
+    kills: number;
+    /** Metres, the longest shot that hit. */
+    longest: number;
+    picked: number;
+    /** ms they lived, the whole round for the ones standing at the end. */
+    alive: number;
+    won: boolean;
+};
+
+/** Who won (a team or a player), `null` for a draw. */
+export type Results = {
+    winner: { kind: "team" | "player"; id: string } | null;
+    players: PlayerStats[];
+    /** ms the round lasted. */
+    duration: number;
 };
 
 export type ChatLine = { from: string; name: string; colour: number; text: string; team: boolean };

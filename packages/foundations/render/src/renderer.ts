@@ -58,6 +58,8 @@ export type BatchSetting = {
     twoSided?: boolean;
     /** Changed often (players), uploaded with a streaming hint. */
     dynamic?: boolean;
+    /** Drawn last, over everything: what's in my own hands, so it never goes into a tree. */
+    front?: boolean;
 };
 
 /** One mesh drawn many times in one call. Set instances by index, they're uploaded once before drawing. */
@@ -68,6 +70,7 @@ export class Batch {
     readonly sway: number;
     readonly emissive: number;
     readonly twoSided: boolean;
+    readonly front: boolean;
     private dirty = true;
     private uploaded = 0;
     readonly buffer: WebGLBuffer;
@@ -78,6 +81,7 @@ export class Batch {
         this.sway = setting.sway ?? 0;
         this.emissive = setting.emissive ?? 0;
         this.twoSided = setting.twoSided ?? this.sway > 0;
+        this.front = setting.front ?? false;
         this.buffer = gl.createBuffer()!;
         this.vao = gl.createVertexArray()!;
 
@@ -289,9 +293,16 @@ export class Renderer extends GameObject {
         gl.uniform1f(u.uFogDensity, light.fogDensity);
 
         let drawn = 0;
-        for (const batch of this.batches)
+        let cleared = false;
+        const ordered = this.batches.some(batch => batch.front) ? [...this.batches.filter(batch => !batch.front), ...this.batches.filter(batch => batch.front)] : this.batches;
+        for (const batch of ordered)
         {
             if (!batch.upload()) continue;
+            if (batch.front && !cleared)
+            {
+                cleared = true;
+                gl.clear(gl.DEPTH_BUFFER_BIT);
+            }
             if (batch.twoSided) gl.disable(gl.CULL_FACE);
             else gl.enable(gl.CULL_FACE);
             gl.uniform1f(u.uSway, batch.sway);

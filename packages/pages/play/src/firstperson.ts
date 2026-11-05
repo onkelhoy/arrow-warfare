@@ -1,0 +1,141 @@
+import type { Camera } from "@papit/game-engine";
+import type { Draw } from "@arrow-warfare/archery";
+import { compose, mat4, multiply, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
+import { arrow, ARROW_LENGTH, beam, bow, BOW, hand } from "@arrow-warfare/world";
+
+/** Camera space: x right, y up, -z ahead. Where the grip is held, lowered and up for a shot. */
+const LOW = { at: [.24, -.36, -.5] as Vec3, yaw: .35, pitch: .1, roll: -1.05 };
+const AIM = { at: [-.08, -.1, -.78] as Vec3, yaw: 0, pitch: 0, roll: .22 };
+/** How far behind the tips the nock comes at a full draw, in bow space. */
+const PULL = .2;
+/** Where the shoulders are, for the forearms. */
+const LEFT_SHOULDER: Vec3 = [-.24, -.66, -.42];
+
+/**
+ * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
+ * back and the limbs bend with the draw, it follows the sway, bobs with the walk, kicks on a shot.
+ */
+export class FirstPerson {
+    private bow: Batch;
+    private string: Batch;
+    private arrow: Batch;
+    private hands: Batch;
+    private arms: Batch;
+    private raise = 0;
+    private kick = 0;
+    private clock = 0;
+    private local = mat4();
+    private world = mat4();
+    /** The camera this frame. */
+    private cameraMatrix: ArrayLike<number> = mat4();
+
+    constructor(private renderer: Renderer, private skin: Vec3, private clothes: Vec3, private feathers: Vec3) {
+        const front = { capacity: 2, dynamic: true, front: true };
+        this.bow = renderer.batch(bow(), front);
+        this.string = renderer.batch(beam(3), front);
+        this.arrow = renderer.batch(arrow(), front);
+        this.hands = renderer.batch(hand(), front);
+        this.arms = renderer.batch(beam(5), front);
+    }
+
+    /** The string snaps forward and the bow jumps. */
+    shot() {
+        this.kick = 1;
+    }
+
+    update(dt: number, camera: Camera, draw: Draw, walk: { speed: number; stride: number; alive: boolean }, arrows: number) {
+        this.clock += dt;
+        const drawing = draw.phase === "drawing";
+        const target = !walk.alive ? -1 : drawing ? 1 : draw.phase === "panting" ? -.2 : 0;
+        this.raise += (target - this.raise) * (1 - Math.exp(-dt * (drawing ? 12 : 6)));
+        this.kick = Math.max(0, this.kick - dt * 4);
+        const all = [this.bow, this.string, this.arrow, this.hands, this.arms];
+        if (this.raise < -.6)
+        {
+            for (const batch of all) batch.count = 0;
+            return;
+        }
+
+        const r = Math.max(0, this.raise);
+        const low = Math.min(0, this.raise);
+        const amount = drawing ? draw.amount : 0;
+        const bob = Math.min(1, walk.speed / 4) * (1 - r * .7);
+        const at: Vec3 = [
+            LOW.at[0] + (AIM.at[0] - LOW.at[0]) * r + Math.cos(walk.stride) * .012 * bob,
+            LOW.at[1] + (AIM.at[1] - LOW.at[1]) * r - Math.abs(Math.sin(walk.stride)) * .018 * bob + low * .4,
+            LOW.at[2] + (AIM.at[2] - LOW.at[2]) * r + this.kick * this.kick * -.05,
+        ];
+        // tired arms shake a little on top of the sway the camera already has
+        const tremble = draw.tired * amount * .006;
+        const yaw = LOW.yaw + (AIM.yaw - LOW.yaw) * r + Math.sin(this.clock * 31) * tremble;
+        const pitch = LOW.pitch + (AIM.pitch - LOW.pitch) * r + Math.sin(this.clock * 27 + 1) * tremble;
+        const roll = LOW.roll + (AIM.roll - LOW.roll) * r;
+        // drawn, the limbs bend back and get a touch shorter
+        const bend = 1 + amount * .9, shorter = 1 - amount * .06;
+
+        this.cameraMatrix = camera.worldMatrix;
+        const grip = mat4();
+        compose(grip, 0, at[0], at[1], at[2], yaw, pitch, roll);
+        const inBow = (x: number, y: number, z: number): Vec3 => point(grip, [x, y, z]);
+
+        compose(this.local, 0, at[0], at[1], at[2], yaw, pitch, roll, 1, shorter, bend);
+        this.bow.matrix(0, multiply(this.world, this.cameraMatrix, this.local));
+        this.bow.tint(0, [1, 1, 1]);
+        this.bow.count = 1;
+
+        // the string, tip to nock to tip, quivering after a shot
+        const quiver = Math.sin(this.clock * 70) * .02 * this.kick;
+        const tipZ = BOW.tip * bend;
+        const nock = inBow(0, 0, tipZ + PULL * amount + quiver);
+        const top = inBow(0, BOW.half * shorter, tipZ), bottom = inBow(0, -BOW.half * shorter, tipZ);
+        this.beam(this.string, 0, top, nock, .006, [.93, .9, .82]);
+        this.beam(this.string, 1, nock, bottom, .006, [.93, .9, .82]);
+        this.string.count = 2;
+
+        // the arrow on the string while drawing
+        const nocked = drawing && arrows > 0;
+        if (nocked)
+        {
+            const tip = inBow(.018, .012, tipZ + PULL * amount - ARROW_LENGTH);
+            const back = inBow(.018, .012, tipZ + PULL * amount);
+            this.beam(this.arrow, 0, tip, back, 1, this.feathers, true);
+        }
+        this.arrow.count = nocked ? 1 : 0;
+
+        // the left hand on the grip, the right on the string when drawing
+        const left = inBow(-.01, 0, .02);
+        this.place(this.hands, 0, left, this.skin);
+        this.beam(this.arms, 0, LEFT_SHOULDER, left, .055, this.clothes);
+        this.arms.count = 1;
+        // the right hand on the string is right at the eye, too close to show
+        this.hands.count = 1;
+    }
+
+    destroy() {
+        for (const batch of [this.bow, this.string, this.arrow, this.hands, this.arms]) this.renderer.removeBatch(batch);
+    }
+
+    private place(batch: Batch, index: number, at: Vec3, tint: Vec3) {
+        compose(this.local, 0, at[0], at[1], at[2]);
+        batch.matrix(index, multiply(this.world, this.cameraMatrix, this.local));
+        batch.tint(index, tint);
+    }
+
+    /** A beam (or, with `whole`, an arrow at its real length) from camera space `from` to `to`. */
+    private beam(batch: Batch, index: number, from: Vec3, to: Vec3, thickness: number, tint: Vec3, whole = false) {
+        const dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2];
+        const length = Math.hypot(dx, dy, dz) || 1e-6;
+        // the beam runs along -z: point -z from `from` to `to`
+        const yaw = Math.atan2(-dx, -dz), pitch = Math.asin(Math.max(-1, Math.min(1, dy / length)));
+        if (whole) compose(this.local, 0, from[0], from[1], from[2], yaw + Math.PI, -pitch);
+        else compose(this.local, 0, from[0], from[1], from[2], yaw, pitch, 0, thickness, thickness, length);
+        batch.matrix(index, multiply(this.world, this.cameraMatrix, this.local));
+        batch.tint(index, tint);
+    }
+
+}
+
+/** A point through a matrix. */
+function point(m: ArrayLike<number>, [x, y, z]: Vec3): Vec3 {
+    return [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
+}

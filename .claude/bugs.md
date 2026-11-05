@@ -27,15 +27,23 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - **What:** its view `style.css` has no `width`/`height` on `body` and `canvas`, so the canvas stays 300×150. The template in the papit repo has them.
 - **Workaround:** the render view uses the repo template's CSS.
 
-### A CSS-only change is skipped by the build (suspected)
-- **What:** after editing only `src/style.css` in `play`, `npx @papit/build` said "skipped" and the bundle kept the old CSS. `--force` built it.
-- **Workaround:** `npx @papit/build --force` after a CSS-only change.
+### The build sometimes skips a changed package
+- **What:** after editing only `src/style.css` in `play`, `npx @papit/build` said "skipped" and kept the old bundle. In milestone 3 it happened after a `.ts` edit made with `sed -i` too (maybe the change check looks at something sed doesn't touch, like the mtime it keeps). `--force` built it.
+- **Workaround:** `npx @papit/build --force` in the package.
 
 ### `declare global` tag names are dropped from `bundle.d.ts`
 - **What:** `HTMLElementTagNameMap` from a component's `declare global` isn't in its bundled types (none of ours have it), so `document.createElement("aw-joystick")` is a plain `HTMLElement` in other packages.
 - **Workaround:** a cast, `as Joystick`.
 
+### `@papit/create` 0.0.20 templates need trimming
+- **What:** a new package comes with `tests/`, playwright dev dependencies, `private: false`, `publish: true`, React peer deps and a `views/.../main.js`. Ours have none of that.
+- **Workaround:** trimmed by hand after creating (see the four new packages of milestone 3).
+
 ## Ours
+
+### Synthetic pointer events break `setPointerCapture`
+- **What:** in a headless run a made up `PointerEvent` makes `setPointerCapture` throw. Real touches are fine.
+- **Workaround:** the look surface wraps it in a try.
 
 ### A late guest's first join attempt logged "join timed out"
 - **What:** in the playwright run, the late guest (game locked) logged one "could not join: join timed out" and then got in on the next try and was turned away correctly. It may be a slow first join through the lobby, or related to the papit issue above.

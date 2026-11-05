@@ -1,0 +1,65 @@
+:host {
+    --size: 76px;
+    position: relative;
+    display: block;
+    inline-size: var(--size);
+    block-size: var(--size);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.button {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 2px solid rgb(255 255 255 / 55%);
+    background: conic-gradient(rgb(255 255 255 / 45%) calc(var(--pull, 0) * 360deg), rgb(255 255 255 / 14%) 0);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+    transition: opacity 150ms, scale 120ms;
+}
+
+svg {
+    inline-size: 50%;
+    block-size: 50%;
+    fill: none;
+    stroke: white;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    rotate: 90deg;
+}
+
+.cord {
+    stroke-width: 1;
+    opacity: .8;
+}
+
+:host([active]) .button {
+    scale: .9;
+}
+
+:host([disabled]) .button {
+    opacity: .35;
+}
+
+/* a faint string from the button down to the thumb */
+.string {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    inline-size: 2px;
+    block-size: var(--string-length, 0px);
+    margin-inline-start: -1px;
+    transform-origin: top center;
+    rotate: var(--string-angle, 0rad);
+    background: rgb(255 255 255 / 55%);
+    pointer-events: none;
+    opacity: 0;
+}
+
+:host([active]) .string {
+    opacity: 1;
+}

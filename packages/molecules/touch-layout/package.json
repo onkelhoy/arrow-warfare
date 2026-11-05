@@ -1,0 +1,56 @@
+{
+  "name": "@arrow-warfare/touch-layout",
+  "description": "Place your touch controls: drag and resize the bow button, saved on the device.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "touch-layout"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/molecules/touch-layout",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/molecules/touch-layout"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/button": "*",
+    "@arrow-warfare/core": "*",
+    "@arrow-warfare/bow-button": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
+  },
+  "papit": {
+    "publish": false,
+    "type": "web-component",
+    "main": "touch-layout",
+    "htmlprefix": "aw"
+  }
+}

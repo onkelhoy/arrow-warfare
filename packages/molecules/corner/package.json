@@ -45,7 +45,8 @@
     "@papit/input": "^0.0.10",
     "@papit/signals": "^0.0.1",
     "@arrow-warfare/core": "*",
-    "@arrow-warfare/sound": "*"
+    "@arrow-warfare/sound": "*",
+    "@arrow-warfare/touch-layout": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

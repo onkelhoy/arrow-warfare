@@ -9,15 +9,19 @@ export type Pose = {
     pitch: number;
     /** Metres per second over the ground, for the walk. */
     speed: number;
+    /** 0..1, how far the bow is drawn. */
+    draw: number;
+    /** 0 fresh, 1 swaying, 2 tunnel vision, 3 panting. */
+    stage: number;
 };
 
 export const POSE_RATE = 20;
 
 /** Type byte first, so other fast messages can share the channel later. */
 const POSE = 1;
-const BYTES = 1 + 8 + 4 * 6;
+const BYTES = 1 + 8 + 4 * 6 + 2;
 
-/** 33 bytes: a type byte, the time as a double, the rest as floats. */
+/** 35 bytes: a type byte, the time as a double, the rest as floats, the draw and stage as a byte each. */
 export function packPose(pose: Pose) {
     const view = new DataView(new ArrayBuffer(BYTES));
     view.setUint8(0, POSE);
@@ -28,6 +32,8 @@ export function packPose(pose: Pose) {
     view.setFloat32(21, pose.yaw);
     view.setFloat32(25, pose.pitch);
     view.setFloat32(29, pose.speed);
+    view.setUint8(33, Math.round(Math.max(0, Math.min(1, pose.draw)) * 255));
+    view.setUint8(34, pose.stage);
     return view.buffer;
 }
 
@@ -44,6 +50,8 @@ export function unpackPose(data: ArrayBuffer): Pose | null {
         yaw: view.getFloat32(21),
         pitch: view.getFloat32(25),
         speed: view.getFloat32(29),
+        draw: view.getUint8(33) / 255,
+        stage: Math.min(3, view.getUint8(34)),
     };
     return Object.values(pose).every(Number.isFinite) ? pose : null;
 }

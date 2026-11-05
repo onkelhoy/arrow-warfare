@@ -5,6 +5,7 @@ import "@papit/input";
 import { effect } from "@papit/signals";
 import { adopt, canFullscreen, cleanName, NAME_LENGTH, SENSITIVITY, settings, t, toggleFullscreen, updateSettings, type Volumes } from "@arrow-warfare/core";
 import type { Sound } from "@arrow-warfare/sound";
+import { mountTouchLayout } from "@arrow-warfare/touch-layout";
 
 import { registerIcons } from "./icons";
 import sheet from "./style.css" with { type: "css" };
@@ -29,6 +30,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
             <label class="aw-corner-row">${t("corner.name")} <pap-input name="name" maxlength="${NAME_LENGTH}"></pap-input></label>
             ${VOLUMES.map(name => `<label class="aw-corner-row">${t(`corner.${name}`)} <input type="range" name="${name}" min="0" max="1" step=".01"></label>`).join("")}
             <label class="aw-corner-row">${t("corner.sensitivity")} <input type="range" name="sensitivity" min="${SENSITIVITY.min}" max="${SENSITIVITY.max}" step=".05"></label>
+            ${matchMedia("(pointer: coarse)").matches ? `<pap-button data-do="layout" size="small" variant="outline">${t("layout.open")}</pap-button>` : ""}
         </pap-dialog>
     `;
     root.append(corner);
@@ -57,6 +59,11 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
         for (const volume of VOLUMES) find<HTMLInputElement>(`input[name=${volume}]`).value = String(volumes[volume]);
         find<HTMLInputElement>("input[name=sensitivity]").value = String(settings().sensitivity);
         panel.showModal();
+    });
+
+    corner.querySelector("[data-do=layout]")?.addEventListener("click", () => {
+        panel.close();
+        mountTouchLayout(root);
     });
 
     name.addEventListener("input", () => {

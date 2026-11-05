@@ -1,0 +1,55 @@
+.aw-layout {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    background: rgb(40 60 30 / 55%);
+    color: white;
+    font: 600 15px ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.aw-layout-title {
+    position: absolute;
+    inset: 40% 0 auto 0;
+    margin: 0;
+    text-align: center;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
+    pointer-events: none;
+}
+
+/* the bow button can't be used here, the holder is what's dragged */
+.aw-layout-bow {
+    position: absolute;
+    translate: -50% -50%;
+    padding: 6px;
+    border-radius: 50%;
+    outline: 2px dashed rgb(255 255 255 / 70%);
+    cursor: grab;
+
+    aw-bow-button {
+        pointer-events: none;
+    }
+}
+
+.aw-layout-bar {
+    position: absolute;
+    inset: auto 0 max(16px, env(safe-area-inset-bottom)) 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+
+    label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    pap-button {
+        background: rgb(255 255 255 / 85%);
+        border-radius: 8px;
+    }
+}

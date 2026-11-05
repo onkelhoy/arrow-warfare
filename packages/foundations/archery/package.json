@@ -1,0 +1,55 @@
+{
+  "name": "@arrow-warfare/archery",
+  "description": "Arrows and bows: drawing and fatigue, flight, hits on body parts. The same on every phone.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "archery"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/foundations/archery",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/foundations/archery"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@arrow-warfare/core": "*",
+    "@arrow-warfare/world": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
+  },
+  "papit": {
+    "publish": false,
+    "type": "browser",
+    "main": "archery",
+    "htmlprefix": "aw"
+  }
+}

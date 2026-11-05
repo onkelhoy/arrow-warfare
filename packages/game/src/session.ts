@@ -1,4 +1,4 @@
-import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, MAX_DEFAULT, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Rules } from "@arrow-warfare/core";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, MAX_DEFAULT, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Results, type Rules } from "@arrow-warfare/core";
 import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, Room, ROOM_MEDIA, type Invite, type Lobby } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
@@ -72,6 +72,7 @@ export class Session {
             rules: { ...RULES_DEFAULT },
             players: [],
             teams: [],
+            results: null,
         };
         this.hostHandlers(room);
         this.common(room);
@@ -251,7 +252,7 @@ export class Session {
 
     lock(locked: boolean) {
         const { room, state } = this;
-        if (!room || !state || !this.isHost || state.phase === "countdown" || state.phase === "play") return;
+        if (!room || !state || !this.isHost || state.phase === "countdown" || state.phase === "play" || state.phase === "results") return;
         state.phase = locked ? "locked" : "open";
         state.lockedAt = room.shared;
         for (const player of state.players) player.ready = false;
@@ -300,10 +301,29 @@ export class Session {
         this.maybeStart();
     }
 
-    /** From play back to the lobby, locked, with nobody ready. */
-    back() {
+    /** The round is over: everyone sees the results. */
+    finish(results: Results) {
         const state = this.state;
         if (!state || !this.isHost || state.phase !== "play") return;
+        state.phase = "results";
+        state.results = results;
+        this.publish();
+    }
+
+    /** From the results straight into a new round, the same players and teams. */
+    rematch() {
+        const state = this.state;
+        if (!state || !this.isHost || state.phase !== "results") return;
+        state.phase = "locked";
+        state.lockedAt = this.room!.shared;
+        for (const player of state.players) player.ready = true;
+        this.maybeStart();
+    }
+
+    /** From play or the results back to the lobby, locked, with nobody ready. */
+    back() {
+        const state = this.state;
+        if (!state || !this.isHost || (state.phase !== "play" && state.phase !== "results")) return;
         state.phase = "locked";
         state.lockedAt = this.room!.shared;
         for (const player of state.players) player.ready = false;
@@ -385,13 +405,15 @@ export class Session {
         if (room && !room.closed) room.send(room.hostId, type, payload);
     }
 
-    /** The fast lane for play: the shared clock and the lossy pose channel. */
+    /** What play needs: the shared clock, the lossy pose channel, and reliable messages for shots and hits. */
     net() {
         const room = this.room!;
         return {
             shared: () => room.shared,
             sendFast: (peers: string[], data: ArrayBuffer) => room.sendFast(peers, data),
             onFast: (handler: (data: ArrayBuffer, sender: string) => void) => room.onFast(handler),
+            send: (to: string[], type: string, payload: unknown) => room.sendAll(to, type, payload),
+            on: (type: string, handler: (payload: any, sender: string) => void) => room.on(type, handler),
         };
     }
 

@@ -148,3 +148,59 @@ export function head(): MeshData {
 
 /** Where the head sits on the body. */
 export const NECK = 1.0;
+
+/** The bow's half length, grip to tip, and how far its tips bend back towards the archer at rest. */
+export const BOW = { half: .6, tip: .1 };
+/** An arrow's length, tip to nock. */
+export const ARROW_LENGTH = .78;
+
+/**
+ * A short wooden bow standing on y, the grip at 0, the limbs curving back towards +z (the archer). Drawn,
+ * it's scaled along z so the curve deepens. The string is its own mesh, `beam()`.
+ */
+export function bow(): MeshData {
+    const builder = new MeshBuilder();
+    const steps = 8;
+    const point = (i: number): Vec3 => {
+        const y = (i / steps * 2 - 1) * BOW.half;
+        return [0, y, BOW.tip * (y / BOW.half) ** 2];
+    };
+    for (let i = 0; i < steps; i++)
+    {
+        const [, y0, z0] = point(i), [, y1, z1] = point(i + 1);
+        const length = Math.hypot(y1 - y0, z1 - z0);
+        const thick = .03 - Math.abs((y0 + y1) / 2) / BOW.half * .012;
+        builder.box(i % 2 ? "#8a5a2b" : "#94622f", { at: [0, (y0 + y1) / 2, (z0 + z1) / 2], pitch: Math.atan2(z1 - z0, y1 - y0), scale: [thick, length + .01, thick * .8] });
+    }
+    builder.box("#4a2e1a", { scale: [.045, .15, .045] });
+    builder.box("#e8e0cc", { at: [0, BOW.half, BOW.tip], scale: .025 });
+    builder.box("#e8e0cc", { at: [0, -BOW.half, BOW.tip], scale: .025 });
+    return builder.build();
+}
+
+/** A thin rod from 0 to -1 on z, stretched into place: the bow string, forearms. Takes the tint. */
+export function beam(sides = 4): MeshData {
+    return new MeshBuilder().cylinder("#ffffff", { pitch: -Math.PI / 2, scale: [1, 1, 1], tint: 1 }, sides, .5, .5).build();
+}
+
+/**
+ * An arrow, the tip at 0 pointing along -z and the shaft back along +z. The feathers take the tint: the
+ * shooter's colour.
+ */
+export function arrow(): MeshData {
+    const length = ARROW_LENGTH;
+    const builder = new MeshBuilder()
+        .cylinder("#c9a26b", { at: [0, 0, length], pitch: -Math.PI / 2, scale: [.016, length - .06, .016] }, 4)
+        .cylinder("#7d7d84", { at: [0, 0, .07], pitch: -Math.PI / 2, scale: [.045, .08, .045] }, 4, .5, 0);
+    for (let i = 0; i < 3; i++)
+    {
+        const roll = i / 3 * Math.PI * 2;
+        builder.box("#ffffff", { at: [Math.sin(roll) * .025, Math.cos(roll) * .025, length - .07], roll: -roll, scale: [.003, .035, .1], tint: 1 });
+    }
+    return builder.build();
+}
+
+/** A round hand, the skin from the tint. */
+export function hand(): MeshData {
+    return new MeshBuilder().ball("#ffffff", { scale: [.045, .05, .055], tint: 1 }, 1).build();
+}

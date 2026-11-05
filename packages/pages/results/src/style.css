@@ -1,0 +1,78 @@
+.aw-results {
+    position: fixed;
+    z-index: 2;
+    inset: 0;
+    overflow: auto;
+    background: #9fd6f0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 12px;
+    min-block-size: 100%;
+    padding: 24px;
+    box-sizing: border-box;
+    text-align: center;
+    color: #2f4a1f;
+}
+
+.aw-results h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 7vw, 3rem);
+    text-shadow: 0 3px 0 #fff6e0;
+}
+
+.aw-results-over {
+    margin: 0;
+    opacity: .75;
+}
+
+.aw-results-table {
+    max-inline-size: 92vw;
+    overflow-x: auto;
+    border-radius: 12px;
+    background: rgb(255 246 224 / 75%);
+}
+
+.aw-results table {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.aw-results th,
+.aw-results td {
+    padding: 6px 12px;
+    text-align: end;
+}
+
+.aw-results th:first-child,
+.aw-results td:first-child {
+    text-align: start;
+}
+
+.aw-results th {
+    font-size: .8rem;
+    opacity: .7;
+}
+
+.aw-results tr.won td {
+    font-weight: 700;
+}
+
+.aw-results tr.me td:first-child {
+    text-decoration: underline;
+}
+
+.aw-results-dot {
+    display: inline-block;
+    inline-size: 10px;
+    block-size: 10px;
+    margin-inline-end: 6px;
+    border-radius: 50%;
+    border: 1px solid white;
+}
+
+.aw-results-actions {
+    display: flex;
+    gap: 12px;
+}
