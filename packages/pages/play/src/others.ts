@@ -113,9 +113,10 @@ export class Others {
             label.hidden = true;
             return;
         }
-        label.hidden = false;
         const sx = (cx / w * .5 + .5) * width;
         const sy = (1 - (cy / w * .5 + .5)) * height;
+        label.hidden = sx < -100 || sx > width + 100 || sy < -50 || sy > height + 50;
+        if (label.hidden) return;
         label.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -100%)`;
     }
 }

@@ -21,7 +21,7 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 
 ### Game engine layers have no pixel ratio setting
 - **What:** a layer always sizes its canvas to the element in device pixels. On a phone at 3x that's a lot of pixels for a 3D scene, and there's no way to ask for fewer.
-- **Workaround:** the play page makes the canvas element smaller in CSS and scales it up with a transform.
+- **Workaround:** the play page sets the layer's `setting.width`/`height` by hand (at most 1.5 device pixels per CSS pixel) and calls `resize()` on window resize. Shrinking the canvas in CSS with a scale transform didn't work: the size the observer reported came out far too small.
 
 ### The npm `@papit/create` (0.0.20) game template is older than the repo's
 - **What:** its view `style.css` has no `width`/`height` on `body` and `canvas`, so the canvas stays 300×150. The template in the papit repo has them.

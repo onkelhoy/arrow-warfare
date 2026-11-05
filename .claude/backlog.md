@@ -68,9 +68,9 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [ ] Sources and licences in `CREDITS.md`
 
 ### F3. Settings and corner controls
-- [ ] Saved on the device: name, volumes, mute (done), touch layout, sensitivity
+- [ ] Saved on the device: name, volumes, mute, look sensitivity (done), touch layout
 - [x] Corner buttons like cowboy: fullscreen, music on/off, volume
-- [ ] Ask for landscape during play
+- [x] Ask for landscape during play
 
 ### F4. Networking
 - [x] Lobby: port cowboy's chord lobby (oldest wins, race guard, merge, retry, waking server)
@@ -81,7 +81,7 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [ ] Message types: hello/profile, colour assignment, game info, lock, teams, team name idea/vote, rules, ready, force ready, chat, team chat, start, pose, shoot, hit, pickup, death, end
 - [x] Password, max players, the lock and kicks: app level, the host answers each guest's hello with `state` or `denied {reason}` (see notes)
 - [x] Ping per player from the clock pings
-- [ ] Binary pose packing to keep 10 phones light (9 links each)
+- [x] Binary pose packing to keep 10 phones light (9 links each): 33 bytes on a lossy `pose` channel
 - [ ] Late joiner while a round runs waits in the lobby or spectates
 
 ### F5. Menu and lobby
@@ -116,7 +116,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 
 ### F6. Rules (host, Rules tab)
 - [x] Arrows per player: 1–10 or unlimited (default 4)
-- [ ] Trees in the field: none, few, many; map size: small, medium, large
+- [x] Trees in the field: none, few, many; map size: small, medium, large
 - [ ] Friendly fire on or off (when there are teams)
 - [ ] Damage: arcade (any body hit kills) or injuries (see F10)
 - [ ] Gnomes on or off (arrows out of bounds come back)
@@ -124,32 +124,32 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Rounds: one, or best of N
 
 ### F7. Renderer (`render`)
-- [ ] Mesh from arrays, flat shaded toon material with vertex colours
-- [ ] Sun + ambient + hemisphere light, distance fog
-- [ ] Instanced draws for grass, flowers, mushrooms, trees
-- [ ] Sky dome with gradient, sun/moon, stars at night
+- [x] Mesh from arrays, flat shaded toon material with vertex colours
+- [x] Sun + ambient + hemisphere light, distance fog
+- [x] Instanced draws for grass, flowers, mushrooms, trees
+- [x] Sky dome with gradient, sun/moon, stars at night
 - [ ] Shadows (one cascade, low res, can be turned off on weak phones)
-- [ ] Grass sway in the vertex shader
+- [x] Grass sway in the vertex shader
 - [ ] Quality setting (resolution scale, shadow on/off, grass density)
 - [ ] Later: `.glb` loader
 
 ### F8. World
-- [ ] Meadow ground (gentle heightmap), forest wall at the edge, scattered trees by setting
-- [ ] Grass, flowers, mushrooms, stones, maybe a stump or a log for cover
-- [ ] Seeded generation: the host sends a seed, every phone builds the same field
-- [ ] Spawn points spread apart, by team
-- [ ] Time of day atmosphere: night, dawn gold, noon, sunset (like cowboy), fireflies at night
-- [ ] Collisions: trunks and the edge
+- [x] Meadow ground (gentle heightmap), forest wall at the edge, scattered trees by setting
+- [x] Grass, flowers, mushrooms, stones, maybe a stump or a log for cover
+- [x] Seeded generation: the host sends a seed, every phone builds the same field
+- [x] Spawn points spread apart, by team
+- [x] Time of day atmosphere: night, dawn gold, noon, sunset (like cowboy), fireflies at night
+- [x] Collisions: trunks and the edge
 
 ### F9. Player and archery
-- [ ] First person camera, see your own body, bow and arms
-- [ ] Move fast when not aiming, slow while drawing
+- [ ] First person camera (done), see your own body, bow and arms
+- [ ] Move fast when not aiming (done), slow while drawing
 - [ ] Draw, hold, release: power by draw time, slight sway when held long
 - [ ] Arrows: ballistic flight, stick into trees, ground and players
 - [ ] Limited quiver (setting), pick up arrows from the ground, trees, bodies, and out of yourself
 - [ ] Gnome return: an arrow out of bounds lands back near the edge a few seconds later, pointing in
 - [ ] Hit zones: head, torso, left/right arm, left/right leg
-- [ ] Other players: interpolated poses, aim direction, draw state
+- [ ] Other players: interpolated poses, aim direction (done), draw state
 
 ### F10. Injuries (when the setting is on)
 - [ ] Head or torso: dead
@@ -167,11 +167,11 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Arrows stuck in bodies show and move with the bone
 
 ### F12. Touch controls
-- [ ] Joystick element for moving
-- [ ] Look by dragging anywhere else
+- [x] Joystick element for moving
+- [x] Look by dragging anywhere else
 - [ ] Drawing vs looking: **open, you're thinking about it.** Options: a draw button you place (hold to draw, drag on it to aim), or hold still on the look side to start drawing
 - [ ] Place your own controls: an edit mode on the 2D layer to drag and resize them, saved
-- [ ] Desktop: mouse look with pointer lock, WASD, hold mouse to draw
+- [ ] Desktop: mouse look with pointer lock, WASD (done), hold mouse to draw
 
 ### F13. Spectate and kill cam
 - [ ] Ring buffer of the last seconds of the match
@@ -214,6 +214,16 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - The password lives only on the host, it's never sent out. A wrong one keeps the guest connected and asks again.
 - Ready only works once locked. Everyone ready starts the 3 2 1 by itself (one player alone too, handy for testing). The host can force ready 15 s after locking.
 - Selects in the Game and Rules tabs are native `<select>`: papit has no select yet.
+
+## Notes from milestone 2 (for the owner to review)
+- New packages, all made with `npm run create`: `foundations/render` (WebGL2 toon renderer), `foundations/world` (the seeded meadow, models, time of day), `atoms/joystick`.
+- Every view now follows the papit create templates (`views/experiment/`), the theme loads from a real `style.css`. Web components get codeblock previews, the 3D packages a full canvas.
+- The host picks a new seed at every countdown. Spawns aren't sent: every phone works them out from the seed and the host's player list.
+- Each player's light follows their own clock, like cowboy. `?palette=night|dawn|noon|sunset` picks one.
+- The canvas draws at most 1.5 device pixels per CSS pixel, phones at 3x draw at half resolution. Grass is cut to 70% on touch screens.
+- Tested in headless Chrome: three tabs through lobby, 3 2 1, walking (poses all on the lossy channel), back to the lobby. A phone sized touch run: joystick, drag to look, the turn-sideways prompt. 60 fps on an M3 at 3x. Not yet on a real phone.
+- Look speed is in the settings dialog (corner).
+- The models are stand-ins (a body and a head), the rig comes in milestone 4.
 
 ## Open questions
 - Draw vs look on touch (F12).

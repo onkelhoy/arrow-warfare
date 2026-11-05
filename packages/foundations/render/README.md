@@ -35,5 +35,5 @@ engine.start();
 A vertex colour's `tint` (0..1) is how much the instance's tint replaces it, so clothes take the player's colour while the face keeps its skin.
 
 ## Notes
-- The canvas renders at full device pixels (the engine has no pixel ratio setting yet). The play page shrinks the canvas in CSS and scales it up for a resolution scale.
+- The canvas renders at full device pixels (the engine has no pixel ratio setting yet). The play page sets the layer's width and height itself to draw fewer pixels.
 - No shadows yet.

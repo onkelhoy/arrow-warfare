@@ -8,15 +8,12 @@
     -webkit-user-select: none;
 }
 
-/* fewer pixels on dense screens: the canvas is laid out smaller and scaled back up */
 .aw-play-canvas {
     position: absolute;
-    inset: 0 auto auto 0;
+    inset: 0;
     display: block;
-    inline-size: calc(100% * var(--scale, 1));
-    block-size: calc(100% * var(--scale, 1));
-    transform: scale(calc(1 / var(--scale, 1)));
-    transform-origin: 0 0;
+    inline-size: 100%;
+    block-size: 100%;
 }
 
 .aw-play-look {

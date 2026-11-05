@@ -41,8 +41,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     const play = document.createElement("main");
     play.className = "aw-play";
-    const scale = Math.min(1, PIXELS / (window.devicePixelRatio || 1));
-    play.style.setProperty("--scale", String(scale));
+    const density = () => Math.min(window.devicePixelRatio || 1, PIXELS);
     play.innerHTML = `
         <canvas class="aw-play-canvas"></canvas>
         <div class="aw-play-names"></div>
@@ -53,8 +52,16 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     root.append(play);
     play.querySelector("pap-button")?.addEventListener("click", onBack);
 
-    const engine = new GameEngine({ name: "main", query: ".aw-play-canvas", type: "webgl2", documentElement: play, contextSetting: { antialias: scale >= 1, powerPreference: "high-performance" } });
+    const engine = new GameEngine({ name: "main", query: ".aw-play-canvas", type: "webgl2", documentElement: play, contextSetting: { antialias: density() <= 1, powerPreference: "high-performance" } });
     const layer = engine.layers.main;
+    // the canvas size is set by hand, the engine would use every device pixel (bugs.md)
+    const size = () => {
+        layer.setting.width = Math.max(1, Math.round(play.clientWidth * density()));
+        layer.setting.height = Math.max(1, Math.round(play.clientHeight * density()));
+        layer.resize();
+    };
+    size();
+    window.addEventListener("resize", size);
     const camera = new Camera({ fov: 1.1, near: .05, far: 220 });
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
@@ -109,6 +116,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         },
         remove() {
             unlisten?.();
+            window.removeEventListener("resize", size);
             engine.stop();
             controls.destroy();
             others.destroy();
