@@ -90,9 +90,9 @@ uniform vec3 uZenith;
 uniform vec3 uHorizon;
 uniform vec3 uFogColour;
 uniform vec3 uSunDirection;
-uniform vec3 uSunDisc;
-uniform float uSunSize;
-uniform vec3 uMoonDirection;
+uniform vec3 uDisc;
+uniform vec3 uRing;
+uniform float uDiscSize;
 uniform float uMoon;
 uniform float uStars;
 
@@ -111,14 +111,28 @@ void main() {
     // the forest hides the horizon, below it fades to the fog
     colour = mix(colour, uFogColour, smoothstep(0.08, -0.05, up));
 
-    float toSun = dot(direction, uSunDirection);
-    colour += uSunDisc * smoothstep(1.0 - uSunSize, 1.0 - uSunSize * 0.6, toSun);
-    colour += uSunDisc * 0.25 * pow(max(toSun, 0.0), 24.0);
+    // the sun or moon, flat with a crisp ring like cowboy's: where on its face, in disc radii
+    vec3 right = normalize(cross(uSunDirection, abs(uSunDirection.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
+    vec3 above = cross(right, uSunDirection);
+    float facing = dot(direction, uSunDirection);
+    vec2 face = vec2(dot(direction, right), dot(direction, above)) / uDiscSize;
+    float radius = facing > 0.0 ? length(face) : 99.0;
+    float edge = fwidth(radius);
+    colour = mix(colour, uRing, 1.0 - smoothstep(1.35 - edge, 1.35, radius));
+    vec3 disc = uDisc;
+    if (uMoon > 0.0)
+    {
+        // a few round craters in the ring's colour, faint
+        float crater = 0.0;
+        crater = max(crater, 1.0 - smoothstep(0.3 - edge, 0.3, length(face - vec2(-0.32, 0.2))));
+        crater = max(crater, 1.0 - smoothstep(0.42 - edge, 0.42, length(face - vec2(0.28, -0.18))));
+        crater = max(crater, 1.0 - smoothstep(0.17 - edge, 0.17, length(face - vec2(-0.2, -0.5))));
+        crater = max(crater, 1.0 - smoothstep(0.13 - edge, 0.13, length(face - vec2(0.36, 0.55))));
+        disc = mix(disc, vec3(0.8, 0.8, 0.76), crater * 0.8);
+    }
+    colour = mix(colour, disc, 1.0 - smoothstep(1.0 - edge, 1.0, radius));
 
-    float toMoon = dot(direction, uMoonDirection);
-    colour = mix(colour, vec3(0.93, 0.94, 0.86), uMoon * smoothstep(0.9993, 0.9996, toMoon));
-
-    if (uStars > 0.0 && up > 0.0)
+    if (uStars > 0.0 && up > 0.0 && radius > 1.4)
     {
         vec3 cell = floor(direction * 180.0);
         float star = step(0.9965, hash(cell));

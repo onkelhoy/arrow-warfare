@@ -20,12 +20,12 @@ export type Light = {
     fogColour: Vec3;
     /** 1 / the distance where fog is about two thirds. */
     fogDensity: number;
-    /** The disc's colour, added to the sky. */
-    sunDisc: Vec3;
-    /** Its size as 1 - cos(angle). */
-    sunSize: number;
-    moonDirection: Vec3;
-    /** 0 hides the moon. */
+    /** The sun (or the moon) drawn flat in the sky towards `sunDirection`, and its ring halo. */
+    disc: Vec3;
+    ring: Vec3;
+    /** The disc's angular radius in radians, the ring is a third wider. */
+    discSize: number;
+    /** 1 draws the disc as the moon, with craters. */
     moon: number;
     /** 0..1. */
     stars: number;
@@ -40,9 +40,9 @@ export const NOON: Light = {
     horizon: [.75, .87, .95],
     fogColour: [.72, .84, .9],
     fogDensity: 1 / 90,
-    sunDisc: [1, .95, .8],
-    sunSize: .0012,
-    moonDirection: [0, -1, 0],
+    disc: [1, .97, .8],
+    ring: [.85, .94, .85],
+    discSize: .05,
     moon: 0,
     stars: 0,
 };
@@ -220,7 +220,7 @@ export class Renderer extends GameObject {
         this.toon = program(gl, TOON_VERTEX, TOON_FRAGMENT);
         this.sky = program(gl, SKY_VERTEX, SKY_FRAGMENT);
         this.toonUniforms = uniforms(gl, this.toon, ["uViewProjection", "uTime", "uSway", "uCamera", "uSunDirection", "uSunColour", "uSky", "uGround", "uFogColour", "uFogDensity", "uEmissive"]);
-        this.skyUniforms = uniforms(gl, this.sky, ["uInverseViewProjection", "uZenith", "uHorizon", "uFogColour", "uSunDirection", "uSunDisc", "uSunSize", "uMoonDirection", "uMoon", "uStars"]);
+        this.skyUniforms = uniforms(gl, this.sky, ["uInverseViewProjection", "uZenith", "uHorizon", "uFogColour", "uSunDirection", "uDisc", "uRing", "uDiscSize", "uMoon", "uStars"]);
         this.skyVao = gl.createVertexArray()!;
         this.layer = surface.name;
     }
@@ -258,7 +258,6 @@ export class Renderer extends GameObject {
         multiply(this.viewProjection, camera.projectionMatrix, camera.viewMatrix);
         const eye = camera.worldPosition;
         const sun = normalize([...light.sunDirection] as Vec3);
-        const moon = normalize([...light.moonDirection] as Vec3);
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -272,9 +271,9 @@ export class Renderer extends GameObject {
         gl.uniform3fv(s.uHorizon, light.horizon);
         gl.uniform3fv(s.uFogColour, light.fogColour);
         gl.uniform3fv(s.uSunDirection, sun);
-        gl.uniform3fv(s.uSunDisc, light.sunDisc);
-        gl.uniform1f(s.uSunSize, light.sunSize);
-        gl.uniform3fv(s.uMoonDirection, moon);
+        gl.uniform3fv(s.uDisc, light.disc);
+        gl.uniform3fv(s.uRing, light.ring);
+        gl.uniform1f(s.uDiscSize, light.discSize);
         gl.uniform1f(s.uMoon, light.moon);
         gl.uniform1f(s.uStars, light.stars);
         gl.depthMask(false);
