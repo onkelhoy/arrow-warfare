@@ -1,0 +1,63 @@
+{
+  "name": "@arrow-warfare/render",
+  "description": "A small WebGL2 renderer on the game engine: meshes, toon light, fog, sky and instancing.",
+  "keywords": [
+    "papit",
+    "game",
+    "typescript",
+    "render"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/foundations/render",
+  "bugs": {
+    "url": "https://github.com/onkelhoy/arrow-warfare/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/foundations/render"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/game-engine": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
+  },
+  "browserslist": [
+    "defaults",
+    "not IE 11",
+    "not dead"
+  ],
+  "papit": {
+    "publish": false,
+    "type": "game",
+    "main": "render",
+    "components": {}
+  }
+}

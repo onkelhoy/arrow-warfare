@@ -19,6 +19,14 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - **What:** the server rewrites bare `@import`s only in served `.css` files. In an inline `<style>` the browser asks for `<view>/@papit/theme`, gets a 500, and the theme never loads (our views showed the hardcoded sky blue).
 - **Workaround:** views have a real `style.css`, as the create templates do.
 
+### Game engine layers have no pixel ratio setting
+- **What:** a layer always sizes its canvas to the element in device pixels. On a phone at 3x that's a lot of pixels for a 3D scene, and there's no way to ask for fewer.
+- **Workaround:** the play page makes the canvas element smaller in CSS and scales it up with a transform.
+
+### The npm `@papit/create` (0.0.20) game template is older than the repo's
+- **What:** its view `style.css` has no `width`/`height` on `body` and `canvas`, so the canvas stays 300×150. The template in the papit repo has them.
+- **Workaround:** the render view uses the repo template's CSS.
+
 ## Ours
 
 ### A late guest's first join attempt logged "join timed out"
