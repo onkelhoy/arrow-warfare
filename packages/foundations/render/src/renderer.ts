@@ -56,6 +56,8 @@ export type BatchSetting = {
     emissive?: number;
     /** Draw the back of each triangle too. */
     twoSided?: boolean;
+    /** How much the fog covers it, 1 by default, 0 for the sky's own things (clouds). */
+    fog?: number;
     /** Changed often (players), uploaded with a streaming hint. */
     dynamic?: boolean;
     /** Drawn last, over everything: what's in my own hands, so it never goes into a tree. */
@@ -69,6 +71,7 @@ export class Batch {
     data: Float32Array;
     readonly sway: number;
     readonly emissive: number;
+    readonly fog: number;
     readonly twoSided: boolean;
     readonly front: boolean;
     private dirty = true;
@@ -80,6 +83,7 @@ export class Batch {
         this.data = new Float32Array(Math.max(1, setting.capacity ?? 16) * INSTANCE);
         this.sway = setting.sway ?? 0;
         this.emissive = setting.emissive ?? 0;
+        this.fog = setting.fog ?? 1;
         this.twoSided = setting.twoSided ?? this.sway > 0;
         this.front = setting.front ?? false;
         this.buffer = gl.createBuffer()!;
@@ -219,7 +223,7 @@ export class Renderer extends GameObject {
         const gl = this.gl;
         this.toon = program(gl, TOON_VERTEX, TOON_FRAGMENT);
         this.sky = program(gl, SKY_VERTEX, SKY_FRAGMENT);
-        this.toonUniforms = uniforms(gl, this.toon, ["uViewProjection", "uTime", "uSway", "uCamera", "uSunDirection", "uSunColour", "uSky", "uGround", "uFogColour", "uFogDensity", "uEmissive"]);
+        this.toonUniforms = uniforms(gl, this.toon, ["uViewProjection", "uTime", "uSway", "uCamera", "uSunDirection", "uSunColour", "uSky", "uGround", "uFogColour", "uFogDensity", "uEmissive", "uFog"]);
         this.skyUniforms = uniforms(gl, this.sky, ["uInverseViewProjection", "uZenith", "uHorizon", "uFogColour", "uSunDirection", "uDisc", "uRing", "uDiscSize", "uMoon", "uStars"]);
         this.skyVao = gl.createVertexArray()!;
         this.layer = surface.name;
@@ -309,6 +313,7 @@ export class Renderer extends GameObject {
             else gl.enable(gl.CULL_FACE);
             gl.uniform1f(u.uSway, batch.sway);
             gl.uniform1f(u.uEmissive, batch.emissive);
+            gl.uniform1f(u.uFog, batch.fog);
             gl.bindVertexArray(batch.vao);
             gl.drawArraysInstanced(gl.TRIANGLES, 0, batch.mesh.count, batch.count);
             drawn += batch.mesh.count / 3 * batch.count;

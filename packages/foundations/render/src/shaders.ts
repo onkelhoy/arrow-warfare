@@ -46,6 +46,7 @@ uniform vec3 uGround;
 uniform vec3 uFogColour;
 uniform float uFogDensity;
 uniform float uEmissive;
+uniform float uFog;
 
 out vec4 fragColour;
 
@@ -64,7 +65,7 @@ void main() {
 
     float distance = length(vWorld - uCamera) * uFogDensity;
     float fog = 1.0 - exp(-distance * distance);
-    fragColour = vec4(mix(colour, uFogColour, clamp(fog, 0.0, 1.0)), 1.0);
+    fragColour = vec4(mix(colour, uFogColour, clamp(fog, 0.0, 1.0) * uFog), 1.0);
 }`;
 
 /** The sky behind everything: one triangle over the screen, each pixel finds its view direction. */

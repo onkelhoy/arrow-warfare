@@ -219,3 +219,17 @@ export function blob(): MeshData {
     }
     return builder.build();
 }
+
+/** A fluffy low poly cloud, a few flattened balls side by side along x, about 10 m long. Takes the tint. */
+export function cloud(seed: number): MeshData {
+    const random = seeded(seed);
+    const builder = new MeshBuilder();
+    const puffs = 3 + Math.floor(random() * 3);
+    for (let i = 0; i < puffs; i++)
+    {
+        const x = (i / (puffs - 1) - .5) * 7 + (random() - .5);
+        const size = 2.2 + random() * 1.6 - Math.abs(x) * .2;
+        builder.ball("#ffffff", { at: [x, size * .2, (random() - .5) * 1.5], scale: [size * 1.2, size * .75, size], tint: 1 }, 1, .2, seed + i);
+    }
+    return builder.build();
+}

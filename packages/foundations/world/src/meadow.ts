@@ -1,9 +1,13 @@
 import { GameObject } from "@papit/game-engine";
 import { MeshBuilder, seeded, type Batch, type MeshData, type Renderer, type Vec3 } from "@arrow-warfare/render";
 
-import { PALETTES, type PaletteName } from "./atmosphere";
+import { CLOUDS, PALETTES, type PaletteName } from "./atmosphere";
 import { Field, STONES, VARIANTS } from "./field";
-import { blob, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
+import { blob, cloud, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
+
+/** How far past the field the clouds go before they come round again, and how fast they drift (m/s). */
+const CLOUD_REACH = 90;
+const CLOUD_SPEED = 1.2;
 
 /** Petal colours, a flower's `colour` picks one. */
 const PETALS: Vec3[] = [[.98, .96, .92], [.98, .82, .25], [.9, .42, .62], [.6, .55, .95], [.95, .5, .3]];
@@ -23,6 +27,8 @@ export class Meadow extends GameObject {
     private fireflies: Batch | null = null;
     private flies: { x: number; y: number; z: number; phase: number }[] = [];
     private clock = 0;
+    private clouds: Batch[] = [];
+    private sky: { batch: number; index: number; x: number; y: number; z: number; yaw: number; scale: number }[] = [];
 
     constructor(readonly renderer: Renderer, readonly field: Field, setting: MeadowSetting = {}) {
         super();
@@ -64,12 +70,14 @@ export class Meadow extends GameObject {
         const tufts = [grassTuft(field.seed), grassTuft(field.seed + 1), grassTuft(field.seed + 2)];
         tufts.forEach((tuft, i) => add(tuft, grass.filter((_, g) => g % tufts.length === i), { sway: .12 }));
 
+        this.addClouds(name);
         if (name === "night") this.addFireflies();
     }
 
     /** Another time of day, straight away: the light, and the fireflies at night. */
     palette(name: PaletteName) {
         this.renderer.light = structuredClone(PALETTES[name]);
+        this.tintClouds(name);
         if (name === "night" && !this.fireflies) this.addFireflies();
         if (name !== "night" && this.fireflies)
         {
@@ -80,8 +88,16 @@ export class Meadow extends GameObject {
     }
 
     override update(dt: number) {
-        if (!this.fireflies) return;
         this.clock += dt;
+        // the clouds drift slowly along x with the wind, round again past the edge
+        const reach = CLOUD_REACH + this.field.radius;
+        for (const one of this.sky)
+        {
+            one.x += dt * CLOUD_SPEED * (1.2 - one.scale * .3);
+            if (one.x > reach) one.x -= reach * 2;
+            this.clouds[one.batch].place(one.index, one.x, one.y, one.z, one.yaw, 0, 0, one.scale);
+        }
+        if (!this.fireflies) return;
         const t = this.clock;
         this.flies.forEach((fly, i) => {
             const glow = .55 + .45 * Math.sin(t * 2.3 + fly.phase * 3);
@@ -99,6 +115,28 @@ export class Meadow extends GameObject {
         this.batches.length = 0;
         if (this.fireflies) this.renderer.removeBatch(this.fireflies);
         this.fireflies = null;
+        for (const batch of this.clouds) this.renderer.removeBatch(batch);
+        this.clouds.length = this.sky.length = 0;
+    }
+
+    /** Clouds high over the meadow and the forest, a few shapes, coloured by the time of day. */
+    private addClouds(name: PaletteName) {
+        const random = seeded(this.field.seed ^ 0xc10d);
+        const reach = CLOUD_REACH + this.field.radius;
+        const shapes = 3, count = 16;
+        for (let k = 0; k < shapes; k++) this.clouds.push(this.renderer.batch(cloud(this.field.seed + k * 5), { capacity: count, emissive: .55, fog: 0, dynamic: true }));
+        for (let i = 0; i < count; i++)
+        {
+            const batch = i % shapes;
+            const one = { batch, index: this.clouds[batch].count, x: (random() * 2 - 1) * reach, y: 32 + random() * 16, z: (random() * 2 - 1) * reach, yaw: (random() - .5) * .6, scale: .8 + random() * .9 };
+            this.clouds[batch].add(one.x, one.y, one.z, one.yaw, one.scale);
+            this.sky.push(one);
+        }
+        this.tintClouds(name);
+    }
+
+    private tintClouds(name: PaletteName) {
+        for (const one of this.sky) this.clouds[one.batch].tint(one.index, CLOUDS[name]);
     }
 
     private addFireflies() {

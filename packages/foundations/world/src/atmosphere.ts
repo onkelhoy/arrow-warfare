@@ -1,4 +1,4 @@
-import { mix, rgb, type Light } from "@arrow-warfare/render";
+import { mix, rgb, type Light, type Vec3 } from "@arrow-warfare/render";
 
 /** The light of the meadow at four times of day. The sky colours are cowboy's palettes. */
 export const PALETTES = {
@@ -25,6 +25,14 @@ export const PALETTES = {
 } satisfies Record<string, Light>;
 
 export type PaletteName = keyof typeof PALETTES;
+
+/** The clouds' colour at each time of day: white, warm in the morning, pink at sunset, navy at night. */
+export const CLOUDS: Record<PaletteName, Vec3> = {
+    night: [.2, .25, .5],
+    dawn: [1, .95, .88],
+    noon: [1, 1, 1],
+    sunset: [1, .66, .68],
+};
 
 /** The light at this hour of the player's own day, like cowboy. */
 export function paletteAt(hour: number): PaletteName {
