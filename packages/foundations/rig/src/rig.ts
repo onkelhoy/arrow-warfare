@@ -21,7 +21,7 @@ export const MEASURE = {
     ankle: .05,
     /** Above the hips. */
     shoulder: .58,
-    shoulderWidth: .31,
+    shoulderWidth: .35,
     upperArm: .25,
     forearm: .23,
     neck: .68,
@@ -209,7 +209,7 @@ export class Rig {
             const shoulder = this.point(this.torso, s * MEASURE.shoulderWidth, shoulderY, 0);
             arm.upper.offset.set(shoulder);
             // elbows down, out and back
-            arm.pole.set([shoulder[0] + s * .3, shoulder[1] - .3, shoulder[2] + .4]);
+            arm.pole.set([shoulder[0] + s * .45, shoulder[1] - .3, shoulder[2] + .4]);
             const hurt = (input.wounds & (i === 0 ? WOUND.leftArm : WOUND.rightArm)) !== 0;
             let target: Vec;
             if (input.dead) target = [shoulder[0] + s * (.45 + this.twitch[i] * .5), shoulder[1] + .12 + this.twitch[i], shoulder[2] + .1];
@@ -243,7 +243,7 @@ export class Rig {
     /** A hand at rest: hanging by the side, or on the ground beside me sitting, pushing when crawling. */
     private restHand(shoulder: Vec, s: number, low: number, speed: number): Vec {
         const swing = Math.sin(this.crawl + (s > 0 ? Math.PI : 0)) * .08 * Math.min(1, speed);
-        const hang: Vec = [shoulder[0] + s * .07, shoulder[1] - .42, shoulder[2] - .03];
+        const hang: Vec = [shoulder[0] + s * .12, shoulder[1] - .42, shoulder[2] - .03];
         const ground: Vec = [s * .4, .04, .05 + swing];
         return [hang[0] + (ground[0] - hang[0]) * low, hang[1] + (ground[1] - hang[1]) * low, hang[2] + (ground[2] - hang[2]) * low];
     }
