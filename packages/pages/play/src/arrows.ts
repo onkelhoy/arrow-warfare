@@ -1,5 +1,5 @@
 import { fly, heading, hitBody, launch, STEP, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
-import { multiply, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
+import { multiply, seeded, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
 import type { Rig } from "@arrow-warfare/rig";
 import { arrow as arrowModel, ARROW_LENGTH, beam, type Field } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
@@ -63,6 +63,28 @@ export class Arrows {
         this.all.set(shot.id, arrow);
         this.colours.set(shot.id, this.colourOf(shot.by));
         return arrow;
+    }
+
+    /**
+     * A dead player's unshot arrows, fallen in the grass around where they died. The same on every phone:
+     * the spread comes from their id, the ids are `<player>:drop<n>`. Anyone can pick them up.
+     */
+    drop(by: string, x: number, z: number, count: number, time: number) {
+        const random = seeded([...by].reduce((hash, c) => hash * 31 + c.charCodeAt(0) | 0, 7) ^ Math.round(x * 100) ^ Math.round(z * 100) << 8);
+        for (let i = 0; i < count; i++)
+        {
+            const id = `${by}:drop${i}`;
+            if (this.all.has(id)) continue;
+            const angle = random() * Math.PI * 2, distance = .35 + random() * .6;
+            const ax = x + Math.cos(angle) * distance, az = z + Math.sin(angle) * distance;
+            // lying flat, any which way, the tip a touch into the grass
+            const facing = random() * Math.PI * 2;
+            const dx = Math.cos(facing), dz = Math.sin(facing);
+            const arrow = launch({ id, by, time, x: ax, y: this.field.height(ax, az) + .02, z: az, dx, dy: -.04, dz, speed: 1 });
+            arrow.rest = { in: "ground" };
+            this.all.set(id, arrow);
+            this.colours.set(id, this.colourOf(by));
+        }
     }
 
     /** It went into a player's `part`, as they said, `point` and `direction` in the part's space. */

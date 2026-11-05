@@ -75,6 +75,8 @@ const HORN = `<svg class="aw-play-horn" viewBox="0 0 120 220" aria-hidden="true"
 </svg>`;
 /** Seconds of the spirit leaving my body. */
 const SPIRIT = 1.5;
+/** The most arrows a dead player drops. */
+const MAX_DROP = 20;
 /** How far a body tips over when it dies (as in `others`). */
 const FALL = Math.PI / 2 * .94;
 
@@ -571,7 +573,12 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (deadPanel.hidden) deadToggle.classList.add("unread");
         }),
 
-        net.on("pick", ({ arrow: id }, sender) => {
+        net.on("drop", ({ x, z, count }, sender) => {
+            if (!player(sender) || ![x, z, count].every(Number.isFinite)) return;
+            arrows.drop(sender, x, z, Math.max(0, Math.min(MAX_DROP, Math.floor(count))), net.shared());
+        }),
+
+                net.on("pick", ({ arrow: id }, sender) => {
             if (!host || over) return;
             const arrow = arrows.all.get(id);
             if (!arrow || !arrow.rest || arrow.gone || taken.has(id) || dead.has(sender) || !player(sender)) return;
@@ -662,6 +669,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             return;
         }
         wounds.hits++;
+        // my unshot arrows fall where I die, for anyone to pick up
+        const left = Number.isFinite(quiver) ? quiver : state.rules.arrows;
+        if (left > 0) broadcast("drop", { x: walker.x, z: walker.z, count: Math.min(left, MAX_DROP) });
+        quiver = 0;
         walker.alive = false;
         draw.cancel();
         // out of my body: the camera rises from my eyes and looks back at me lying there
