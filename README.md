@@ -1,6 +1,6 @@
 # @arrow-warfare/root
 
-![Logo](https://raw.githubusercontent.com/henry/arrow-warfare/refs/heads/main/asset/logo.svg)
+![Logo](https://raw.githubusercontent.com/onkelhoy/arrow-warfare/refs/heads/main/asset/logo.svg)
 
 ## Introduction
 

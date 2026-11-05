@@ -190,4 +190,4 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - Torso hit: dead at once, or two torso hits?
 - Can you pick up arrows while drawing? Can the dead drop their quiver?
 - Friendly fire in teams?
-- The GitHub repo name and Pages URL (there's no git remote yet).
+- ~~Repo~~: github.com/onkelhoy/arrow-warfare, live at https://onkelhoy.github.io/arrow-warfare/ (static `--base /arrow-warfare/`).
