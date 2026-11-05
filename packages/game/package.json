@@ -41,7 +41,16 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@papit/theme": "*"
+    "@papit/theme": "*",
+    "@arrow-warfare/core": "*",
+    "@arrow-warfare/net": "*",
+    "@arrow-warfare/sound": "*",
+    "@arrow-warfare/corner": "*",
+    "@arrow-warfare/menu": "*",
+    "@arrow-warfare/lobby": "*",
+    "@arrow-warfare/play": "*",
+    "@papit/signals": "^0.0.1",
+    "@papit/translator": "^0.1.1"
   },
   "devDependencies": {
     "typescript": "5.9.3"

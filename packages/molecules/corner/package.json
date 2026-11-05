@@ -1,0 +1,58 @@
+{
+  "name": "@arrow-warfare/corner",
+  "description": "The corner buttons: fullscreen, sound and the settings dialog.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "corner"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/molecules/corner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/molecules/corner"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/button": "^0.1.10",
+    "@papit/dialog": "^0.0.17",
+    "@papit/icon": "^0.1.13",
+    "@papit/input": "^0.0.10",
+    "@papit/signals": "^0.0.1",
+    "@arrow-warfare/core": "*",
+    "@arrow-warfare/sound": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "papit": {
+    "publish": false,
+    "type": "library",
+    "main": "corner"
+  }
+}

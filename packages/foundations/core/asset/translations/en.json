@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "region": "GB",
+    "language": "en"
+  },
+  "aw": {
+    "corner": {
+      "fullscreen": "Fullscreen",
+      "sound": "Sound",
+      "settings": "Settings",
+      "name": "Name",
+      "everything": "Everything",
+      "music": "Music",
+      "sounds": "Sounds"
+    },
+    "invite": {
+      "header": "Invite friends",
+      "connecting": "Making the invite link...",
+      "send": "Send this link to your friends, or let them scan the code.",
+      "onlyHost": "Only the host can invite. Ask them for the link."
+    },
+    "chat": {
+      "everyone": "Everyone",
+      "team": "Team",
+      "placeholder": "Say something",
+      "send": "Send"
+    },
+    "menu": {
+      "title": "Arrow Warfare",
+      "invitedBy": "{name} invites you to an arrow battle!",
+      "invited": "You're invited to an arrow battle!",
+      "yourName": "Your name",
+      "password": "Password",
+      "join": "Join the game",
+      "host": "Host a game",
+      "hostOwn": "Host my own game instead",
+      "needName": "Give yourself a name first.",
+      "needsPassword": "This game has a password.",
+      "wrongPassword": "That password didn't work, try again."
+    },
+    "play": {
+      "title": "3, 2, 1... go!",
+      "soon": "The meadow isn't built yet. Soon you'll shoot each other here.",
+      "back": "Back to the lobby",
+      "waitHost": "Waiting for the host to go back to the lobby."
+    },
+    "lobby": {
+      "leave": "Leave",
+      "untitled": "Arrow battle",
+      "ready": "Ready",
+      "notReady": "Not ready",
+      "lock": "Lock the game",
+      "unlock": "Unlock"
+    },
+    "tab": {
+      "players": "Players",
+      "invite": "Invite",
+      "teams": "Teams",
+      "game": "Game",
+      "rules": "Rules"
+    },
+    "game": {
+      "name": "Game name",
+      "password": "Password",
+      "noPassword": "No password",
+      "max": "Max players",
+      "maxNote": "More than 10 is fine on computers, phones may struggle."
+    },
+    "rules": {
+      "arrows": "Arrows per player",
+      "unlimited": "Unlimited"
+    },
+    "colour": {
+      "red": "red",
+      "blue": "blue",
+      "green": "green",
+      "yellow": "yellow",
+      "orange": "orange",
+      "purple": "purple",
+      "pink": "pink",
+      "cyan": "cyan",
+      "brown": "brown",
+      "white": "white",
+      "black": "black",
+      "lime": "lime"
+    },
+    "players": {
+      "host": "host",
+      "you": "(you)",
+      "weak": "weak connection",
+      "force": "Force ready",
+      "kick": "Kick"
+    },
+    "teams": {
+      "none": "No teams means free for all.",
+      "note": "Everyone in a team wears its colour.",
+      "create": "Create a team",
+      "delete": "Delete team",
+      "add": "Add a player...",
+      "remove": "Remove from team",
+      "empty": "Nobody yet",
+      "unnamed": "No name yet",
+      "name": "Team name",
+      "voteName": "Vote for a name",
+      "vote": "Vote",
+      "voted": "Voted",
+      "ideaPlaceholder": "A name idea",
+      "suggest": "Suggest",
+      "force": "Force team ready"
+    },
+    "phase": {
+      "open": "Open: friends can join. The host locks the game when everyone's here.",
+      "locked": "Locked: press ready. {count} of {total} ready.",
+      "countdown": "Get ready...",
+      "play": "Playing"
+    },
+    "status": {
+      "joining": "Joining the game...",
+      "waitingHost": "Waiting for {name} to answer, they may still be sending the link...",
+      "friend": "the host",
+      "waking": "Waking up the server, a free one needs a moment...",
+      "failed": "Trouble connecting. Trying again...",
+      "connecting": "Connecting..."
+    },
+    "end": {
+      "hostLeft": "The host left, so the game is over.",
+      "kicked": "The host removed you from the game.",
+      "locked": "That game is locked or full. Ask the host to unlock it.",
+      "full": "That game is full.",
+      "gone": "Nobody answered that link. The game may be over, ask for a new link."
+    }
+  }
+}
