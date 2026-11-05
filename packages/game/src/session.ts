@@ -1,5 +1,5 @@
-import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Results, type Rules } from "@arrow-warfare/core";
-import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, Room, ROOM_MEDIA, type Invite, type Lobby } from "@arrow-warfare/net";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
+import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, RECONNECT, Room, ROOM_MEDIA, type Invite, type Lobby } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
 /** Why a game ended for us. */
@@ -12,6 +12,8 @@ export type SessionEvents = {
     link(link: string): void;
     /** Words while joining, empty when there's nothing to say. */
     status(words: "joining" | "waitingHost" | ""): void;
+    /** A guest lost the host and is trying to get back, or is back. */
+    reconnecting(trying: boolean): void;
     /** The host wants a password, `wrong` when the last one didn't work. Resolves with the next try. */
     password(wrong: boolean): Promise<string>;
     end(reason: End): void;
@@ -21,6 +23,23 @@ export type SessionEvents = {
 const PING_PUBLISH = 3000;
 /** How many name ideas a team can have. */
 const IDEAS = 8;
+
+/** One per game and tab, so a reload or a new connection is known as me. */
+function rejoinToken(host: string) {
+    const key = `arrow-warfare.rejoin.${host}`;
+    try
+    {
+        const saved = sessionStorage.getItem(key);
+        if (saved) return saved;
+        const token = crypto.randomUUID();
+        sessionStorage.setItem(key, token);
+        return token;
+    }
+    catch
+    {
+        return crypto.randomUUID();
+    }
+}
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 const text = (value: unknown, length: number) => typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, length) : "";
@@ -40,6 +59,12 @@ export class Session {
     private goTimer: ReturnType<typeof setTimeout> | undefined;
     private shownLink = "";
     private ended = false;
+    /** The host's: who each rejoin token belongs to, and the places of the dropped, kept for `RECONNECT`. */
+    private tokens = new Map<string, string>();
+    private dropped = new Map<string, { player: Player; timer: ReturnType<typeof setTimeout> }>();
+    private kickedTokens = new Set<string>();
+    /** A guest's: proves to the host it's me again after a drop or a reload. */
+    private token = "";
 
     constructor(private lobby: Lobby, private name: () => string, private events: SessionEvents) { }
 
@@ -104,12 +129,14 @@ export class Session {
     private hostHandlers(room: Room) {
         const player = (id: string) => this.state?.players.find(player => player.id === id);
 
-        room.on("hello", ({ name, password }, sender) => {
+        room.on("hello", ({ name, password, token }, sender) => {
             const state = this.state!;
             const clean = cleanName(String(name ?? "")) || "?";
-            const known = player(sender);
+            const known = player(sender) ?? state.waiting?.find(other => other.id === sender);
             if (known) return this.publish();
-            if (this.kicked.has(sender)) return room.send(sender, "denied", { reason: "kicked" });
+            const key = typeof token === "string" ? token.slice(0, 64) : "";
+            if (this.kicked.has(sender) || this.kickedTokens.has(key)) return room.send(sender, "denied", { reason: "kicked" });
+            if (key && this.rejoin(key, sender)) return;
             if (state.phase !== "open") return room.send(sender, "denied", { reason: "locked" });
             if (state.players.length >= state.max) return room.send(sender, "denied", { reason: "full" });
             if (sender !== room.me && this.password && password !== this.password)
@@ -124,6 +151,7 @@ export class Session {
                 team: null,
                 ping: sender === room.me ? 0 : -1,
             });
+            if (key) this.tokens.set(key, sender);
             this.publish();
         });
 
@@ -175,9 +203,58 @@ export class Session {
         });
 
         room.onLink((peer, open) => {
-            if (open || peer === room.me || !player(peer)) return;
+            if (open || peer === room.me) return;
+            const state = this.state!;
+            const found = player(peer) ?? state.waiting?.find(other => other.id === peer);
+            if (!found) return;
+            // their place is kept a while, a short drop comes back to it
+            const key = [...this.tokens].find(([, id]) => id === peer)?.[0];
+            if (key)
+            {
+                this.tokens.delete(key);
+                const timer = setTimeout(() => this.dropped.delete(key), RECONNECT);
+                this.dropped.set(key, { player: structuredClone(found), timer });
+            }
+            if (state.waiting) state.waiting = state.waiting.filter(other => other.id !== peer);
             this.removePlayer(peer);
         });
+    }
+
+    /**
+     * A dropped player is back with a new id: their old place again (name, colour, team, ready). While a
+     * round runs they wait for it to end, the round has counted them out.
+     */
+    private rejoin(key: string, id: string) {
+        const state = this.state!;
+        let kept = this.dropped.get(key)?.player;
+        clearTimeout(this.dropped.get(key)?.timer);
+        this.dropped.delete(key);
+        // back before I noticed they were gone: the old link is dead to them
+        const old = this.tokens.get(key);
+        const stale = old && old !== id ? state.players.find(other => other.id === old) ?? state.waiting?.find(other => other.id === old) : undefined;
+        if (stale)
+        {
+            kept = structuredClone(stale);
+            if (state.waiting) state.waiting = state.waiting.filter(other => other.id !== old);
+            this.tokens.delete(key);
+            this.removePlayer(old!);
+        }
+        if (!kept) return false;
+        this.tokens.set(key, id);
+        const back: Player = { ...kept, id, ping: -1 };
+        if (back.team && !state.teams.some(team => team.id === back.team)) back.team = null;
+        if (state.phase === "play") state.waiting = [...(state.waiting ?? []), back];
+        else state.players.push(back);
+        this.publish();
+        return true;
+    }
+
+    /** The round is over: who came back during it plays again. */
+    private admitWaiting() {
+        const state = this.state!;
+        if (!state.waiting?.length) return;
+        for (const back of state.waiting) state.players.push({ ...back, ready: true });
+        state.waiting = [];
     }
 
     private removePlayer(id: string) {
@@ -192,7 +269,7 @@ export class Session {
     private publish() {
         const { room, state } = this;
         if (!room || !state || !this.isHost) return;
-        room.sendAll(state.players.map(player => player.id).filter(id => id !== room.me), "state", state);
+        room.sendAll([...state.players, ...(state.waiting ?? [])].map(player => player.id).filter(id => id !== room.me), "state", state);
         this.events.state(structuredClone(state));
     }
 
@@ -268,6 +345,7 @@ export class Session {
         const room = this.room;
         if (!room || !this.isHost || id === room.me) return;
         this.kicked.add(id);
+        for (const [key, owner] of this.tokens) if (owner === id) this.kickedTokens.add(key);
         room.send(id, "kicked");
         this.removePlayer(id);
     }
@@ -312,6 +390,7 @@ export class Session {
         if (!state || !this.isHost || state.phase !== "play") return;
         // a match of rounds: on to the next meadow until someone has more than half
         state.played = [...(state.played ?? []), results];
+        this.admitWaiting();
         const rounds = state.rules.rounds ?? 1;
         const wins = roundWins(state.played);
         const decided = Object.values(wins).some(count => count > rounds / 2) || state.played.length >= rounds;
@@ -346,6 +425,7 @@ export class Session {
         state.phase = "locked";
         state.lockedAt = this.room!.shared;
         state.played = [];
+        this.admitWaiting();
         for (const player of state.players) player.ready = false;
         this.publish();
     }
@@ -358,28 +438,39 @@ export class Session {
      */
     async join({ lobby, invite, host }: Invite) {
         this.events.status("joining");
+        this.token = rejoinToken(host);
         await this.lobby.start(lobby);
+        const network = await this.connect(invite, HOST_WAIT, () => this.events.status("waitingHost"));
+        if (network === "rejected") return this.end("locked");
+        if (!network) return this.end("gone");
+        this.enter(network, invite, host);
+    }
 
-        const until = Date.now() + HOST_WAIT;
-        let network: Network | null = null;
-        while (!network && !this.ended)
+    /** Tries the invite until it works or `patience` ms have gone. */
+    private async connect(invite: Invite["invite"], patience: number, waiting: () => void): Promise<Network | "rejected" | null> {
+        const until = Date.now() + patience;
+        while (!this.ended)
         {
             try
             {
-                network = await this.lobby.join(invite, { profile: { name: this.name() } });
+                const network = await this.lobby.join(invite, { profile: { name: this.name() } });
+                if (this.ended) network.leave();
+                else return network;
             }
             catch (error)
             {
                 console.warn("could not join", error);
                 // the entry said no: locked, full or kicked
-                if (/^rejected$/i.test(String((error as Error)?.message ?? error))) return this.end("locked");
-                if (Date.now() >= until) return this.end("gone");
-                this.events.status("waitingHost");
+                if (/^rejected$/i.test(String((error as Error)?.message ?? error))) return "rejected";
+                if (Date.now() >= until) return null;
+                waiting();
                 await wait(JOIN_GAP);
             }
         }
-        if (!network || this.ended) return network?.leave();
+        return null;
+    }
 
+    private enter(network: Network, invite: Invite["invite"], host: string) {
         const room = this.room = new Room(network, host);
         this.common(room);
 
@@ -394,17 +485,32 @@ export class Session {
             if (reason === "password")
             {
                 const password = await this.events.password(wrong === true);
-                room.send(host, "hello", { name: this.name(), password });
+                room.send(host, "hello", { name: this.name(), password, token: this.token });
                 return;
             }
             this.end(reason === "full" ? "full" : reason === "kicked" ? "kicked" : "locked");
         });
         room.on("kicked", (_, sender) => sender === host && this.end("kicked"));
         room.onLink((peer, open) => {
-            if (!open && peer === host) this.end("hostLeft");
+            if (!open && peer === host && this.room === room) void this.reconnect(invite, host);
         });
 
-        room.send(host, "hello", { name: this.name() });
+        room.send(host, "hello", { name: this.name(), token: this.token });
+    }
+
+    /** The host is gone from here: maybe a short drop on either side, so try to get back for a while. */
+    private async reconnect(invite: Invite["invite"], host: string) {
+        if (this.ended) return;
+        const old = this.room;
+        this.room = null;
+        old?.leave();
+        window.removeEventListener("pagehide", this.bye);
+        this.events.reconnecting(true);
+        const network = await this.connect(invite, RECONNECT, () => undefined);
+        if (this.ended) return;
+        if (!network || network === "rejected") return this.end("hostLeft");
+        this.events.reconnecting(false);
+        this.enter(network, invite, host);
     }
 
     // ------------------------------------------------------------------ everyone

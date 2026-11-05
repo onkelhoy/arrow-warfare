@@ -73,11 +73,35 @@ export async function startApp(root: HTMLElement = document.body) {
         let playing: Playing | null = null;
         let results: Screen | null = null;
         let phase = "";
+        /** Whose lobby the page was made for, a reconnect is a new id. */
+        let pageMe = "";
+        const note = document.createElement("div");
+        note.className = "aw-note";
+        note.hidden = true;
+        screen.append(note);
+        const say = (words: string) => {
+            note.textContent = words;
+            note.hidden = !words;
+        };
+        let reconnecting = false;
 
         const session: Session = new Session(lobby, () => settings().name, {
             state(state) {
+                if (page && pageMe !== session.me)
+                {
+                    // back after a drop with a new id: the pages are made again for it
+                    playing?.remove();
+                    playing = null;
+                    results?.remove();
+                    results = null;
+                    page.remove();
+                    page = null;
+                }
+                const inGame = state.players.some(player => player.id === session.me);
+                say(reconnecting ? t("status.reconnecting") : state.phase === "play" && !inGame ? t("status.waitingRound") : "");
                 if (!page)
                 {
+                    pageMe = session.me;
                     page = show(mountLobby(screen, session.me, {
                         ready: ready => session.act("ready", { ready }),
                         chat: (text, team) => session.act("chat", { text, team }),
@@ -98,7 +122,7 @@ export async function startApp(root: HTMLElement = document.body) {
                 }
                 page.update(state);
                 if (state.phase === "countdown" && phase !== "countdown") page.countdown(session.local(state.go), score(state));
-                if (state.phase === "play" && !playing)
+                if (state.phase === "play" && !playing && inGame)
                 {
                     playing = mountPlay(screen, {
                         state, me: session.me, host: session.isHost, net: session.net(), sound,
@@ -109,7 +133,7 @@ export async function startApp(root: HTMLElement = document.body) {
                     sound.playlist("game");
                 }
                 else if (state.phase === "play") playing?.update(state);
-                if (state.phase !== "play" && playing)
+                if ((state.phase !== "play" || !inGame) && playing)
                 {
                     playing.remove();
                     playing = null;
@@ -129,7 +153,7 @@ export async function startApp(root: HTMLElement = document.body) {
                 {
                     results.remove();
                     results = null;
-                    page.element.hidden = state.phase === "play";
+                    page.element.hidden = state.phase === "play" && inGame;
                 }
                 phase = state.phase;
             },
@@ -140,8 +164,13 @@ export async function startApp(root: HTMLElement = document.body) {
             },
             status: words => entry.status?.(words ? t(`status.${words}`, { name: invite?.by || t("status.friend") }) : ""),
             password: wrong => entry.askPassword(wrong),
+            reconnecting(trying) {
+                reconnecting = trying;
+                say(trying ? t("status.reconnecting") : "");
+            },
             end(reason: End) {
                 stopName();
+                note.remove();
                 playing?.remove();
                 results?.remove();
                 history.replaceState(null, "", withoutInvite(location.href));

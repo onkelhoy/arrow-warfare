@@ -23,3 +23,21 @@ body {
     text-align: center;
     color: #2f4a1f;
 }
+
+/* reconnecting, or waiting for the round to end */
+.aw-note {
+    position: fixed;
+    z-index: 20;
+    inset: max(10px, env(safe-area-inset-top)) auto auto 50%;
+    translate: -50% 0;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 60%);
+    color: white;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.aw-note[hidden] {
+    display: none;
+}

@@ -164,6 +164,8 @@
     "status": {
       "joining": "Går med i spelet...",
       "waitingHost": "Väntar på svar från {name}, de kanske fortfarande skickar länken...",
+      "reconnecting": "Tappade anslutningen, kommer tillbaka...",
+      "waitingRound": "Du är tillbaka! Du är med när rundan är slut.",
       "friend": "värden",
       "waking": "Väcker servern, en gratis server behöver en stund...",
       "failed": "Problem att ansluta. Försöker igen...",

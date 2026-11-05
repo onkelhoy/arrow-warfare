@@ -65,6 +65,8 @@ export type GameState = {
     seed: number;
     rules: Rules;
     players: Player[];
+    /** Back after a drop while a round runs: they join the players when it ends. */
+    waiting?: Player[];
     teams: Team[];
     /** The last round's end, while the phase is `results`. */
     results: Results | null;

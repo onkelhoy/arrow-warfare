@@ -164,6 +164,8 @@
     "status": {
       "joining": "Joining the game...",
       "waitingHost": "Waiting for {name} to answer, they may still be sending the link...",
+      "reconnecting": "Connection lost, getting back in...",
+      "waitingRound": "You're back! You join when this round ends.",
       "friend": "the host",
       "waking": "Waking up the server, a free one needs a moment...",
       "failed": "Trouble connecting. Trying again...",

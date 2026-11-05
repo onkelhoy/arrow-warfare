@@ -36,3 +36,5 @@ export function httpUrl(signal: string = signalUrl()) {
 export const HOST_WAIT = 120_000;
 /** ms between a guest's tries. */
 export const JOIN_GAP = 3000;
+/** ms a dropped player keeps their place (name, colour, team) to come back to, and a guest keeps trying. */
+export const RECONNECT = 25_000;
