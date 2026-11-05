@@ -1,7 +1,7 @@
 {
     "name": "@arrow-warfare/root",
     "version": "0.0.0",
-    "description": "a 3d game to democase papit capability for the 3d world, though it will be done via webgl2.0 and not webgpu - thats for another time ",
+    "description": "First person multiplayer archer game for phones, peer to peer over WebRTC, built on papit and WebGL2.",
     "private": true,
     "scripts": {
         "analyse": "npm run analyse --workspaces --if-present",
@@ -10,9 +10,11 @@
         "build": "npx @papit/build",
         "test": "node bin/test.mjs",
         "create": "npm create @papit -- --package",
-        "start": "npx @papit/server --serve --info",
+        "start": "npx @papit/server --info --live",
         "version:reset": "npx @papit/version --reset",
-        "version:sync": "npx @papit/version --sync"
+        "version:sync": "npx @papit/version --sync",
+        "signal": "npx @papit/signal-server --port 3001",
+        "pages": "npm run pages --workspace=@arrow-warfare/game"
     },
     "keywords": [
         "typescript",
@@ -29,24 +31,27 @@
         "url": "git+https://github.com/onkelhoy/arrow-warfare.git"
     },
     "workspaces": [
+        "game",
         "packages/**/*",
         "!packages/**/asset/**",
         "!packages/**/dist/**"
     ],
     "devDependencies": {
-        "esbuild": "0.27.2",
-        "typescript": "5.9.3",
-        "@papit/bundle-ts": "*",
-        "@papit/bundle-js": "*",
-        "@papit/arguments": "*",
-        "@papit/terminal": "*",
-        "@papit/information": "*",
-        "@papit/build": "*",
-        "@papit/server": "*",
-        "@papit/create": "*",
-        "@papit/version": "*",
         "@papit/analyse": "*",
-        "@papit/react": "*"
+        "@papit/arguments": "*",
+        "@papit/build": "*",
+        "@papit/bundle-js": "*",
+        "@papit/bundle-ts": "*",
+        "@papit/create": "*",
+        "@papit/information": "*",
+        "@papit/react": "*",
+        "@papit/server": "*",
+        "@papit/signal-server": "^0.1.2",
+        "@papit/static": "^0.0.8",
+        "@papit/terminal": "*",
+        "@papit/version": "*",
+        "esbuild": "0.27.2",
+        "typescript": "5.9.3"
     },
     "papit": {}
 }

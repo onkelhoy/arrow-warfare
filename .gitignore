@@ -4,6 +4,11 @@ packages/**/lib/
 packages/**/dist/
 packages/**/analyse.json
 packages/**/.papit/
+
+# the site, built by .github/workflows/pages.yml
+docs/
+# root asset/ copied into the app at build time
+game/asset/owner/
 isolated/
 .temp/
 .npm/

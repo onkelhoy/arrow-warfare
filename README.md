@@ -1,45 +1,54 @@
-# @arrow-warfare/root
+# Arrow Warfare
 
-![Logo](https://raw.githubusercontent.com/onkelhoy/arrow-warfare/refs/heads/main/asset/logo.svg)
+A first person multiplayer archer game for phones, built on [papit](https://github.com/onkelhoy/papit). A fairytale meadow with trees, a handful of short silly archers with big torsos and tiny legs, very few arrows. Pick your arrows back up, hop on one leg when you're hit, and be the last one standing.
 
-## Introduction
+Play it at <https://onkelhoy.github.io/arrow-warfare/>.
 
-[Provide a brief description of your project. Explain what it does and what makes it unique or valuable. Mention the key features and any important technologies used.]
+## How a game goes
 
-## Getting Started
+1. Give yourself a name and host a game. Share the QR code or link.
+2. Friends open the link, give a name and pick a colour.
+3. The host locks the game, makes teams if they want (no teams is free for all) and sets the rules, such as how many arrows everyone gets.
+4. Everyone presses ready, then 3, 2, 1.
+5. Shoot, pick arrows up, survive. The dead watch the shot that got them in slow motion, then spectate and chat.
+6. The end screen shows who won and everyone's stats.
 
-### Prerequisites
+## Run it
 
-- [List any prerequisites needed to run your project, like Node.js, npm, etc.]
-- [Include any other requirements, like a specific browser or environment.]
+Needs Node 20 or newer.
 
-### Installation
+```bash
+npm install
+npm start          # dev server with every package's views
+```
 
-1. Clone the repo:
-2. Install NPM packages:
+To play across browsers on your own machine, run a local signal server too:
 
-## Usage
+```bash
+npm run signal     # ws://localhost:3001
+```
 
-[Provide instructions on how to use your project. This could include steps to run it, how to navigate the interface, or examples of its functionality.]
+Then add `?signal=ws://localhost:3001` to the page address. Invite links keep it.
 
-## Important Commands
+## Commands
 
-- `command1`: [Explain what this command does.]
-- `command2`: [Explain what this command does.]
-- [Include as many commands as necessary, providing clear explanations for each.]
+| Command | What it does |
+| --- | --- |
+| `npm start` | Dev server with live rebuild, shows every package's views |
+| `npm run signal` | Local signal server on port 3001 |
+| `npm run build` | Builds every package |
+| `npm run pages` | Builds the site into `docs/`, the same build GitHub Pages runs |
 
-## Contributing
+## How it works
 
-[If you're open to contributions, explain how others can contribute to your project. Provide any guidelines or rules for contributing.]
+- **Networking** works like [CowboyGame](https://github.com/onkelhoy/CowboyGame): every player joins one shared chord network on the signal server, a lobby nobody sees. A game is a mesh room carried inside it, so the signal server never sees the game itself.
+- **3D** runs on WebGL2 through `@papit/game-engine`, with low poly models made in code.
+- **Songs** live in `asset/audio/songs/`. `asset/audio/songs.json` says which play in the lobby and which in the game.
 
-## License
+## Layout
 
-[Specify the type of license under which your project is released, if applicable.]
+See [packages/README.md](packages/README.md). `game/` at the root is the app that brings the pages together.
 
-## Contact
+## Put it online
 
-[Provide your contact information or the contact information of the project maintainer.]
-
----
-
-[Feel free to include any additional sections that are relevant to your project, such as 'Acknowledgements', 'Credits', 'Known Issues', etc.]
+Every push to `main` builds the site with `@papit/static` and publishes it to GitHub Pages.

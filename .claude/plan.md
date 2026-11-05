@@ -2,7 +2,7 @@
 
 Proposed, waiting for confirmation. Delete this file when every task is done.
 
-1. **Setup**: `CLAUDE.md`, README, package layout folders, repo URLs, `.gitignore` for `docs/`
+1. ~~**Setup**: `CLAUDE.md`, README, package layout folders, repo URLs, `.gitignore` for `docs/`~~ done
 2. **App package `game/`**: a workspace package with a hello page, `npm start` shows it with every package's views
 3. **Deploy**: `npm run pages` builds `docs/` with `@papit/static`, `pages.yml` deploys on push to `main`. Needs the GitHub repo. *Push.*
 4. **Assets into the app**: copy root `asset/` (songs, logo) like cowboy's `sync-assets`, page icons and manifest
@@ -21,4 +21,4 @@ Proposed, waiting for confirmation. Delete this file when every task is done.
 17. **Ready and start**: ready toggles, the host can force a player or team after a delay, shared clock 3 2 1, then a placeholder play page. *Push.*
 
 ## Where we are
-Nothing built yet. Next: task 1 once confirmed.
+Task 1 done. Next: task 2, the `game/` app package.
