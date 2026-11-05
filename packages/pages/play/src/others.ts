@@ -35,6 +35,10 @@ export class Others {
     private viewProjection = new Float32Array(16);
     /** The round is over: bows down. */
     unarmed = false;
+    /** Not drawn (the kill cam draws the past instead), they're still followed. */
+    hidden = false;
+    /** Poses that replace what the network says: the winners walking up to each other at the end. */
+    readonly override = new Map<string, Pose>();
 
     constructor(renderer: Renderer, private field: Field, private labels: HTMLElement, private me: string, spawns: Record<string, Spawn>, state: GameState) {
         this.bodies = new Bodies(renderer);
@@ -110,15 +114,30 @@ export class Others {
         return [...this.others.values()].filter(other => !other.corpse).map(other => ({ id: other.id, rig: other.rig }));
     }
 
-    /** Draws everyone as they were `DELAY` ms ago on the shared clock, and puts their names over them. */
-    frame(now: number, dt: number, camera: Camera, width: number, height: number) {
+    /** Where someone is drawn now, null for someone not here. */
+    poseOf(id: string): Pose | null {
+        const other = this.others.get(id);
+        if (!other) return null;
+        return other.corpse ? { ...other.last, ...other.corpse } : other.last;
+    }
+
+    lookOf(id: string) {
+        const other = this.others.get(id);
+        return other ? { clothes: other.clothes, skin: other.skin } : null;
+    }
+
+    /**
+     * Draws everyone as they were `DELAY` ms ago on the shared clock, and puts their names over them.
+     * `extra` are more bodies to draw with them (mine, once I'm out of it).
+     */
+    frame(now: number, dt: number, camera: Camera, width: number, height: number, extra: Parameters<Bodies["draw"]>[0] = []) {
         const at = now - DELAY;
         multiply(this.viewProjection, camera.projectionMatrix, camera.viewMatrix);
         const shown: Parameters<Bodies["draw"]>[0] = [];
         for (const other of this.others.values())
         {
             if (other.corpse) other.tip = Math.min(FALL, other.tip + dt * FALL_SPEED * (.3 + other.tip));
-            else other.last = sample(other.poses, at);
+            else other.last = this.override.get(other.id) ?? sample(other.poses, at);
             const pose = other.last;
             const place = other.corpse ?? pose;
             other.rig.update(dt, {
@@ -128,9 +147,10 @@ export class Others {
                 dead: !!other.corpse, tip: other.tip, unarmed: this.unarmed,
             });
             shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
-            if (!other.corpse) this.placeLabel(other.label, place.x, this.field.height(place.x, place.z) + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
+            if (this.hidden) other.label.hidden = true;
+            else if (!other.corpse) this.placeLabel(other.label, place.x, this.field.height(place.x, place.z) + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
         }
-        this.bodies.draw(shown);
+        this.bodies.draw(this.hidden ? [] : [...shown, ...extra]);
     }
 
     destroy() {

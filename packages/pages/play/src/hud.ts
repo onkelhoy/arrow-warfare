@@ -15,6 +15,9 @@ export class Hud {
     private marker: HTMLElement;
     private hand: HTMLElement;
     private quiver: HTMLElement;
+    private killCount: HTMLElement;
+    private watchLine: HTMLElement;
+    private skipHint: HTMLElement;
     private left: HTMLElement;
     private feed: HTMLElement;
     private banner: HTMLElement;
@@ -23,7 +26,7 @@ export class Hud {
     private figure: HTMLElement;
     private energyBar: HTMLElement;
     private pullButton: HTMLButtonElement;
-    private shown = { arrows: "", left: "", tunnel: -1, damage: -1, wounds: -1, energy: -1, pull: -1 };
+    private shown = { arrows: "", left: "", tunnel: -1, damage: -1, wounds: -1, energy: -1, pull: -1, kills: -1, watch: "" };
 
     constructor(root: HTMLElement) {
         this.element = document.createElement("div");
@@ -35,7 +38,9 @@ export class Hud {
             <svg class="aw-hud-hand" hidden viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5v-6a1.5 1.5 0 0 1 3 0V11m0-5.5a1.5 1.5 0 0 1 3 0V12m0-4.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-4.7-2.3L3.5 16a1.6 1.6 0 0 1 2.4-2.1L8 16"/></svg>
             <div class="aw-hud-left" aria-live="polite"></div>
             <ol class="aw-hud-feed" aria-live="polite"></ol>
-            <div class="aw-hud-quiver"></div>
+            <div class="aw-hud-counts"><div class="aw-hud-kills" hidden></div><div class="aw-hud-quiver"></div></div>
+            <p class="aw-hud-watch" hidden></p>
+            <p class="aw-hud-skip" hidden>${t("hud.skip")}</p>
             <div class="aw-hud-body" hidden>
                 <svg viewBox="0 0 40 52" aria-hidden="true">
                     <circle data-zone="head" cx="20" cy="9" r="7"/>
@@ -55,6 +60,9 @@ export class Hud {
         this.marker = find(".aw-hud-marker");
         this.hand = find(".aw-hud-hand");
         this.quiver = find(".aw-hud-quiver");
+        this.killCount = find(".aw-hud-kills");
+        this.watchLine = find(".aw-hud-watch");
+        this.skipHint = find(".aw-hud-skip");
         this.left = find(".aw-hud-left");
         this.feed = find(".aw-hud-feed");
         this.banner = find(".aw-hud-banner");
@@ -116,6 +124,31 @@ export class Hud {
         this.shown.arrows = text;
         this.quiver.innerHTML = text;
         this.quiver.classList.toggle("empty", count === 0);
+    }
+
+    /** My kills this round, shown from the first. */
+    kills(count: number) {
+        if (count === this.shown.kills) return;
+        this.shown.kills = count;
+        this.killCount.hidden = count <= 0;
+        this.killCount.innerHTML = `<b>${count}</b> ${t(count === 1 ? "hud.kill" : "hud.kills")}`;
+        this.killCount.classList.remove("pop");
+        void this.killCount.offsetWidth;
+        this.killCount.classList.add("pop");
+    }
+
+    /** Who I'm watching, `html` already escaped, empty hides it. */
+    watching(html: string) {
+        if (html === this.shown.watch) return;
+        this.shown.watch = html;
+        this.watchLine.hidden = !html;
+        this.watchLine.innerHTML = html;
+    }
+
+    /** "Tap to skip", during the kill cam. */
+    skippable(show: boolean) {
+        if (this.skipHint.hidden === !show) return;
+        this.skipHint.hidden = !show;
     }
 
     /** What's left standing: players, or teams. */

@@ -11,6 +11,7 @@ import { currentPalette, Field, Meadow, type PaletteName } from "@arrow-warfare/
 
 import { Arrows } from "./arrows";
 import { Blood } from "./blood";
+import { aim, Film } from "./cinema";
 import { Controls } from "./controls";
 import { FirstPerson } from "./firstperson";
 import { Hud, nameTag } from "./hud";
@@ -60,8 +61,12 @@ export type PlayDebug = {
 const PIXELS = 1.5;
 /** ms the host waits after a death before deciding the round, so a last trade of arrows is a draw. */
 const SETTLE = 2200;
-/** ms the winner is shown before the results. */
+/** ms the winner is shown before the results, after the last kill cam. */
 const SHOW_WINNER = 3200;
+/** Seconds of the spirit leaving my body. */
+const SPIRIT = 1.5;
+/** How far a body tips over when it dies (as in `others`). */
+const FALL = Math.PI / 2 * .94;
 
 /** `point` and `direction` are in the hit part's own space, `at` is where in the world. */
 type Hit = { arrow: string; victim: string; zone: Zone; part: string; point: Vec; direction: Vec; place: BodyPlace; at: Vec; distance: number; time: number };
@@ -84,6 +89,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     play.innerHTML = `
         <canvas class="aw-play-canvas"></canvas>
         <div class="aw-play-names"></div>
+        <div class="aw-play-spirit"></div>
         <p class="aw-play-hint">${t("play.hint")}</p>
         ${host ? `<pap-button class="aw-play-back" size="small" variant="outline">${t("play.back")}</pap-button>` : ""}
         <div class="aw-play-turn" role="status"><p>${t("play.turn")}</p></div>
@@ -166,13 +172,190 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const distance = Math.hypot(dx, dy, dz) || 1;
         return { volume: 1 / (1 + distance / 9), pan: (m[0] * dx + m[1] * dy + m[2] * dz) / distance * .8 };
     };
-    const sound = (name: SfxName, at?: Vec, volume = 1) => {
+    const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1) => {
         if (!sfx) return;
         const where = at ? heard(at) : { volume: 1, pan: 0 };
-        sfx.play(name, { volume: where.volume * volume, pan: where.pan });
+        sfx.play(name, { volume: where.volume * volume, pan: where.pan, rate });
     };
     const vibrate = (pattern: number | number[]) => {
         try { navigator.vibrate?.(pattern); } catch { /* not here */ }
+    };
+
+    // ------------------------------------------------------------------ what the camera shows
+
+    /**
+     * play: my eyes. spirit: I just died, the camera leaves my body. film: the kill cam. watch: following
+     * someone alive, in third person. circle: the end, around the winners.
+     */
+    type View = "play" | "spirit" | "film" | "watch" | "circle";
+    let view: View = "play";
+    const mySkin = rgb(SKINS[mine?.skin ?? 0] ?? SKINS[0]);
+    const lookOf = (id: string) => id === me ? { clothes: colourOf(me), skin: mySkin } : others.lookOf(id);
+    const myPose = () => ({
+        time: net.shared(), x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: 0,
+        draw: 0, stage: 0, left: settings().hand === "left", wounds: wounds.bits, resting: wounds.resting,
+    });
+    const film = new Film({
+        renderer, field, camera, replay, arrows, blood, lookOf,
+        fallback: id => id === me ? myPose() : others.poseOf(id),
+        sound: (name, at, volume, rate) => sound(name, at, volume, rate),
+    });
+    /** The spirit leaving: from where my eyes were, the way I faced. */
+    const spirit = { time: 0, from: [0, 0, 0] as Vec, yaw: 0 };
+    /** A kill cam waiting for its hit to arrive (the host's death can come before the victim's hit). */
+    let queued: { victim: string; killer: string; arrow: string; until: number } | null = null;
+    let watching: string | null = null;
+    const watchEye: Vec = [0, 0, 0];
+    const watchLook: Vec = [0, 0, 0];
+    /** The death that ended the round, and whether its kill cam has been shown. */
+    let finalDeath: string | null = null;
+    let finalShown = false;
+    let winner: Results["winner"] = null;
+    /** How far my body has tipped over. */
+    let myTip = 0;
+
+    const setView = (next: View) => {
+        view = next;
+        play.classList.toggle("film", next === "film");
+        play.classList.toggle("spirit", next === "spirit");
+        play.classList.toggle("out", next !== "play");
+        others.hidden = next === "film";
+        firstPerson.hidden = next !== "play";
+        hud.skippable(next === "film" || next === "spirit");
+        if (next !== "watch") hud.watching("");
+        options.sound?.dip(next === "film" || next === "spirit" || next === "circle");
+    };
+
+    /** The kill cam of `victim`'s death, once this phone has the hit. */
+    const startFilm = (victim: string, killer: string, arrow: string) => {
+        if (!replay.hits.has(arrow) && net.shared() < (queued?.until ?? Infinity))
+        {
+            queued ??= { victim, killer, arrow, until: net.shared() + 1200 };
+            return;
+        }
+        queued = null;
+        if (over && finalDeath === victim) finalShown = true;
+        if (film.start(victim, killer, arrow))
+        {
+            hud.say("");
+            setView("film");
+            return;
+        }
+        afterFilm(victim, killer);
+    };
+
+    /** After a kill cam: the final one if it's still to come, the end, or watching the killer. */
+    const afterFilm = (victim: string, killer: string) => {
+        if (over)
+        {
+            const last = finalDeath ? replay.deaths.get(finalDeath) : null;
+            if (!finalShown && last)
+            {
+                finalShown = true;
+                return startFilm(last.id, last.by, last.arrow);
+            }
+            return finale();
+        }
+        if (walker.alive) return setView("play");
+        watch(killer !== victim && !dead.has(killer) ? killer : null);
+    };
+
+    /** The ones still standing that I can watch, my team first. */
+    const watchable = () => {
+        const team = player(me)?.team;
+        const alive = state.players.filter(other => other.id !== me && !dead.has(other.id) && others.poseOf(other.id));
+        return [...alive.filter(other => team && other.team === team), ...alive.filter(other => !team || other.team !== team)].map(other => other.id);
+    };
+
+    const watch = (target: string | null) => {
+        const list = watchable();
+        const was = watching;
+        watching = target && list.includes(target) ? target : list[0] ?? null;
+        if (view !== "watch" || was !== watching)
+        {
+            const pose = watching ? others.poseOf(watching) : null;
+            // from where the camera is, it swoops over to them
+            const m = camera.worldMatrix;
+            watchEye.splice(0, 3, m[12], m[13], m[14]);
+            if (pose) watchLook.splice(0, 3, pose.x, pose.y + 1, pose.z);
+        }
+        setView("watch");
+        hud.watching(watching ? `${t("hud.watching", { name: tag(watching) })} · ${t("hud.switch")}` : "");
+    };
+
+    /** The round is over and its last kill cam shown: who won. */
+    const finale = () => {
+        setView(walker.alive ? "play" : "watch");
+        if (!walker.alive) watch(watching);
+        if (!winner) return hud.say(t("hud.draw"));
+        const won = winner.kind === "player" ? winner.id === me : player(me)?.team === winner.id;
+        if (winner.kind === "player") return hud.say(won ? t("hud.youWin") : t("hud.wins", { name: player(winner.id)?.name ?? "?" }), won ? "win" : "lose");
+        const team = state.teams.find(other => other.id === winner!.id);
+        const name = team ? teamName(team) || t(`colour.${COLOURS[team.colour].name}`) : "?";
+        hud.say(won ? t("hud.youWin") : t("hud.wins", { name }), won ? "win" : "lose");
+    };
+
+    /** A tap anywhere: skips the kill cam, or watches the next player. */
+    const tapped = () => {
+        if (view === "spirit") spirit.time = SPIRIT;
+        else if (view === "film")
+        {
+            film.skip();
+            afterFilm(film.victim, film.killer);
+        }
+        else if (view === "watch")
+        {
+            const list = watchable();
+            watch(list[(list.indexOf(watching ?? "") + 1) % Math.max(1, list.length)] ?? null);
+        }
+    };
+
+    /** The camera for the views that aren't my eyes, each frame. */
+    const direct = (dt: number) => {
+        if (queued && (replay.hits.has(queued.arrow) || net.shared() >= queued.until)) startFilm(queued.victim, queued.killer, queued.arrow);
+        if (view === "spirit")
+        {
+            spirit.time += dt;
+            const u = Math.min(1, spirit.time / (SPIRIT - .3));
+            const e = u * u * (3 - 2 * u);
+            const forward: Vec = [-Math.sin(spirit.yaw), 0, -Math.cos(spirit.yaw)];
+            const body: Vec = [walker.x, walker.y + .45, walker.z];
+            const out: Vec = [body[0] - forward[0] * 1.9, body[1] + 1.75, body[2] - forward[2] * 1.9];
+            const eye: Vec = [spirit.from[0] + (out[0] - spirit.from[0]) * e, spirit.from[1] + (out[1] - spirit.from[1]) * e, spirit.from[2] + (out[2] - spirit.from[2]) * e];
+            const ahead: Vec = [spirit.from[0] + forward[0] * 4, spirit.from[1], spirit.from[2] + forward[2] * 4];
+            const k = Math.min(1, e * 1.4);
+            aim(camera, eye, [ahead[0] + (body[0] - ahead[0]) * k, ahead[1] + (body[1] - ahead[1]) * k, ahead[2] + (body[2] - ahead[2]) * k], (1 - e) * .3);
+            if (spirit.time >= SPIRIT && !queued)
+            {
+                const death = replay.deaths.get(me);
+                const hit = [...replay.hits.values()].find(other => other.victim === me && other.lethal);
+                const arrow = death?.arrow || hit?.arrow || "";
+                startFilm(me, death?.by ?? arrows.all.get(arrow)?.shot.by ?? me, arrow);
+            }
+        }
+        else if (view === "film")
+        {
+            film.update(dt);
+            if (film.done) afterFilm(film.victim, film.killer);
+        }
+        else if (view === "watch")
+        {
+            const pose = watching ? others.poseOf(watching) : null;
+            if (watching && (!pose || dead.has(watching))) return watch(null);
+            if (!pose) return;
+            const forward: Vec = [-Math.sin(pose.yaw), 0, -Math.cos(pose.yaw)];
+            const low = pose.resting || (pose.wounds & 12) === 12;
+            const want: Vec = [pose.x - forward[0] * 3.4, pose.y + (low ? 1.5 : 2.1), pose.z - forward[2] * 3.4];
+            want[1] = Math.max(want[1], field.height(want[0], want[2]) + .6);
+            const look: Vec = [pose.x + forward[0] * 2.5, pose.y + (low ? .6 : 1), pose.z + forward[2] * 2.5];
+            const k = 1 - Math.exp(-dt * 3.5);
+            for (let i = 0; i < 3; i++)
+            {
+                watchEye[i] += (want[i] - watchEye[i]) * k;
+                watchLook[i] += (look[i] - watchLook[i]) * k * 1.6;
+            }
+            aim(camera, watchEye, watchLook);
+        }
     };
 
     const unlisten = [
@@ -231,6 +414,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (player(by)) tally.hit(by, Number(distance) || 0, true);
             hud.line(`${tag(by)} ${t(by === id ? "hud.shotSelf" : "hud.shot")} ${by === id ? "" : tag(id)} ${t(`hud.zone.${zone}`)}`);
             if (id === me) hud.say(t(by === me ? "hud.youSelf" : "hud.youDied", { name: player(by)?.name ?? "?" }), "lose");
+            // the one I watch went down: I see it as they did, then follow who got them
+            if (id === watching && view === "watch") startFilm(id, by, String(arrow ?? ""));
             if (host) check();
         }),
 
@@ -251,17 +436,20 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             sound("pickup");
         }),
 
-        net.on("over", ({ winner }, sender) => {
-            if (sender !== state.host) return;
+        net.on("over", ({ winner: won, last }, sender) => {
+            if (sender !== state.host || over) return;
             over = true;
             others.unarmed = true;
             draw.cancel();
-            if (!winner) return hud.say(t("hud.draw"));
-            const won = winner.kind === "player" ? winner.id === me : player(me)?.team === winner.id;
-            if (winner.kind === "player") return hud.say(won ? t("hud.youWin") : t("hud.wins", { name: player(winner.id)?.name ?? "?" }), won ? "win" : "lose");
-            const team = state.teams.find(other => other.id === winner.id);
-            const name = team ? teamName(team) || t(`colour.${COLOURS[team.colour].name}`) : "?";
-            hud.say(won ? t("hud.youWin") : t("hud.wins", { name }), won ? "win" : "lose");
+            winner = won ?? null;
+            finalDeath = typeof last === "string" ? last : null;
+            // everyone sees the last kill: those in a kill cam see it once theirs is over
+            if ((view === "film" && film.victim === finalDeath) || (view === "spirit" && finalDeath === me)) finalShown = true;
+            if (view === "film" || view === "spirit" || queued) return;
+            const death = finalDeath ? replay.deaths.get(finalDeath) : null;
+            if (!death) return finale();
+            finalShown = true;
+            startFilm(death.id, death.by, death.arrow);
         }),
     ];
 
@@ -274,7 +462,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const left = standing(state.players, [...dead]);
             if (left.length > 1) return;
             const results = tally.results(state.players, net.shared());
-            broadcast("over", { winner: results.winner });
+            const last = [...replay.deaths.values()].sort((a, b) => b.time - a.time)[0];
+            broadcast("over", { winner: results.winner, last: last?.id ?? null });
             ending = setTimeout(() => options.onEnd?.(results), SHOW_WINNER);
         }, SETTLE);
     };
@@ -322,6 +511,14 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         wounds.hits++;
         walker.alive = false;
         draw.cancel();
+        // out of my body: the camera rises from my eyes and looks back at me lying there
+        const m = camera.worldMatrix;
+        spirit.time = 0;
+        spirit.from = [m[12], m[13], m[14]];
+        spirit.yaw = walker.yaw;
+        setView("spirit");
+        controls.free = true;
+        if (controls.locked) document.exitPointerLock();
         walker.punch(.05, .08);
         walker.shake(.012, .35);
         vibrate(180);
@@ -341,6 +538,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     const hint = play.querySelector<HTMLElement>(".aw-play-hint")!;
     let sent = 0;
+    let botShots = 0;
     let recorded = 0;
     let wanted = false;
     let creak = 0;
@@ -352,15 +550,18 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     }());
     const tick = (dt: number) => {
         const now = net.shared();
-        const alive = walker.alive && !over;
+        const alive = walker.alive && !over && view === "play";
         // what my wounds leave me
         wounds.update(dt, walker.speed);
         walker.posture = walker.alive ? wounds.posture : "stand";
         walker.limit = wounds.walk;
         draw.rate = wounds.drawRate < 1 ? wounds.drawRate / KEY_DRAW : Infinity;
         draw.shake = wounds.shake;
-        walker.update(dt, controls, settings().sensitivity, draw);
-        walker.place(camera, draw);
+        if (walker.alive) walker.update(dt, controls, settings().sensitivity, draw);
+        if (view === "play") walker.place(camera, draw);
+        else direct(dt);
+        if (!walker.alive) myTip = Math.min(FALL, myTip + dt * 3.2 * (.3 + myTip));
+        arrows.showMine = !walker.alive;
 
         // the bow: the thumb on its button, or space
         const want = alive && (controls.thumb || controls.space);
@@ -384,11 +585,11 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         fire(draw.update(dt));
 
         firstPerson.update(dt, camera, draw, { speed: walker.speed, stride: walker.stride, alive: walker.alive }, quiver, settings().hand === "left");
-        others.frame(now, dt, camera, play.clientWidth, play.clientHeight);
+        others.frame(now, dt, camera, play.clientWidth, play.clientHeight, walker.alive ? [] : [{ rig: myRig, look: { clothes: colourOf(me), skin: mySkin } }]);
         myRig.update(dt, {
             x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch,
             draw: draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
-            wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, tip: 0,
+            wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, tip: myTip, unarmed: over,
         });
 
         // arrows, and the bodies my phone judges
@@ -401,14 +602,16 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const distance = Math.hypot(at[0] - arrow.shot.x, at[2] - arrow.shot.z);
             struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance, time: arrow.at });
         }
-        blood.update(dt);
-        arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
+        blood.update(dt * (view === "film" ? film.rate : 1));
+        if (view !== "film") arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
 
         // picking up: a tap near an arrow in reach, never while drawing
         const width = play.clientWidth, height = play.clientHeight;
         const canPick = alive && draw.phase !== "drawing";
         const radius = Math.max(60, height * .14);
-        for (const [x, y] of controls.taps())
+        const taps = controls.taps();
+        if (view !== "play" && taps.length) tapped();
+        for (const [x, y] of taps)
         {
             if (!canPick) continue;
             const id = arrows.pickable(x, y, radius, walker.body, now, camera, width, height, rigOf);
@@ -426,8 +629,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const left = standing(state.players, [...dead]).length;
         hud.standing(t("hud.left", { count: String(left) }));
         controls.bow.hidden = !alive;
+        controls.joystick.hidden = !walker.alive || view !== "play";
         controls.bow.disabled = quiver <= 0 || draw.phase === "panting";
-        hint.hidden = coarse || controls.locked;
+        hint.hidden = coarse || controls.locked || view !== "play";
 
         const pose = {
             time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
@@ -453,7 +657,26 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
     const debug: PlayDebug = {
-        walker, draw, arrows, others, hud, replay, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
+        walker, draw, arrows, others, hud, replay, film, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
+        /** The view's "a bot shoots me": the nearest standing bot sends a strong arrow at my chest. */
+        shootMe(by?: string) {
+            const pose = (id: string) => others.poseOf(id);
+            const bot = by ?? others.living.map(other => other.id).filter(id => !dead.has(id))
+                .sort((a, b) => Math.hypot(pose(a)!.x - walker.x, pose(a)!.z - walker.z) - Math.hypot(pose(b)!.x - walker.x, pose(b)!.z - walker.z))[0];
+            const from = bot ? pose(bot) : null;
+            if (!bot || !from || !walker.alive) return;
+            const start: Vec = [from.x, from.y + 1.2, from.z], target: Vec = [walker.x, walker.y + .8, walker.z];
+            const dx = target[0] - start[0], dy = target[1] - start[1], dz = target[2] - start[2];
+            const flat = Math.hypot(dx, dz), speed = 32;
+            // a little up, for the drop on the way
+            const up = dy / flat + 9.81 * flat / (2 * speed * speed);
+            const length = Math.hypot(dx, flat * up, dz);
+            const shot: Shot = { id: `${bot}:${++botShots}`, by: bot, time: net.shared(), x: start[0], y: start[1], z: start[2], dx: dx / length, dy: flat * up / length, dz: dz / length, speed };
+            if (!arrows.add(shot)) return;
+            replay.shot(shot);
+            tally.shot(bot);
+            sound("twang", start, .8);
+        },
         /** The view's "injure me": a wound as if an arrow went in, or `null` heals everything. */
         injure(zone: Zone | null) {
             if (!zone) return wounds.heal();
@@ -485,6 +708,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             controls.destroy();
             others.destroy();
             arrows.destroy();
+            film.destroy();
             blood.destroy();
             firstPerson.destroy();
             hud.destroy();

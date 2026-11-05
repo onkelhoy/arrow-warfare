@@ -124,7 +124,7 @@
 
 .aw-hud {
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     inset: 0;
     pointer-events: none;
     color: white;
@@ -316,14 +316,100 @@
     from { opacity: 0; translate: -8px 0; }
 }
 
-.aw-hud-quiver {
+.aw-hud-counts {
     position: absolute;
     inset: auto max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) auto;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+}
+
+.aw-hud-quiver, .aw-hud-kills {
     font-size: 15px;
 
     b {
         font-size: 22px;
     }
+}
+
+.aw-hud-kills {
+    color: #ffd2c8;
+}
+
+.aw-hud-kills.pop b {
+    display: inline-block;
+    animation: aw-hud-pop 400ms ease-out;
+}
+
+@keyframes aw-hud-pop {
+    0% { scale: 1.9; color: #ff3b2f; }
+}
+
+.aw-hud-watch {
+    position: absolute;
+    inset: auto 0 max(16px, env(safe-area-inset-bottom)) 0;
+    margin: 0;
+    text-align: center;
+    font-size: 15px;
+}
+
+.aw-hud-skip {
+    position: absolute;
+    inset: auto max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) auto;
+    margin: 0;
+    opacity: .75;
+    font-size: 13px;
+}
+
+/* the kill cam: black bars in from the top and bottom, the HUD out of the way */
+.aw-play::before, .aw-play::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset-inline: 0;
+    block-size: 11%;
+    background: black;
+    pointer-events: none;
+    transition: translate 450ms ease;
+}
+
+.aw-play::before {
+    inset-block-start: 0;
+    translate: 0 -100%;
+}
+
+.aw-play::after {
+    inset-block-end: 0;
+    translate: 0 100%;
+}
+
+.aw-play.film::before, .aw-play.film::after {
+    translate: 0 0;
+}
+
+.aw-play.film .aw-hud > :not(.aw-hud-feed, .aw-hud-skip, .aw-hud-banner),
+.aw-play.spirit .aw-hud > :not(.aw-hud-feed, .aw-hud-banner, .aw-hud-damage),
+.aw-play.out .aw-hud-counts, .aw-play.out .aw-hud-body, .aw-play.out .aw-hud-tunnel, .aw-play.out .aw-hud-damage {
+    display: none;
+}
+
+.aw-play.film .aw-hud-feed {
+    inset-block-start: calc(11% + 8px);
+}
+
+/* the spirit leaving: everything goes pale and a little bright */
+.aw-play-spirit {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse at center, rgb(255 255 255 / 15%), rgb(235 240 255 / 70%));
+    transition: opacity 500ms ease;
+}
+
+.aw-play.spirit .aw-play-spirit {
+    opacity: 1;
 }
 
 .aw-hud-quiver.empty {

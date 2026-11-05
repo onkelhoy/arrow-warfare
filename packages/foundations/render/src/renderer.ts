@@ -116,17 +116,20 @@ export class Batch {
 
     /** Moves an instance, `scale` is uniform unless `sy`, `sz` are given. */
     place(index: number, x: number, y: number, z: number, yaw = 0, pitch = 0, roll = 0, sx = 1, sy = sx, sz = sx) {
+        this.grow(index + 1);
         compose(this.data, index * INSTANCE, x, y, z, yaw, pitch, roll, sx, sy, sz);
         this.dirty = true;
     }
 
     /** An instance's matrix straight in. */
     matrix(index: number, matrix: ArrayLike<number>) {
+        this.grow(index + 1);
         this.data.set(matrix, index * INSTANCE);
         this.dirty = true;
     }
 
     tint(index: number, colour: Vec3, brightness = 1) {
+        this.grow(index + 1);
         const at = index * INSTANCE + 16;
         this.data[at] = colour[0]; this.data[at + 1] = colour[1]; this.data[at + 2] = colour[2]; this.data[at + 3] = brightness;
         this.dirty = true;

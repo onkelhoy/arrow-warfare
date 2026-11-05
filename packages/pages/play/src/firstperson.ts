@@ -42,6 +42,9 @@ export class FirstPerson {
         this.arms = renderer.batch(beam(5), front);
     }
 
+    /** Not drawn: the camera is somewhere else (the kill cam, watching someone). */
+    hidden = false;
+
     /** Where the nocked arrow's tip is and where it points, in the world, while drawing. */
     release: { from: Vec3; direction: Vec3 } | null = null;
 
@@ -60,7 +63,7 @@ export class FirstPerson {
         this.raise += (target - this.raise) * (1 - Math.exp(-dt * (drawing ? 12 : 6)));
         this.kick = Math.max(0, this.kick - dt * 4);
         const all = [this.bow, this.string, this.arrow, this.hands, this.arms];
-        if (this.raise < -.6)
+        if (this.raise < -.6 || this.hidden)
         {
             for (const batch of all) batch.count = 0;
             return;

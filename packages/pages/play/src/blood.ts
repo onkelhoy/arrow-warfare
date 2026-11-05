@@ -37,7 +37,7 @@ export class Blood {
                 vx: direction[0] * speed * back + (Math.random() - .5) * spread * speed,
                 vy: direction[1] * speed * back + (Math.random() - .2) * spread * speed,
                 vz: direction[2] * speed * back + (Math.random() - .5) * spread * speed,
-                size: .012 + Math.random() * .022,
+                size: .007 + Math.random() * .013,
                 landed: -1,
                 spin: Math.random() * Math.PI * 2,
             });
@@ -73,7 +73,7 @@ export class Blood {
             drop.landed += dt;
             // a flat splat that shrinks away at the end
             const fade = Math.min(1, (SPLAT_LIFE - drop.landed) / 2);
-            const s = drop.size * 2.2 * fade;
+            const s = drop.size * 1.6 * fade;
             this.batch.place(index++, drop.x, drop.y, drop.z, drop.spin, 0, 0, s, s * .08, s * 1.3);
         }
         this.batch.count = index;

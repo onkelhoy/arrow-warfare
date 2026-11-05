@@ -49,6 +49,7 @@ form.addEventListener("click", event => {
     const button = (event.target as HTMLElement).closest("button");
     if (!button) return;
     if (button.dataset.do === "restart") start();
+    if (button.dataset.do === "shoot") play?.debug.shootMe();
     if (button.dataset.injure !== undefined) play?.debug.injure((button.dataset.injure || null) as Zone | null);
 });
 // typing in the form doesn't walk

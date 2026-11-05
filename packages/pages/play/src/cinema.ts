@@ -1,0 +1,288 @@
+import { fly, heading, launch, powerOf, STEP, type Shot, type Vec } from "@arrow-warfare/archery";
+import type { Pose } from "@arrow-warfare/net";
+import type { Renderer, Vec3 } from "@arrow-warfare/render";
+import { Bodies, Rig } from "@arrow-warfare/rig";
+import type { Field } from "@arrow-warfare/world";
+import type { Camera } from "@papit/game-engine";
+
+import type { Arrows } from "./arrows";
+import type { Blood } from "./blood";
+import type { HitRecord, Replay } from "./replay";
+
+/** How far a body tips over when it dies, and how fast (as in `others`). */
+const FALL = Math.PI / 2 * .94;
+const FALL_SPEED = 3.2;
+/** A flight shorter than this (ms) has no flyby. */
+const FLYBY_LEAST = 380;
+
+type Look = { clothes: Vec3; skin: Vec3 };
+export type SoundName = "twang" | "whoosh" | "body" | "kill" | "grunt";
+
+/** What the kill cam needs from the round. */
+export type FilmWorld = {
+    renderer: Renderer;
+    field: Field;
+    camera: Camera;
+    replay: Replay;
+    arrows: Arrows;
+    blood: Blood;
+    lookOf(id: string): Look | null;
+    /** Someone the replay has nothing on: where they're drawn now. */
+    fallback(id: string): Pose | null;
+    sound(name: SoundName, at: Vec | undefined, volume: number, rate: number): void;
+};
+
+/** A stretch of the film: `real` seconds showing shared ms `from` to `to`, and where the camera is. */
+type Shot_ = {
+    name: "release" | "flyby" | "follow" | "strike";
+    real: number;
+    from: number;
+    to: number;
+    /** 0..1 of real time to 0..1 of replay time. */
+    ease?: (u: number) => number;
+    camera(time: number, u: number): { eye: Vec; look: Vec };
+};
+
+type Cue = { time: number; play(): void };
+
+/** Points the camera from `eye` at `look`. */
+export function aim(camera: Camera, eye: Vec, look: Vec, roll = 0) {
+    const dx = look[0] - eye[0], dy = look[1] - eye[1], dz = look[2] - eye[2];
+    const length = Math.hypot(dx, dy, dz) || 1;
+    camera.position.set(eye);
+    camera.rotation.set([Math.asin(Math.max(-1, Math.min(1, dy / length))), Math.atan2(-dx, -dz), roll]);
+    camera.zoom = 1;
+}
+
+const add = (a: Vec, b: Vec, k = 1): Vec => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+const mix = (a: Vec, b: Vec, t: number): Vec => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+/** Flat, at right angles to `d`. */
+const side = (d: Vec): Vec => {
+    const length = Math.hypot(d[0], d[2]) || 1;
+    return [-d[2] / length, 0, d[0] / length];
+};
+
+/**
+ * The kill cam: the shot that killed `victim`, played again from the replay in slow motion. The shooter
+ * letting go from a cinematic angle, a flyby as the arrow passes, riding behind it as it closes in, and
+ * the strike seen from the side as the body falls. Everyone is drawn as they were, on rigs of its own.
+ */
+export class Film {
+    private bodies: Bodies;
+    private rigs = new Map<string, { rig: Rig; tip: number }>();
+    private ends = new Map<string, HitRecord>();
+    private shots: Shot_[] = [];
+    private cues: Cue[] = [];
+    private index = 0;
+    private clock = 0;
+    private time = 0;
+    /** Replay ms per real ms this frame, for slowing the blood. */
+    rate = 1;
+    done = true;
+    victim = "";
+    killer = "";
+
+    constructor(private world: FilmWorld) {
+        this.bodies = new Bodies(world.renderer);
+    }
+
+    /** Ready to play the death of `victim`. False when there's nothing to show. */
+    start(victim: string, killer: string, arrowId: string): boolean {
+        const { replay } = this.world;
+        const hit = replay.hits.get(arrowId);
+        const shot = replay.shots.get(arrowId);
+        if (!hit) return false;
+        this.victim = victim;
+        this.killer = killer;
+        this.shots = [];
+        this.cues = [];
+        this.index = 0;
+        this.clock = 0;
+        this.rigs.clear();
+        // when and where each body went down
+        this.ends.clear();
+        for (const other of replay.hits.values()) if (other.lethal && !this.ends.has(other.victim)) this.ends.set(other.victim, other);
+
+        const strike = hit.time;
+        const path = shot ? this.path(shot, strike) : [];
+        const at = hit.at;
+        const direction: Vec = path.length ? path[path.length - 1].direction : [0, 0, -1];
+        const across = side(direction);
+        const shooter = shot && shot.by !== victim ? replay.at(shot.by, shot.time) ?? this.world.fallback(shot.by) : null;
+        const ground = (p: Vec, above = .3): Vec => [p[0], Math.max(p[1], this.world.field.height(p[0], p[2]) + above), p[2]];
+        const arrowAt = (time: number) => {
+            if (!path.length) return { tip: at, direction };
+            const i = Math.max(0, Math.min(path.length - 1, Math.round((time - path[0].time) / (path[1] ? path[1].time - path[0].time : 1))));
+            return path[i];
+        };
+        let start = strike - 300;
+
+        if (shot && shooter && path.length > 1)
+        {
+            const flight = strike - shot.time;
+            const yaw = shooter.yaw;
+            const forward: Vec = [-Math.sin(yaw), 0, -Math.cos(yaw)], right: Vec = [Math.cos(yaw), 0, -Math.sin(yaw)];
+            const hand = shooter.left ? -1 : 1;
+            const body: Vec = [shooter.x, shooter.y, shooter.z];
+            // in front, on the bow side, low, closing in a little
+            const look = add(add(body, [0, .95, 0]), forward, .35);
+            const far = ground(add(add(add(body, forward, 1.9), right, -1.25 * hand), [0, .75, 0]));
+            start = shot.time - 750;
+            this.shots.push({ name: "release", real: 1.7, from: start, to: shot.time + 120, ease: u => Math.sin(u * Math.PI / 2), camera: (_, u) => ({ eye: mix(far, look, u * .22), look }) });
+            this.cues.push({ time: shot.time, play: () => this.world.sound("twang", [shot.x, shot.y, shot.z], 1, .7) });
+
+            let from = shot.time + 120;
+            if (flight >= FLYBY_LEAST)
+            {
+                const pass = shot.time + flight * .5;
+                const middle = arrowAt(pass);
+                const across = side(middle.direction);
+                const eye = ground(add(add(add(middle.tip, middle.direction, 1.6), across, 1.3), [0, -.15, 0]));
+                const to = pass + 260;
+                this.shots.push({ name: "flyby", real: Math.max(.9, Math.min(1.6, (to - from) / 1000 / .28)), from, to, camera: time => ({ eye, look: arrowAt(time).tip }) });
+                this.cues.push({ time: pass, play: () => this.world.sound("whoosh", eye, 1, .75) });
+                from = to;
+            }
+            if (strike - 60 - from > 80)
+            {
+                this.shots.push({
+                    name: "follow", real: Math.max(.7, Math.min(1.5, (strike - 60 - from) / 1000 / .35)), from, to: strike - 60,
+                    camera: time => {
+                        const now = arrowAt(time);
+                        const across = side(now.direction);
+                        return { eye: add(add(add(now.tip, now.direction, -1.7), [0, .2, 0]), across, .16), look: add(now.tip, now.direction, 5) };
+                    },
+                });
+            }
+        }
+
+        // the strike: from the side, the arrow going in and the body going down, slowest at the hit
+        const eye = ground(add(add(add(at, across, 1.55), direction, -.45), [0, .22, 0]), .25);
+        this.shots.push({
+            name: "strike", real: 2.4, from: Math.max(start, strike - 60), to: strike + 1500, ease: u => u ** 1.8,
+            camera: (_, u) => {
+                // a slow turn around the hit
+                const turn = u * .4, c = Math.cos(turn), s = Math.sin(turn);
+                const ox = eye[0] - at[0], oz = eye[2] - at[2];
+                return { eye: [at[0] + ox * c - oz * s, eye[1] + u * .25, at[2] + ox * s + oz * c], look: at };
+            },
+        });
+        const strength = shot ? powerOf(shot.speed) : .6;
+        this.cues.push({ time: strike, play: () => {
+            this.world.sound("body", at, 1, .7);
+            this.world.sound("kill", undefined, .6 + .4 * strength, .75);
+            this.world.sound("grunt", at, .9, .8);
+        } });
+
+        // the drops of every hit in the film, as it happens
+        for (const other of replay.hits.values())
+        {
+            if (other.time <= this.shots[0].from || other.time > strike + 1500) continue;
+            this.cues.push({ time: other.time, play: () => this.spray(other, shot && other.arrow === shot.id ? strength : .5) });
+        }
+        this.cues.sort((a, b) => a.time - b.time);
+        this.time = this.shots[0].from;
+        this.done = false;
+        return true;
+    }
+
+    get length() {
+        return this.shots.reduce((sum, shot) => sum + shot.real, 0);
+    }
+
+    /** Which part plays now. */
+    get part() {
+        return this.shots[this.index]?.name ?? "";
+    }
+
+    skip() {
+        this.done = true;
+        this.bodies.draw([]);
+    }
+
+    /** One frame of real `dt` seconds. */
+    update(dt: number) {
+        if (this.done) return;
+        this.clock += dt;
+        let shot = this.shots[this.index];
+        while (shot && this.clock >= shot.real)
+        {
+            this.clock -= shot.real;
+            shot = this.shots[++this.index];
+        }
+        if (!shot)
+        {
+            this.skip();
+            return;
+        }
+        const u = this.clock / shot.real;
+        const before = this.time;
+        this.time = Math.max(before, shot.from + (shot.to - shot.from) * (shot.ease ? shot.ease(u) : u));
+        const step = this.time - before;
+        this.rate = dt > 0 ? step / 1000 / dt : 0;
+
+        while (this.cues.length && this.cues[0].time <= this.time) this.cues.shift()!.play();
+        this.pose(step / 1000);
+        const { eye, look } = shot.camera(this.time, u);
+        aim(this.world.camera, eye, look);
+        this.world.arrows.drawAt(this.time, this.world.replay.shots.values(), this.world.replay.hits, id => this.rigs.get(id)?.rig ?? null, eye);
+    }
+
+    destroy() {
+        this.bodies.destroy();
+    }
+
+    /** Everyone on their own rig, as they were at the film's time. */
+    private pose(dt: number) {
+        const { replay } = this.world;
+        const time = this.time;
+        const ids = new Set([...replay.players, this.victim, this.killer]);
+        const shown: Parameters<Bodies["draw"]>[0] = [];
+        for (const id of ids)
+        {
+            const look = this.world.lookOf(id);
+            let pose = replay.at(id, time) ?? this.world.fallback(id);
+            if (!pose || !look) continue;
+            let entry = this.rigs.get(id);
+            const end = this.ends.get(id);
+            const dead = !!end && end.time <= time;
+            if (!entry)
+            {
+                entry = { rig: new Rig((x, z) => this.world.field.height(x, z)), tip: dead ? FALL : 0 };
+                this.rigs.set(id, entry);
+            }
+            if (dead)
+            {
+                entry.tip = Math.min(FALL, entry.tip + dt * FALL_SPEED * (.3 + entry.tip));
+                // they lie where they were hit
+                pose = { ...pose, x: end.place.x, z: end.place.z, yaw: end.place.yaw, draw: 0 };
+            }
+            entry.rig.update(Math.max(dt, 1e-4), {
+                x: pose.x, y: this.world.field.height(pose.x, pose.z), z: pose.z, yaw: pose.yaw, pitch: pose.pitch,
+                draw: dead ? 0 : pose.draw, left: pose.left, stage: pose.stage, wounds: pose.wounds, resting: pose.resting,
+                dead, tip: entry.tip,
+            });
+            shown.push({ rig: entry.rig, look });
+        }
+        this.bodies.draw(shown);
+    }
+
+    private spray(hit: HitRecord, strength: number) {
+        const rig = this.rigs.get(hit.victim)?.rig;
+        const direction = rig ? rig.fromPart(hit.part, hit.direction, 0) : [0, 0, -1] as Vec;
+        this.world.blood.spray(hit.at, direction, strength);
+    }
+
+    /** The killing arrow's flight, a point a step, from the bow to the hit. */
+    private path(shot: Shot, until: number) {
+        const arrow = launch(shot);
+        const points: { time: number; tip: Vec; direction: Vec }[] = [{ time: shot.time, tip: [arrow.x, arrow.y, arrow.z], direction: heading(arrow) }];
+        while (!arrow.rest && !arrow.gone && arrow.at < until)
+        {
+            fly(arrow, arrow.at + STEP * 1000, this.world.field);
+            points.push({ time: arrow.at, tip: [arrow.x, arrow.y, arrow.z], direction: heading(arrow) });
+            if (points.length > 2400) break;
+        }
+        return points;
+    }
+}

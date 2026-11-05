@@ -34,6 +34,8 @@ export class Controls {
     readonly joystick: Joystick;
     readonly bow: BowButton;
     readonly surface: HTMLElement;
+    /** The mouse isn't locked to look: a click is a tap where it is (dead, watching). */
+    free = false;
     /** Space is down. */
     space = false;
     /** A thumb is on the bow button, and its pull 0..1. */
@@ -131,6 +133,12 @@ export class Controls {
     private handledown = (event: PointerEvent) => {
         if (event.pointerType === "mouse")
         {
+            if (this.free)
+            {
+                const box = this.surface.getBoundingClientRect();
+                this.tapped.push([event.clientX - box.left, event.clientY - box.top]);
+                return;
+            }
             if (!this.locked) this.surface.requestPointerLock?.()?.catch?.(() => undefined);
             else if (event.button === 0)
             {

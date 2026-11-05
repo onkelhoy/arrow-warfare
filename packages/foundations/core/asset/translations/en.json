@@ -184,7 +184,12 @@
       "energy": "Energy",
       "pull": "Pull out the arrow ({count})",
       "hit": "hit",
-      "hitSelf": "hit themselves"
+      "hitSelf": "hit themselves",
+      "skip": "Tap to skip",
+      "kill": "kill",
+      "kills": "kills",
+      "watching": "Watching {name}",
+      "switch": "tap to switch"
     },
     "results": {
       "title": "Round over",

@@ -184,7 +184,12 @@
       "energy": "Ork",
       "pull": "Dra ut pilen ({count})",
       "hit": "träffade",
-      "hitSelf": "träffade sig själv"
+      "hitSelf": "träffade sig själv",
+      "skip": "Tryck för att hoppa över",
+      "kill": "fälld",
+      "kills": "fällda",
+      "watching": "Du följer {name}",
+      "switch": "tryck för att byta"
     },
     "results": {
       "title": "Rundan är slut",

@@ -1,8 +1,10 @@
-import { fly, heading, hitBody, launch, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
+import { fly, heading, hitBody, launch, STEP, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
 import { multiply, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
 import type { Rig } from "@arrow-warfare/rig";
 import { arrow as arrowModel, ARROW_LENGTH, beam, type Field } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
+
+import type { HitRecord } from "./replay";
 
 /** ms an arrow can't hit its own shooter, so it leaves the bow. */
 const OWN_GRACE = 300;
@@ -16,6 +18,9 @@ const TRAIL = { mine: { life: 1.8, width: .018, brightness: 1.6 }, others: { lif
 const TRAIL_START = 2;
 
 type Point = { x: number; y: number; z: number; at: number };
+/** ms of trail behind an arrow in the kill cam, and one flight step. */
+const GHOST_TRAIL = 220;
+const STEP_MS = STEP * 1000;
 /** ms a trail takes to fade once its arrow has landed. */
 const TRAIL_FADE = 450;
 
@@ -43,6 +48,8 @@ export class Arrows {
     private landed = new Map<string, number>();
     private colours = new Map<string, Vec3>();
     private viewProjection = new Float32Array(16);
+    /** All the arrows in me are drawn: my body is seen from outside. */
+    showMine = false;
 
     /** `colourOf` a shooter is their feathers. */
     constructor(private renderer: Renderer, private field: Field, private me: string, private colourOf: (id: string) => Vec3) {
@@ -137,7 +144,7 @@ export class Arrows {
         for (const [id, arrow] of this.all)
         {
             // in me, only the legs: the rest is up at my eyes, where my body isn't drawn
-            if (arrow.rest?.in === "body" && arrow.rest.id === this.me && !/Thigh|Shin/.test(this.parts.get(id) ?? "")) continue;
+            if (arrow.rest?.in === "body" && arrow.rest.id === this.me && !this.showMine && !/Thigh|Shin/.test(this.parts.get(id) ?? "")) continue;
             const at = this.where(arrow, now, rigOf);
             if (!at) continue;
             const [dx, dy, dz] = at.direction;
@@ -240,6 +247,80 @@ export class Arrows {
             }
         }
         return best;
+    }
+
+    /** Arrows flown again for the kill cam, by shot id, with the last points of their trails. */
+    private ghosts = new Map<string, { arrow: Arrow; trail: Point[] }>();
+
+    /**
+     * The arrows as they were at shared ms `time`, for the kill cam: every shot by then flown again from
+     * its start, the ones that had gone into someone riding on that body's rig (`rigOf` gives the replay's).
+     */
+    drawAt(time: number, shots: Iterable<Shot>, hits: Map<string, HitRecord>, rigOf: RigOf, eye: Vec) {
+        let index = 0, beams = 0;
+        for (const shot of shots)
+        {
+            if (shot.time > time) continue;
+            const colour = this.colours.get(shot.id) ?? this.colourOf(shot.by);
+            const hit = hits.get(shot.id);
+            let tip: Vec, direction: Vec;
+            if (hit && hit.time <= time)
+            {
+                const rig = rigOf(hit.victim);
+                if (!rig) continue;
+                tip = rig.fromPart(hit.part, hit.point);
+                direction = rig.fromPart(hit.part, hit.direction, 0);
+            }
+            else
+            {
+                let ghost = this.ghosts.get(shot.id);
+                // time went back (a new kill cam): fly it again from the bow
+                if (!ghost || ghost.arrow.at > time + STEP_MS) this.ghosts.set(shot.id, ghost = { arrow: launch(shot), trail: [] });
+                const arrow = ghost.arrow;
+                fly(arrow, time, this.field);
+                if (arrow.gone) continue;
+                direction = heading(arrow);
+                const ahead = arrow.rest ? 0 : Math.max(0, time - arrow.at) / 1000;
+                tip = [arrow.x + arrow.vx * ahead, arrow.y + arrow.vy * ahead, arrow.z + arrow.vz * ahead];
+                const trail = ghost.trail;
+                if (!arrow.rest)
+                {
+                    const last = trail[trail.length - 1];
+                    if (!last || time > last.at) trail.push({ x: tip[0] - direction[0] * ARROW_LENGTH, y: tip[1] - direction[1] * ARROW_LENGTH, z: tip[2] - direction[2] * ARROW_LENGTH, at: time });
+                }
+                while (trail.length && time - trail[0].at > GHOST_TRAIL) trail.shift();
+                if (arrow.rest) trail.length = 0;
+                for (let i = 0; i + 1 < trail.length; i++)
+                {
+                    const a = trail[i], b = trail[i + 1];
+                    const length = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+                    if (length < 1e-4) continue;
+                    const fresh = 1 - (time - (a.at + b.at) / 2) / GHOST_TRAIL;
+                    const far = Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]);
+                    const width = .012 * fresh * Math.max(1, far / 3);
+                    const yaw = Math.atan2(-(b.x - a.x), -(b.z - a.z)), pitch = Math.asin(Math.max(-1, Math.min(1, (b.y - a.y) / length)));
+                    this.trail.place(beams, a.x, a.y, a.z, yaw, pitch, 0, width, width, length);
+                    this.trail.tint(beams, [1, 1, 1], 1.4 * fresh);
+                    beams++;
+                }
+            }
+            const yaw = Math.atan2(-direction[0], -direction[2]), pitch = Math.asin(Math.max(-1, Math.min(1, direction[1])));
+            this.batch.place(index, tip[0], tip[1], tip[2], yaw, pitch);
+            this.batch.tint(index, colour);
+            index++;
+        }
+        this.batch.count = index;
+        this.trail.count = beams;
+    }
+
+    /** Where a flown again arrow is at shared ms `time`: for the kill cam's camera. Null before it's shot or once it's gone. */
+    ghostAt(shot: Shot, time: number): { tip: Vec; direction: Vec } | null {
+        if (time < shot.time) return null;
+        const arrow = launch(shot);
+        fly(arrow, time, this.field);
+        if (arrow.gone) return null;
+        const ahead = arrow.rest ? 0 : Math.max(0, time - arrow.at) / 1000;
+        return { tip: [arrow.x + arrow.vx * ahead, arrow.y + arrow.vy * ahead, arrow.z + arrow.vz * ahead], direction: heading(arrow) };
     }
 
     /** The arrows stuck in a body, for pulling them out. */
