@@ -130,6 +130,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const spawns = field.spawns(state.players);
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
+    others.onStep = at => sound("step", at, .6);
     const controls = new Controls(play);
     const hud = new Hud(play);
     const draw = new Draw();
@@ -506,6 +507,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             tally.taken(victim);
             if (victim !== me) lethal ? others.kill(victim, hit.place) : others.hurt(victim, hit.zone);
             sound("body", hit.at);
+            sound("grunt", hit.at, lethal ? 1 : .7, .9 + Math.random() * .25);
             blood.spray(hit.at, heading(arrow), powerOf(arrow.shot.speed));
             const shooter = arrow.shot.by;
             if (shooter === me && victim !== me)
@@ -675,6 +677,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     let recorded = 0;
     let wanted = false;
     let creak = 0;
+    let feet = 0;
+    const whooshed = new Set<string>();
+    let beat = 0;
     // a game object, so it runs before the frame is drawn and the camera is where I am now
     const driver = engine.add(new class extends GameObject {
         override update(delta: number) {
@@ -709,14 +714,31 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (controls.thumb) draw.pull(controls.pull, dt);
             else if (controls.space) draw.hold(dt);
             if (!want) fire(draw.release());
-            // a creak each step of the pull
+            // a creak each step of the pull, the string stretching higher
             const step = Math.floor(draw.amount * 5);
-            if (step > creak) sound("creak", undefined, .3 + draw.amount * .4);
+            if (step > creak)
+            {
+                sound("creak", undefined, .3 + draw.amount * .4);
+                sound("stretch", undefined, .3 + draw.amount * .5, .8 + draw.amount * .7);
+            }
             creak = step;
         }
         else creak = 0;
         fire(draw.update(dt));
 
+        // my feet in the grass, a hop on one leg, a heartbeat when I'm spent
+        if (alive)
+        {
+            const foot = Math.floor(walker.posture === "hop" ? walker.hop / Math.PI : walker.stride / Math.PI);
+            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : "step", undefined, .35);
+            feet = foot;
+            beat -= dt;
+            if (wounds.energy < .25 && beat <= 0)
+            {
+                sound("heartbeat", undefined, .4 + (.25 - wounds.energy) * 2);
+                beat = .6 + wounds.energy * 2;
+            }
+        }
         firstPerson.update(dt, camera, draw, { speed: walker.speed, stride: walker.stride, alive: walker.alive }, quiver, settings().hand === "left");
         const meToo = !walker.alive || (view === "circle" && circle.members.some(member => member.id === me));
         others.frame(now, dt, camera, play.clientWidth, play.clientHeight, meToo ? [{ rig: myRig, look: { clothes: colourOf(me), skin: mySkin } }] : []);
@@ -730,6 +752,20 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const judge = walker.alive ? [{ id: me, rig: myRig }] : [];
         if (options.bots) judge.push(...others.living.filter(other => !dead.has(other.id)));
         const flown = arrows.update(now, judge);
+        // someone's arrow passing close by me: a whoosh from its side
+        {
+            const m = camera.worldMatrix;
+            for (const arrow of arrows.all.values())
+            {
+                if (arrow.rest || arrow.gone || arrow.shot.by === me || whooshed.has(arrow.shot.id)) continue;
+                const dx = m[12] - arrow.x, dy = m[13] - arrow.y, dz = m[14] - arrow.z;
+                if (Math.hypot(dx, dy, dz) < 5 && dx * arrow.vx + dy * arrow.vy + dz * arrow.vz < 0)
+                {
+                    whooshed.add(arrow.shot.id);
+                    sound("whoosh", [arrow.x, arrow.y, arrow.z], 1.4);
+                }
+            }
+        }
         for (const landed of flown.landed) sound(landed.kind === "ground" ? "ground" : "wood", [landed.arrow.x, landed.arrow.y, landed.arrow.z]);
         for (const { arrow, id, hit, place, local, at } of flown.struck)
         {

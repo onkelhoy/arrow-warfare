@@ -36,7 +36,7 @@ export class Walker {
     /** Walking speed my wounds allow, 1 is full. */
     limit = 1;
     private low = 0;
-    private hop = 0;
+    hop = 0;
     private vx = 0;
     private vz = 0;
     /** Look the thumb or mouse asked for that the view hasn't followed yet (heavy while drawn). */

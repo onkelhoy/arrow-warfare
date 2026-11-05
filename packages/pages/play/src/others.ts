@@ -24,15 +24,22 @@ type Other = {
     /** Where they lie, once dead. */
     corpse: BodyPlace | null;
     tip: number;
+    /** Metres walked, for footsteps. */
+    walked: number;
     /** The pose drawn, a dead body keeps its last. */
     last: Pose;
 };
+
+/** Metres per footstep. */
+const STEP = .75;
 
 /** Everyone else: their poses as they come, drawn a little in the past and blended between, on their rigs. */
 export class Others {
     private others = new Map<string, Other>();
     private bodies: Bodies;
     private viewProjection = new Float32Array(16);
+    /** A footstep of someone, at their feet. */
+    onStep: (at: [number, number, number]) => void = () => { };
     /** The round is over: bows down. */
     unarmed = false;
     /** Names over their heads. */
@@ -69,7 +76,7 @@ export class Others {
                 const y = this.field.height(spawn.x, spawn.z);
                 const pose: Pose = { time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: false, wounds: 0, resting: false };
                 other = {
-                    id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, tip: 0, wounds: 0,
+                    id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, tip: 0, walked: 0, wounds: 0,
                     rig: new Rig((x, z) => this.field.height(x, z)),
                     poses: [pose], last: pose,
                 };
@@ -142,6 +149,12 @@ export class Others {
             else other.last = this.override.get(other.id) ?? sample(other.poses, at);
             const pose = other.last;
             const place = other.corpse ?? pose;
+            if (!other.corpse && pose.speed > .3)
+            {
+                const before = Math.floor(other.walked / STEP);
+                other.walked += pose.speed * dt;
+                if (Math.floor(other.walked / STEP) > before) this.onStep([place.x, this.field.height(place.x, place.z), place.z]);
+            }
             other.rig.update(dt, {
                 x: place.x, y: this.field.height(place.x, place.z), z: place.z, yaw: place.yaw,
                 pitch: pose.pitch, draw: other.corpse ? 0 : pose.draw, left: pose.left, stage: pose.stage,

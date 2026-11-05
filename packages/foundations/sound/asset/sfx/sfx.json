@@ -1,0 +1,82 @@
+{
+  "creak": [
+    "creak-1.wav",
+    "creak-2.wav",
+    "creak-3.wav"
+  ],
+  "twang": [
+    "twang-1.wav",
+    "twang-2.wav",
+    "twang-3.wav",
+    "twang-4.wav"
+  ],
+  "wood": [
+    "wood-1.wav",
+    "wood-2.wav",
+    "wood-3.wav"
+  ],
+  "ground": [
+    "ground-1.wav",
+    "ground-2.wav",
+    "ground-3.wav"
+  ],
+  "body": [
+    "body-1.wav",
+    "body-2.wav",
+    "body-3.wav",
+    "body-4.wav"
+  ],
+  "kill": [
+    "kill-1.wav",
+    "kill-2.wav"
+  ],
+  "pant": [
+    "pant-1.wav",
+    "pant-2.wav"
+  ],
+  "pickup": [
+    "pickup-1.wav",
+    "pickup-2.wav"
+  ],
+  "empty": [
+    "empty-1.wav",
+    "empty-2.wav"
+  ],
+  "stretch": [
+    "stretch-1.wav",
+    "stretch-2.wav",
+    "stretch-3.wav"
+  ],
+  "whoosh": [
+    "whoosh-1.wav",
+    "whoosh-2.wav",
+    "whoosh-3.wav",
+    "whoosh-4.wav"
+  ],
+  "step": [
+    "step-1.wav",
+    "step-2.wav",
+    "step-3.wav",
+    "step-4.wav",
+    "step-5.wav",
+    "step-6.wav"
+  ],
+  "hop": [
+    "hop-1.wav",
+    "hop-2.wav",
+    "hop-3.wav"
+  ],
+  "grunt": [
+    "grunt-1.wav",
+    "grunt-2.wav",
+    "grunt-3.wav",
+    "grunt-4.wav"
+  ],
+  "heartbeat": [
+    "heartbeat-1.wav",
+    "heartbeat-2.wav"
+  ],
+  "fanfare": [
+    "fanfare-1.wav"
+  ]
+}
