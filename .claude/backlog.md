@@ -145,7 +145,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Move fast when not aiming (done), slow while drawing
 - [ ] Draw, hold, release: power by pull (touch) or time (space), heavier look while drawn. Held too long: growing sway, tunnel vision, the arrow slips (where you point + sway), then panting
 - [ ] Arrows: ballistic flight, stick into trees, ground and players
-- [ ] Limited quiver (setting), pick up arrows by tapping them (about 3 m, not while drawing) from the ground, trees, bodies, and out of yourself
+- [ ] Limited quiver (setting), pick up arrows by tapping right on them, standing close (about 1.5 m, not while drawing) from the ground, trees, bodies, and out of yourself
 - [ ] Arrows flying out stick in the forest wall at the edge (gnomes moved to `finesse.md`)
 - [ ] Hit zones: head, torso, left/right arm, left/right leg
 - [ ] Other players: interpolated poses, aim direction (done), draw state
