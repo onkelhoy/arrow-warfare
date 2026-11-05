@@ -1,6 +1,10 @@
-import type { Network } from "@papit/webrtc";
+import type { Channel, Network } from "@papit/webrtc";
 
 type Handler = (payload: any, sender: string) => void;
+type Fast = (data: ArrayBuffer, sender: string) => void;
+
+/** The media plan a game's network is made with: a lossy channel for what's sent many times a second. */
+export const ROOM_MEDIA = { channels: { pose: { ordered: false, maxRetransmits: 0 } } };
 
 /** ms between a guest's pings to the host, for the clock and the ping shown in the lobby. */
 const PING_EVERY = 2000;
@@ -21,6 +25,8 @@ export class Room {
     private timer: ReturnType<typeof setInterval> | undefined;
     /** On the host: each guest's ping as they last measured it. */
     private pings = new Map<string, number>();
+    private fast: Fast[] = [];
+    private channel: Channel;
 
     constructor(readonly network: Network, readonly hostId: string) {
         network.addEventListener("message", event => {
@@ -37,6 +43,18 @@ export class Room {
         network.addEventListener("close", () => {
             clearInterval(this.timer);
             for (const handler of this.links) handler(this.hostId, false);
+        });
+
+        // made at once, a channel drops what arrives before it's asked for
+        this.channel = network.media.channel("pose");
+        this.channel.addEventListener("message", event => {
+            const { peer, data } = (event as CustomEvent<{ peer: string; data: unknown }>).detail;
+            if (data instanceof ArrayBuffer) for (const handler of this.fast) handler(data, peer);
+        });
+        this.on("fast", ({ bytes }, sender) => {
+            if (typeof bytes !== "string") return;
+            const raw = Uint8Array.from(atob(bytes), char => char.charCodeAt(0));
+            for (const handler of this.fast) handler(raw.buffer, sender);
         });
 
         this.on("ping", (payload, sender) => {
@@ -121,6 +139,29 @@ export class Room {
     /** Reliable, to each of `peers`: a pending guest in the mesh isn't a player yet, so nothing is broadcast. */
     sendAll(peers: string[], type: string, payload: unknown = {}) {
         for (const peer of peers) this.send(peer, type, payload);
+    }
+
+    /**
+     * Lossy and fast, to each of `peers`: on the `pose` channel, and through the reliable messages to a
+     * peer whose channel isn't open (yet).
+     */
+    sendFast(peers: string[], data: ArrayBuffer) {
+        if (this.network.closed) return;
+        const open = this.channel.peers;
+        let fallback: string | null = null;
+        for (const peer of peers)
+        {
+            if (peer === this.me) continue;
+            if (open.includes(peer) && this.channel.send(peer, data)) continue;
+            fallback ??= btoa(String.fromCharCode(...new Uint8Array(data)));
+            this.send(peer, "fast", { bytes: fallback });
+        }
+    }
+
+    /** Returns a function that stops listening. */
+    onFast(handler: Fast) {
+        this.fast.push(handler);
+        return () => { this.fast = this.fast.filter(other => other !== handler); };
     }
 
     leave() {

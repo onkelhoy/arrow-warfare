@@ -27,6 +27,14 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - **What:** its view `style.css` has no `width`/`height` on `body` and `canvas`, so the canvas stays 300×150. The template in the papit repo has them.
 - **Workaround:** the render view uses the repo template's CSS.
 
+### A CSS-only change is skipped by the build (suspected)
+- **What:** after editing only `src/style.css` in `play`, `npx @papit/build` said "skipped" and the bundle kept the old CSS. `--force` built it.
+- **Workaround:** `npx @papit/build --force` after a CSS-only change.
+
+### `declare global` tag names are dropped from `bundle.d.ts`
+- **What:** `HTMLElementTagNameMap` from a component's `declare global` isn't in its bundled types (none of ours have it), so `document.createElement("aw-joystick")` is a plain `HTMLElement` in other packages.
+- **Workaround:** a cast, `as Joystick`.
+
 ## Ours
 
 ### A late guest's first join attempt logged "join timed out"

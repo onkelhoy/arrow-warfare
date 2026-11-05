@@ -1,26 +1,109 @@
 .aw-play {
-    display: grid;
-    place-content: center;
-    justify-items: center;
-    gap: 8px;
-    min-block-size: 100%;
-    text-align: center;
-    color: #2f4a1f;
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: #9fd6f0;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.aw-play ul {
+/* fewer pixels on dense screens: the canvas is laid out smaller and scaled back up */
+.aw-play-canvas {
+    position: absolute;
+    inset: 0 auto auto 0;
+    display: block;
+    inline-size: calc(100% * var(--scale, 1));
+    block-size: calc(100% * var(--scale, 1));
+    transform: scale(calc(1 / var(--scale, 1)));
+    transform-origin: 0 0;
+}
+
+.aw-play-look {
+    position: absolute;
+    inset: 0;
+}
+
+.aw-play-stick {
+    position: absolute;
+    inset: 35% 55% 0 0;
+    min-block-size: 0;
+    display: none;
+}
+
+@media (pointer: coarse) {
+    .aw-play-stick {
+        display: block;
+    }
+}
+
+.aw-play-names {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+}
+
+.aw-play-name {
+    position: absolute;
+    inset: 0 auto auto 0;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    padding: 0;
-    list-style: none;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 35%);
+    color: white;
+    font: 600 13px ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+    white-space: nowrap;
+    will-change: transform;
+
+    span {
+        inline-size: 9px;
+        block-size: 9px;
+        border-radius: 50%;
+        border: 1px solid white;
+    }
 }
 
-.aw-play li {
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: var(--colour);
+.aw-play-hint {
+    position: absolute;
+    inset: auto 0 16px 0;
+    margin: 0;
+    text-align: center;
     color: white;
-    text-shadow: 0 1px 2px rgb(0 0 0 / .5);
+    text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
+    font: 600 15px ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+    pointer-events: none;
+}
+
+.aw-play-back {
+    position: absolute;
+    z-index: 2;
+    inset: max(12px, env(safe-area-inset-top)) auto auto max(12px, env(safe-area-inset-left));
+    background: rgb(255 255 255 / 70%);
+    border-radius: 8px;
+}
+
+.aw-play-turn {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    display: none;
+    place-content: center;
+    padding: 24px;
+    background: #3d6b2a;
+    color: #fff6e0;
+    text-align: center;
+    font: 700 1.4rem ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+    .aw-play-turn {
+        display: grid;
+    }
+}
+
+.aw-play [hidden] {
+    display: none;
 }

@@ -11,7 +11,8 @@
       "name": "Namn",
       "everything": "Allt",
       "music": "Musik",
-      "sounds": "Ljudeffekter"
+      "sounds": "Ljudeffekter",
+      "sensitivity": "Tittfart"
     },
     "invite": {
       "header": "Bjud in vänner",
@@ -40,9 +41,10 @@
     },
     "play": {
       "title": "3, 2, 1... kör!",
-      "soon": "Ängen är inte byggd än. Snart skjuter ni på varandra här.",
       "back": "Tillbaka till lobbyn",
-      "waitHost": "Väntar på att värden går tillbaka till lobbyn."
+      "waitHost": "Väntar på att värden går tillbaka till lobbyn.",
+      "hint": "Klicka för att se dig om, gå med WASD",
+      "turn": "Vänd telefonen på sidan 🔄"
     },
     "lobby": {
       "leave": "Lämna",

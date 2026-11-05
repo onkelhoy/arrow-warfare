@@ -28,7 +28,7 @@ lobby.update(state);
 /** A made up lobby for the views. */
 function example(): GameState {
     return {
-        host: "a", name: "Friday arrows", password: false, max: 10, phase: "locked", lockedAt: -20_000, go: 0,
+        host: "a", name: "Friday arrows", password: false, max: 10, phase: "locked", lockedAt: -20_000, go: 0, seed: 1,
         rules: { arrows: 4, trees: "few", size: "medium" },
         players: [
             { id: "a", name: "henry", colour: 0, skin: 1, ready: false, team: "t1", ping: 0 },

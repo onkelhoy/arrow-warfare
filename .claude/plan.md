@@ -3,7 +3,7 @@
 Host starts, everyone walks the same meadow and sees each other. Covers F7 basics, F8, F12 basic, F9 movement, plus the views and theme fix.
 
 ## Where we are
-Confirmed, running all tasks. Next: task 10.
+Confirmed, running all tasks. Next: task 14.
 
 ## Views and theme (first, small)
 Found: every view except `game` puts `@import "@papit/theme"` in an inline `<style>`. The dev server only rewrites bare `@import`s in served `.css` files, so the browser asks for `views/x/@papit/theme`, gets a 500, and the hardcoded `#9fd6f0` sky blue shows instead of the theme.
@@ -19,10 +19,10 @@ Found: every view except `game` puts `@import "@papit/theme"` in an inline `<sty
 - [x] **7. Time of day.** Palettes for night, dawn gold, noon and sunset (copied from cowboy's atmosphere) driving sky, sun, fog and light colours, from the clock by default. Fireflies at night.
 - [x] **8. Rules: trees and map size.** Rules tab gets trees (none, few, many) and map size (small, medium, large). They go into `Rules` and into the world.
 - [x] **9. `joystick` atom** (`aw-joystick`, made with `npm run create`). Touch joystick that appears where you put your thumb on its side, gives a direction and strength. View with a codeblock preview.
-- [ ] **10. Controls.** Touch: joystick on the left, look by dragging anywhere else. Desktop: pointer lock mouse look and WASD. Sensitivity saved in settings. Drawing the bow is milestone 3 and stays open (F12 question).
-- [ ] **11. First person movement.** Camera at eye height, follows the ground, a little head bob. Fast walk (slow-while-drawing comes with the bow). Circle collision against trunks and the forest edge.
-- [ ] **12. Net: seed, spawns and poses.** On start the host sends the seed and each player's spawn. Poses (position, yaw, pitch) go 20 times a second on an unreliable data channel (`maxRetransmits: 0`), packed binary. Other players are drawn as their placeholder in their colour, interpolated, with their name above them.
-- [ ] **13. Play page.** The placeholder is replaced by the 3D scene, HUD free for now. Corner buttons stay, game playlist plays. Ask for landscape on phones. The host can still go back to the lobby, and everyone follows.
+- [x] **10. Controls.** Touch: joystick on the left, look by dragging anywhere else. Desktop: pointer lock mouse look and WASD. Sensitivity saved in settings. Drawing the bow is milestone 3 and stays open (F12 question).
+- [x] **11. First person movement.** Camera at eye height, follows the ground, a little head bob. Fast walk (slow-while-drawing comes with the bow). Circle collision against trunks and the forest edge.
+- [x] **12. Net: seed, spawns and poses.** On start the host sends the seed and each player's spawn. Poses (position, yaw, pitch) go 20 times a second on an unreliable data channel (`maxRetransmits: 0`), packed binary. Other players are drawn as their placeholder in their colour, interpolated, with their name above them.
+- [x] **13. Play page.** The placeholder is replaced by the 3D scene, HUD free for now. Corner buttons stay, game playlist plays. Ask for landscape on phones. The host can still go back to the lobby, and everyone follows.
 - [ ] **14. Milestone wrap.** Build `docs/`, a local playwright run with several tabs walking together, check the frame rate in a phone-sized window. Tick the backlog, notes for the owner, bugs.md updated, push to `main` (deploys), the owner tests live.
 
 ## Decided along the way
@@ -31,3 +31,7 @@ Found: every view except `game` puts `@import "@papit/theme"` in an inline `<sty
 - The sky has a moon and stars already (cheap in the sky shader), the time of day turns them on.
 - Models live in `world` (`models.ts`), next to the field that places them.
 - `Field.spawns` returns a record, not a `Map` (the bundle-ts bug in bugs.md).
+- Poses go on the `pose` channel, with the reliable room messages as a fallback for a peer whose channel isn't open. Checked in a 3 tab run: about 60 pose sends each, all on the channel.
+- Spawns aren't sent: every phone works them out from the seed and the host's player list.
+- Names show up to 70 m (the others spawn ~50 m away on a medium meadow).
+- Each player's light follows their own clock, like cowboy.

@@ -1,5 +1,5 @@
 import { effect } from "@papit/signals";
-import { loadText, saveSettings, settings, t } from "@arrow-warfare/core";
+import { loadText, saveSettings, settings, t, type GameState } from "@arrow-warfare/core";
 import { mountCorner } from "@arrow-warfare/corner";
 import { mountLobby } from "@arrow-warfare/lobby";
 import { mountMenu } from "@arrow-warfare/menu";
@@ -10,6 +10,7 @@ import { Sound } from "@arrow-warfare/sound";
 import { Session, type End } from "./session";
 
 type Screen = { remove(): void };
+type Playing = Screen & { update(state: GameState): void };
 
 /** The app: one screen at a time, menu → lobby → play, and back to the menu when a game ends. */
 export async function startApp(root: HTMLElement = document.body) {
@@ -60,7 +61,7 @@ export async function startApp(root: HTMLElement = document.body) {
     const play = (invite: ReturnType<typeof parseInvite>) => {
         const entry = current as ReturnType<typeof mountMenu>;
         let page: ReturnType<typeof mountLobby> | null = null;
-        let playing: Screen | null = null;
+        let playing: Playing | null = null;
         let phase = "";
 
         const session: Session = new Session(lobby, () => settings().name, {
@@ -89,10 +90,11 @@ export async function startApp(root: HTMLElement = document.body) {
                 if (state.phase === "countdown" && phase !== "countdown") page.countdown(session.local(state.go));
                 if (state.phase === "play" && !playing)
                 {
-                    playing = mountPlay(screen, state, session.isHost, () => session.back());
+                    playing = mountPlay(screen, { state, me: session.me, host: session.isHost, net: session.net(), onBack: () => session.back() });
                     page.element.hidden = true;
                     sound.playlist("game");
                 }
+                else if (state.phase === "play") playing?.update(state);
                 if (state.phase !== "play" && playing)
                 {
                     playing.remove();

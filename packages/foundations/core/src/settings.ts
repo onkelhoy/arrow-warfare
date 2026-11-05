@@ -9,9 +9,13 @@ export type Settings = {
     name: string;
     mute: boolean;
     volumes: Volumes;
+    /** How fast dragging or the mouse turns the view, 1 is normal. */
+    sensitivity: number;
 };
 
-export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 } };
+export const SENSITIVITY = { min: .3, max: 3 };
+
+export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1 };
 
 const volume = (value: unknown, fallback: number) =>
     typeof value === "number" && value >= 0 && value <= 1 ? value : fallback;
@@ -36,6 +40,7 @@ export function parseSettings(saved: string | null): Settings {
             music: volume(raw?.volumes?.music, music),
             sounds: volume(raw?.volumes?.sounds, sounds),
         },
+        sensitivity: typeof raw?.sensitivity === "number" && raw.sensitivity >= SENSITIVITY.min && raw.sensitivity <= SENSITIVITY.max ? raw.sensitivity : 1,
     };
 }
 

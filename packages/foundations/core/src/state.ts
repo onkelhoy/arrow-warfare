@@ -46,6 +46,8 @@ export type GameState = {
     lockedAt: number;
     /** Shared ms the game starts at, during the countdown. */
     go: number;
+    /** The meadow of this round, picked by the host at the countdown. */
+    seed: number;
     rules: Rules;
     players: Player[];
     teams: Team[];

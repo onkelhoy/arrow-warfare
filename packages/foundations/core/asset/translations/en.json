@@ -11,7 +11,8 @@
       "name": "Name",
       "everything": "Everything",
       "music": "Music",
-      "sounds": "Sounds"
+      "sounds": "Sounds",
+      "sensitivity": "Look speed"
     },
     "invite": {
       "header": "Invite friends",
@@ -40,9 +41,10 @@
     },
     "play": {
       "title": "3, 2, 1... go!",
-      "soon": "The meadow isn't built yet. Soon you'll shoot each other here.",
       "back": "Back to the lobby",
-      "waitHost": "Waiting for the host to go back to the lobby."
+      "waitHost": "Waiting for the host to go back to the lobby.",
+      "hint": "Click to look around, walk with WASD",
+      "turn": "Turn your phone sideways 🔄"
     },
     "lobby": {
       "leave": "Leave",

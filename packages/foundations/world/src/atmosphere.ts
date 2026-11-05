@@ -20,7 +20,7 @@ export const PALETTES = {
     sunset: palette({
         zenith: "#352a70", horizon: "#fdb45c", fog: "#e28a5e",
         sunDirection: [-.85, .2, -.3], sunColour: [1, .55, .35], sky: [.45, .36, .5], ground: [.24, .16, .14],
-        fogDensity: 1 / 70, sunDisc: [1, .75, .45], moon: 0, stars: .15,
+        fogDensity: 1 / 70, sunDisc: [1, .75, .45], moon: 0, stars: 0,
     }),
 } satisfies Record<string, Light>;
 

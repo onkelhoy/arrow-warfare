@@ -3,7 +3,7 @@ import "@papit/dialog";
 import "@papit/icon";
 import "@papit/input";
 import { effect } from "@papit/signals";
-import { adopt, canFullscreen, cleanName, NAME_LENGTH, settings, t, toggleFullscreen, updateSettings, type Volumes } from "@arrow-warfare/core";
+import { adopt, canFullscreen, cleanName, NAME_LENGTH, SENSITIVITY, settings, t, toggleFullscreen, updateSettings, type Volumes } from "@arrow-warfare/core";
 import type { Sound } from "@arrow-warfare/sound";
 
 import { registerIcons } from "./icons";
@@ -28,6 +28,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
         <pap-dialog header="${t("corner.settings")}" close-outside-click>
             <label class="aw-corner-row">${t("corner.name")} <pap-input name="name" maxlength="${NAME_LENGTH}"></pap-input></label>
             ${VOLUMES.map(name => `<label class="aw-corner-row">${t(`corner.${name}`)} <input type="range" name="${name}" min="0" max="1" step=".01"></label>`).join("")}
+            <label class="aw-corner-row">${t("corner.sensitivity")} <input type="range" name="sensitivity" min="${SENSITIVITY.min}" max="${SENSITIVITY.max}" step=".05"></label>
         </pap-dialog>
     `;
     root.append(corner);
@@ -54,6 +55,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
         const { name: current, volumes } = settings();
         name.value = current;
         for (const volume of VOLUMES) find<HTMLInputElement>(`input[name=${volume}]`).value = String(volumes[volume]);
+        find<HTMLInputElement>("input[name=sensitivity]").value = String(settings().sensitivity);
         panel.showModal();
     });
 
@@ -65,6 +67,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
     panel.addEventListener("input", event => {
         const target = event.target as HTMLInputElement;
         if (target.type !== "range") return;
+        if (target.name === "sensitivity") return updateSettings({ sensitivity: Number(target.value) });
         updateSettings({ volumes: { ...settings().volumes, [target.name]: Number(target.value) } });
     });
 

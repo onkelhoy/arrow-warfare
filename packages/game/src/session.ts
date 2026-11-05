@@ -1,5 +1,5 @@
 import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, MAX_DEFAULT, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Rules } from "@arrow-warfare/core";
-import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, Room, type Invite, type Lobby } from "@arrow-warfare/net";
+import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, Room, ROOM_MEDIA, type Invite, type Lobby } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
 /** Why a game ended for us. */
@@ -58,7 +58,7 @@ export class Session {
         const id = crypto.randomUUID();
         // everyone gets in, the hello is answered with a reason when they can't play (locked, full,
         // kicked, password): a join refused in `accept` timed out on the guest instead of failing
-        const network = await this.lobby.create({ name: "game", topology: "mesh" }, {}, id);
+        const network = await this.lobby.create({ name: "game", topology: "mesh", media: ROOM_MEDIA }, {}, id);
         const room = this.room = new Room(network, network.me);
         this.state = {
             host: room.me,
@@ -68,6 +68,7 @@ export class Session {
             phase: "open",
             lockedAt: 0,
             go: 0,
+            seed: 0,
             rules: { ...RULES_DEFAULT },
             players: [],
             teams: [],
@@ -213,6 +214,8 @@ export class Session {
         if (!room || !state || state.phase !== "locked" || !state.players.length || state.players.some(player => !player.ready)) return;
         state.phase = "countdown";
         state.go = room.shared + COUNTDOWN;
+        // a new meadow every round, the same on every phone
+        state.seed = Math.floor(Math.random() * 2 ** 31);
         this.publish();
         clearTimeout(this.goTimer);
         this.goTimer = setTimeout(() => {
@@ -380,6 +383,16 @@ export class Session {
     act(type: "ready" | "chat" | "idea" | "vote" | "name", payload: Record<string, unknown>) {
         const room = this.room;
         if (room && !room.closed) room.send(room.hostId, type, payload);
+    }
+
+    /** The fast lane for play: the shared clock and the lossy pose channel. */
+    net() {
+        const room = this.room!;
+        return {
+            shared: () => room.shared,
+            sendFast: (peers: string[], data: ArrayBuffer) => room.sendFast(peers, data),
+            onFast: (handler: (data: ArrayBuffer, sender: string) => void) => room.onFast(handler),
+        };
     }
 
     /** The shared clock's time on ours. */
