@@ -1,0 +1,59 @@
+{
+  "name": "@arrow-warfare/lobby",
+  "description": "The lobby: players, host panel tabs, teams, team names, ready and the countdown.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "lobby"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/pages/lobby",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/pages/lobby"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/button": "^0.1.10",
+    "@papit/input": "^0.0.10",
+    "@papit/tabs": "^0.1.10",
+    "@papit/switch": "^0.1.13",
+    "@papit/signals": "^0.0.1",
+    "@arrow-warfare/core": "*",
+    "@arrow-warfare/chat": "*",
+    "@arrow-warfare/invite-dialog": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "papit": {
+    "publish": false,
+    "type": "library",
+    "main": "lobby"
+  }
+}

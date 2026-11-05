@@ -1,0 +1,38 @@
+.aw-menu {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 12px;
+    min-block-size: 100%;
+    padding: 24px;
+    box-sizing: border-box;
+    text-align: center;
+    color: #2f4a1f;
+}
+
+.aw-menu h1 {
+    margin: 0;
+    font-size: clamp(2rem, 9vw, 3.5rem);
+    text-shadow: 0 3px 0 #fff6e0;
+}
+
+.aw-menu-form {
+    display: grid;
+    gap: 12px;
+    inline-size: min(20rem, 85vw);
+    text-align: start;
+}
+
+.aw-menu-form label {
+    display: grid;
+    gap: 4px;
+}
+
+.aw-menu-form label[hidden] {
+    display: none;
+}
+
+.aw-menu-status {
+    min-block-size: 1.4em;
+    max-inline-size: 22rem;
+}

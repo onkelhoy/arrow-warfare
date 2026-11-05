@@ -11,6 +11,11 @@ body {
     font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", system-ui, sans-serif;
 }
 
+.screen {
+    height: 100%;
+    overflow-y: auto;
+}
+
 .hello {
     display: grid;
     place-content: center;

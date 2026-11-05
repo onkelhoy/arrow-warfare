@@ -1,0 +1,26 @@
+.aw-play {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 8px;
+    min-block-size: 100%;
+    text-align: center;
+    color: #2f4a1f;
+}
+
+.aw-play ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 0;
+    list-style: none;
+}
+
+.aw-play li {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--colour);
+    color: white;
+    text-shadow: 0 1px 2px rgb(0 0 0 / .5);
+}

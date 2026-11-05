@@ -1,0 +1,259 @@
+.aw-lobby {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-inline-size: 44rem;
+    min-block-size: 100%;
+    margin-inline: auto;
+    padding: max(12px, env(safe-area-inset-top)) 12px 16px;
+    box-sizing: border-box;
+    color: #2f4a1f;
+}
+
+.aw-dim {
+    opacity: .65;
+}
+
+.aw-lobby-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding-inline-end: 132px; /* the corner buttons */
+}
+
+.aw-lobby-name {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.aw-lobby-phase {
+    margin: 0;
+}
+
+.aw-lobby-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.aw-lobby-tabs {
+    border-radius: 12px;
+    padding: 8px;
+    background: rgb(255 255 255 / .55);
+}
+
+.aw-lobby-tabs pap-tabpanel {
+    padding-block: 8px;
+}
+
+.aw-swatch {
+    display: inline-block;
+    inline-size: .8em;
+    block-size: .8em;
+    margin-inline-end: 6px;
+    border-radius: 50%;
+    border: 1px solid rgb(0 0 0 / .3);
+    vertical-align: -.05em;
+}
+
+.aw-players {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aw-players li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    background: rgb(255 255 255 / .6);
+}
+
+.aw-player {
+    flex: 1;
+}
+
+.aw-ready {
+    color: #2e7d32;
+    font-weight: bold;
+}
+
+.aw-ping {
+    font-size: .8rem;
+    opacity: .7;
+}
+
+.aw-ping.weak {
+    opacity: 1;
+    color: #c0392b;
+}
+
+.aw-form {
+    display: grid;
+    gap: 10px;
+    max-inline-size: 24rem;
+}
+
+.aw-form label {
+    display: grid;
+    gap: 4px;
+}
+
+.aw-form select,
+.aw-team select {
+    font: inherit;
+    padding: 6px;
+    border-radius: 6px;
+}
+
+.aw-teams {
+    display: grid;
+    gap: 10px;
+}
+
+.aw-teams > p {
+    margin: 0;
+}
+
+.aw-team {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border-inline-start: 6px solid var(--colour);
+    background: rgb(255 255 255 / .7);
+    display: grid;
+    gap: 6px;
+}
+
+.aw-team h3 {
+    margin: 0;
+}
+
+.aw-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aw-members li {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--colour) 30%, white);
+}
+
+.aw-x {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+}
+
+/* the team name ideas, on a little wooden sign */
+.aw-sign {
+    position: relative;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: repeating-linear-gradient(0deg, #b9824f 0 9px, #a8723f 9px 11px);
+    border: 3px solid #6e4524;
+    color: #fff6e0;
+    text-shadow: 0 1px 0 #4a2c14;
+    box-shadow: 0 3px 0 #4a2c14;
+}
+
+.aw-sign p {
+    margin: 0 0 4px;
+    font-size: .8rem;
+    opacity: .9;
+}
+
+.aw-sign ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 4px;
+}
+
+.aw-sign li {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.aw-sign li > span:first-child {
+    flex: 1;
+}
+
+.aw-sign li.winning > span:first-child {
+    font-weight: bold;
+}
+
+.aw-sign li.winning > span:first-child::before {
+    content: "★ ";
+    color: #f2c94c;
+}
+
+.aw-votes {
+    letter-spacing: 2px;
+    color: #f2c94c;
+}
+
+.aw-vote {
+    font: inherit;
+    font-size: .8rem;
+    border: 2px solid #4a2c14;
+    border-radius: 6px;
+    background: #fff6e0;
+    color: #4a2c14;
+    text-shadow: none;
+    cursor: pointer;
+}
+
+.aw-vote[aria-pressed=true] {
+    background: #f2c94c;
+}
+
+.aw-idea,
+.aw-team-host {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.aw-idea pap-input {
+    flex: 1;
+}
+
+.aw-countdown {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    pointer-events: none;
+    font-size: 30vmin;
+    font-weight: 900;
+    color: #fff6e0;
+    text-shadow: 0 6px 0 #2f4a1f;
+    z-index: 60;
+}
+
+.aw-countdown.pop {
+    animation: aw-pop .9s ease-out both;
+}
+
+@keyframes aw-pop {
+    from { transform: scale(1.6); opacity: 0; }
+    20% { transform: scale(1); opacity: 1; }
+    to { opacity: 0; }
+}
