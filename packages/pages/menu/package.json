@@ -44,11 +44,13 @@
     "@arrow-warfare/core": "*"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
   },
   "papit": {
     "publish": false,
-    "type": "library",
-    "main": "menu"
+    "type": "web-component",
+    "main": "menu",
+    "htmlprefix": "aw"
   }
 }

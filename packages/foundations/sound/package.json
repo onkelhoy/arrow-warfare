@@ -40,11 +40,13 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@papit/theme": "*",
+    "@papit/button": "*"
   },
   "papit": {
     "publish": false,
-    "type": "library",
+    "type": "browser",
     "main": "sound"
   }
 }

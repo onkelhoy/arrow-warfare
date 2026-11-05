@@ -48,11 +48,13 @@
     "@arrow-warfare/sound": "*"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
   },
   "papit": {
     "publish": false,
-    "type": "library",
-    "main": "corner"
+    "type": "web-component",
+    "main": "corner",
+    "htmlprefix": "aw"
   }
 }

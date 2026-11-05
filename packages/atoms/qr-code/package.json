@@ -43,7 +43,9 @@
     "@papit/translator": "^0.1.1"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@papit/theme": "*",
+    "@papit/codeblock": "*"
   },
   "papit": {
     "publish": false,

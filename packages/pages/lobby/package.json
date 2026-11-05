@@ -49,11 +49,13 @@
     "@arrow-warfare/invite-dialog": "*"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
   },
   "papit": {
     "publish": false,
-    "type": "library",
-    "main": "lobby"
+    "type": "web-component",
+    "main": "lobby",
+    "htmlprefix": "aw"
   }
 }

@@ -15,6 +15,10 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - **Workaround:** `accept` isn't used. Everyone gets in, and the host answers the guest's `hello` with `denied {reason}` (locked, full, kicked, password).
 - **Not confirmed:** I didn't dig into papit to find the cause.
 
+### An inline `@import "@papit/theme"` 500s in the dev server
+- **What:** the server rewrites bare `@import`s only in served `.css` files. In an inline `<style>` the browser asks for `<view>/@papit/theme`, gets a 500, and the theme never loads (our views showed the hardcoded sky blue).
+- **Workaround:** views have a real `style.css`, as the create templates do.
+
 ## Ours
 
 ### A late guest's first join attempt logged "join timed out"

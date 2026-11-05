@@ -9,8 +9,8 @@ Atomic design. A package only depends on layers below or beside it.
 | `molecules/` | Elements made of atoms: `invite-dialog`, `corner`, `chat`, `touch-layout` |
 | `pages/` | One per screen: `menu`, `lobby`, `play`, `results` |
 
-Every package with UI has a `views/` folder, so `npm start` shows it on its own.
+Every package with UI has `views/experiment/`, made like `@papit/create`'s templates: web-component packages get an `h1`, `section`s, a `style.css` importing `@papit/theme` and `pap-codeblock` previews for tags. Game packages (3D) get a full canvas with a `GameEngine`. Parts drawn for the game's sky sit in a `.stage` box.
 
 `game/` is the app. It pulls the pages together, and `npm run pages` builds it into `docs/` for GitHub Pages.
 
-Add a package with `npm run create`, then move it into its layer folder.
+Add a package with `npm run create -- --destination=packages/<layer>`. Only `@papit/*` dependencies, ask before anything else.

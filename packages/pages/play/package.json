@@ -43,11 +43,13 @@
     "@papit/button": "^0.1.10"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@papit/theme": "*"
   },
   "papit": {
     "publish": false,
-    "type": "library",
-    "main": "play"
+    "type": "web-component",
+    "main": "play",
+    "htmlprefix": "aw"
   }
 }
