@@ -257,3 +257,16 @@
     20% { transform: scale(1); opacity: 1; }
     to { opacity: 0; }
 }
+
+.aw-countdown-score {
+    position: fixed;
+    inset: 18vh 0 auto;
+    margin: 0;
+    text-align: center;
+    pointer-events: none;
+    font-size: 7vmin;
+    font-weight: 800;
+    color: #fff6e0;
+    text-shadow: 0 3px 0 #2f4a1f;
+    z-index: 61;
+}

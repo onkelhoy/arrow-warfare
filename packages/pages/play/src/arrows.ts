@@ -87,7 +87,8 @@ export class Arrows {
      * Flies everything on to `now`. `judge` are the bodies this phone decides hits for, with where they
      * are. Returns what landed in the field and what struck a judged body.
      */
-    update(now: number, judge: { id: string; rig: Rig }[]) {
+    /** `through` a body the arrow flies through: friendly fire off. */
+    update(now: number, judge: { id: string; rig: Rig }[], through: (shooter: string, id: string) => boolean = () => false) {
         const landed: Landed[] = [];
         const struck: Struck[] = [];
         for (const arrow of this.all.values())
@@ -97,6 +98,7 @@ export class Arrows {
                 for (const body of judge)
                 {
                     if (body.id === arrow.shot.by && arrow.at - arrow.shot.time < OWN_GRACE) continue;
+                    if (body.id !== arrow.shot.by && through(arrow.shot.by, body.id)) continue;
                     const place = body.rig.where;
                     const hit = hitBody(place, from, to, body.rig.capsules);
                     if (!hit) continue;

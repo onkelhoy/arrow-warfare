@@ -100,7 +100,17 @@
         "dawn": "Gryning",
         "noon": "Mitt på dagen",
         "sunset": "Solnedgång"
-      }
+      },
+      "rounds": "Rundor",
+      "roundsOf": {
+        "1": "En runda",
+        "3": "Bäst av 3",
+        "5": "Bäst av 5"
+      },
+      "round": "Runda {number}",
+      "friendly": "Vådabeskjutning",
+      "friendlyOn": "På",
+      "friendlyOff": "Av: pilar flyger genom lagkamrater"
     },
     "colour": {
       "red": "röd",
@@ -208,7 +218,8 @@
       "back": "Tillbaka till lobbyn",
       "rematch": "Igen",
       "wait": "Väntar på värden...",
-      "taken": "Träffad"
+      "taken": "Träffad",
+      "rounds": "Vunna rundor"
     },
     "layout": {
       "open": "Placera bågknappen",

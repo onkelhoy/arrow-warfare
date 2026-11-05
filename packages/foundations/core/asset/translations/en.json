@@ -100,7 +100,17 @@
         "dawn": "Dawn",
         "noon": "Noon",
         "sunset": "Sunset"
-      }
+      },
+      "rounds": "Rounds",
+      "roundsOf": {
+        "1": "One round",
+        "3": "Best of 3",
+        "5": "Best of 5"
+      },
+      "round": "Round {number}",
+      "friendly": "Friendly fire",
+      "friendlyOn": "On",
+      "friendlyOff": "Off: arrows fly through teammates"
     },
     "colour": {
       "red": "red",
@@ -208,7 +218,8 @@
       "back": "Back to the lobby",
       "rematch": "Rematch",
       "wait": "Waiting for the host...",
-      "taken": "Hits taken"
+      "taken": "Hits taken",
+      "rounds": "Rounds won"
     },
     "layout": {
       "open": "Place the bow button",

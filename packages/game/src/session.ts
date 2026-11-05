@@ -1,4 +1,4 @@
-import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Results, type Rules } from "@arrow-warfare/core";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Results, type Rules } from "@arrow-warfare/core";
 import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, Room, ROOM_MEDIA, type Invite, type Lobby } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
@@ -73,6 +73,7 @@ export class Session {
             players: [],
             teams: [],
             results: null,
+            played: [],
         };
         this.hostHandlers(room);
         this.common(room);
@@ -249,6 +250,8 @@ export class Session {
         if (change.size && MAP_SIZES.includes(change.size)) state.rules.size = change.size;
         if (change.damage && DAMAGES.includes(change.damage)) state.rules.damage = change.damage;
         if (change.time && TIMES.includes(change.time)) state.rules.time = change.time;
+        if (change.rounds !== undefined && ROUNDS.includes(change.rounds)) state.rules.rounds = change.rounds;
+        if (change.friendly !== undefined) state.rules.friendly = !!change.friendly;
         this.publish();
     }
 
@@ -307,8 +310,22 @@ export class Session {
     finish(results: Results) {
         const state = this.state;
         if (!state || !this.isHost || state.phase !== "play") return;
+        // a match of rounds: on to the next meadow until someone has more than half
+        state.played = [...(state.played ?? []), results];
+        const rounds = state.rules.rounds ?? 1;
+        const wins = roundWins(state.played);
+        const decided = Object.values(wins).some(count => count > rounds / 2) || state.played.length >= rounds;
+        if (!decided)
+        {
+            state.phase = "locked";
+            state.lockedAt = this.room!.shared;
+            for (const player of state.players) player.ready = true;
+            this.maybeStart();
+            return;
+        }
         state.phase = "results";
-        state.results = results;
+        state.results = rounds > 1 ? matchResults(state.played, id => state.players.find(player => player.id === id)?.team ?? null) : results;
+        state.played = [];
         this.publish();
     }
 
@@ -328,6 +345,7 @@ export class Session {
         if (!state || !this.isHost || (state.phase !== "play" && state.phase !== "results")) return;
         state.phase = "locked";
         state.lockedAt = this.room!.shared;
+        state.played = [];
         for (const player of state.players) player.ready = false;
         this.publish();
     }

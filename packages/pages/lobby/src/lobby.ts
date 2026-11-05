@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type Damage, type GameState, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
+import { adopt, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type Damage, type GameState, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -87,6 +87,12 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                         ${DAMAGES.map(damage => `<option value="${damage}">${t(`rules.damages.${damage}`)}</option>`).join("")}
                     </select></label>
                     <p class="aw-dim">${t("rules.damageNote")}</p>
+                    <label>${t("rules.rounds")} <select name="rounds">
+                        ${ROUNDS.map(rounds => `<option value="${rounds}">${t(`rules.roundsOf.${rounds}`)}</option>`).join("")}
+                    </select></label>
+                    <label>${t("rules.friendly")} <select name="friendly">
+                        <option value="on">${t("rules.friendlyOn")}</option><option value="off">${t("rules.friendlyOff")}</option>
+                    </select></label>
                     <label>${t("rules.time")} <select name="time">
                         ${TIMES.map(time => `<option value="${time}">${t(`rules.times.${time}`)}</option>`).join("")}
                     </select></label>
@@ -95,6 +101,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         </pap-tabs>
         <div class="aw-lobby-chat"></div>
         <div class="aw-countdown" aria-live="assertive"></div>
+        <p class="aw-countdown-score" hidden></p>
     `;
     root.append(lobby);
 
@@ -103,6 +110,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     find("pap-tabpanel[value=invite]").append(invite.element);
     const chat = mountChat(find(".aw-lobby-chat"), actions.chat);
     const countdown = find(".aw-countdown");
+    const score = find(".aw-countdown-score");
 
     let state: GameState | null = null;
     let host = false;
@@ -133,6 +141,10 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     const time = find<HTMLSelectElement>("select[name=time]");
     damage.addEventListener("change", () => actions.rules({ damage: damage.value as Damage }));
     time.addEventListener("change", () => actions.rules({ time: time.value as TimeOfDay }));
+    const rounds = find<HTMLSelectElement>("select[name=rounds]");
+    const friendly = find<HTMLSelectElement>("select[name=friendly]");
+    rounds.addEventListener("change", () => actions.rules({ rounds: Number(rounds.value) }));
+    friendly.addEventListener("change", () => actions.rules({ friendly: friendly.value === "on" }));
 
     /** A field being typed in keeps what's typed. */
     const set = (field: Field | HTMLSelectElement, value: string) => {
@@ -270,7 +282,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         showTab("invite", !locked);
         showTab("teams", locked);
 
-        for (const field of [gameName, password, max, arrows, trees, size, damage, time]) field.toggleAttribute("disabled", !host);
+        for (const field of [gameName, password, max, arrows, trees, size, damage, time, rounds, friendly]) field.toggleAttribute("disabled", !host);
         set(gameName, state.name);
         if (!host) set(password, state.password ? "••••" : "");
         set(max, String(state.max));
@@ -279,6 +291,8 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         set(size, state.rules.size ?? RULES_DEFAULT.size);
         set(damage, state.rules.damage ?? RULES_DEFAULT.damage);
         set(time, state.rules.time ?? RULES_DEFAULT.time);
+        set(rounds, String(state.rules.rounds ?? 1));
+        set(friendly, state.rules.friendly === false ? "off" : "on");
 
         draw(".aw-players", players());
         draw(".aw-teams", teams());
@@ -303,6 +317,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                 }
             }
             if (next.phase !== "countdown") countdown.textContent = "";
+            if (next.phase !== "countdown") score.hidden = true;
             render();
         },
         /** The invite link, or words about it while it's made. */
@@ -310,8 +325,10 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         chat(line: ChatLine) {
             chat.add(line);
         },
-        /** 3, 2, 1 to `at`, on our own clock. */
-        countdown(at: number) {
+        /** 3, 2, 1 to `at`, on our own clock, a match's score line over it. */
+        countdown(at: number, line = "") {
+            score.textContent = line;
+            score.hidden = !line;
             for (const number of [3, 2, 1])
             {
                 const delay = at - number * 1000 - performance.now();

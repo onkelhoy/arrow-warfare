@@ -35,15 +35,20 @@ export type Rules = {
     size: MapSize;
     damage: Damage;
     time: TimeOfDay;
+    /** Rounds in a match: 1, or best of 3 or 5. */
+    rounds: number;
+    /** Off: a teammate's arrow flies through you. */
+    friendly: boolean;
 };
 
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
 export const MAP_SIZES: MapSize[] = ["small", "medium", "large"];
 
 export const DAMAGES: Damage[] = ["arcade", "injuries"];
+export const ROUNDS = [1, 3, 5];
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { arrows: 4, trees: "few", size: "medium", damage: "injuries", time: "clock" };
+export const RULES_DEFAULT: Rules = { arrows: 4, trees: "few", size: "medium", damage: "injuries", time: "clock", rounds: 1, friendly: true };
 
 export type GameState = {
     host: string;
@@ -63,6 +68,8 @@ export type GameState = {
     teams: Team[];
     /** The last round's end, while the phase is `results`. */
     results: Results | null;
+    /** The rounds played so far in this match. */
+    played: Results[];
 };
 
 /** One player's round. */
@@ -87,6 +94,8 @@ export type Results = {
     players: PlayerStats[];
     /** ms the round lasted. */
     duration: number;
+    /** Rounds won, by winner id, over a match of more than one. */
+    wins?: Record<string, number>;
 };
 
 export type ChatLine = { from: string; name: string; colour: number; text: string; team: boolean };
@@ -113,4 +122,29 @@ export function teamName(team: Team) {
 /** The colour a player wears: their team's, else their own. */
 export function wears(state: GameState, player: Player) {
     return state.teams.find(team => team.id === player.team)?.colour ?? player.colour;
+}
+
+/** Rounds won by each winner id. */
+export function roundWins(played: Results[]) {
+    const wins: Record<string, number> = {};
+    for (const round of played) if (round.winner) wins[round.winner.id] = (wins[round.winner.id] ?? 0) + 1;
+    return wins;
+}
+
+/** A match's rounds as one: the stats added up, the winner the one with most rounds. */
+export function matchResults(played: Results[], teamOf: (id: string) => string | null): Results {
+    const wins = roundWins(played);
+    const players = new Map<string, PlayerStats>();
+    for (const round of played) for (const stats of round.players)
+    {
+        const sum = players.get(stats.id);
+        if (!sum) { players.set(stats.id, { ...stats }); continue; }
+        sum.shots += stats.shots; sum.hits += stats.hits; sum.kills += stats.kills; sum.picked += stats.picked;
+        sum.taken += stats.taken; sum.alive += stats.alive; sum.longest = Math.max(sum.longest, stats.longest);
+    }
+    const best = Math.max(0, ...Object.values(wins));
+    const top = Object.keys(wins).filter(id => wins[id] === best);
+    const winner = best > 0 && top.length === 1 ? played.find(round => round.winner?.id === top[0])!.winner : null;
+    for (const stats of players.values()) stats.won = !!winner && (winner.kind === "player" ? stats.id === winner.id : teamOf(stats.id) === winner.id);
+    return { winner, players: [...players.values()], duration: played.reduce((sum, round) => sum + round.duration, 0), wins };
 }

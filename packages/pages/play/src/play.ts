@@ -135,6 +135,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const hud = new Hud(play);
     const draw = new Draw();
     const injuries = (state.rules.damage ?? "injuries") === "injuries";
+    const friendly = state.rules.friendly !== false;
     const wounds = new Wounds();
     // my own body, never drawn: hits on me are judged against it, as others see it
     const myRig = new Rig((x, z) => field.height(x, z));
@@ -751,7 +752,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         // arrows, and the bodies my phone judges
         const judge = walker.alive ? [{ id: me, rig: myRig }] : [];
         if (options.bots) judge.push(...others.living.filter(other => !dead.has(other.id)));
-        const flown = arrows.update(now, judge);
+        const flown = arrows.update(now, judge, friendly ? undefined : (shooter, id) => {
+            const team = state.players.find(player => player.id === shooter)?.team;
+            return !!team && team === state.players.find(player => player.id === id)?.team;
+        });
         // someone's arrow passing close by me: a whoosh from its side
         {
             const m = camera.worldMatrix;

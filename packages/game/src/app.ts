@@ -1,5 +1,5 @@
 import { effect } from "@papit/signals";
-import { loadText, saveSettings, settings, t, type GameState } from "@arrow-warfare/core";
+import { loadText, roundWins, saveSettings, settings, t, teamName, type GameState } from "@arrow-warfare/core";
 import { mountCorner } from "@arrow-warfare/corner";
 import { mountLobby } from "@arrow-warfare/lobby";
 import { mountMenu } from "@arrow-warfare/menu";
@@ -59,6 +59,14 @@ export async function startApp(root: HTMLElement = document.body) {
         return page;
     };
 
+    /** A match's score over the countdown: "Red 2 · Blue 1", empty before the second round. */
+    const score = (state: GameState) => {
+        if (!state.played?.length) return "";
+        const wins = roundWins(state.played);
+        const sides = state.teams.length ? state.teams.map(team => ({ id: team.id, name: teamName(team) || "?" })) : state.players.map(player => ({ id: player.id, name: player.name }));
+        return `${t("rules.round", { number: String(state.played.length + 1) })} · ${sides.map(side => `${side.name} ${wins[side.id] ?? 0}`).join(" · ")}`;
+    };
+
     const play = (invite: ReturnType<typeof parseInvite>) => {
         const entry = current as ReturnType<typeof mountMenu>;
         let page: ReturnType<typeof mountLobby> | null = null;
@@ -89,7 +97,7 @@ export async function startApp(root: HTMLElement = document.body) {
                     else page.invite.text(t(session.isHost ? "invite.connecting" : "invite.onlyHost"));
                 }
                 page.update(state);
-                if (state.phase === "countdown" && phase !== "countdown") page.countdown(session.local(state.go));
+                if (state.phase === "countdown" && phase !== "countdown") page.countdown(session.local(state.go), score(state));
                 if (state.phase === "play" && !playing)
                 {
                     playing = mountPlay(screen, {

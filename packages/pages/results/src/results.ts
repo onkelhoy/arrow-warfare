@@ -44,6 +44,7 @@ export function mountResults(root: HTMLElement, { state, me, host, onBack, onRem
     page.innerHTML = `
         <p class="aw-results-over">${t("results.title")} · ${seconds(results.duration)}</p>
         <h1>${title}</h1>
+        ${results.wins ? `<p class="aw-results-over">${t("results.rounds")}: ${Object.entries(results.wins).map(([id, count]) => `${escape((state.teams.find(team => team.id === id) ? teamName(state.teams.find(team => team.id === id)!) : player(id)?.name) || "?")} ${count}`).join(" · ")}</p>` : ""}
         <div class="aw-results-table">
             <table>
                 <thead><tr>${["player", "kills", "shots", "hits", "rate", "longest", "picked", "taken", "alive"].map(key => `<th>${t(`results.${key}`)}</th>`).join("")}</tr></thead>
