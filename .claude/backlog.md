@@ -202,6 +202,15 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Wake lock, reconnect on a short drop, rotate prompt
 - [x] PWA manifest and icons
 
+### F17. World design
+- [ ] Lighter shadows, none when lying
+- [ ] The arm without the bow stays out of the torso
+- [ ] Softer tones, crisper colours after cowboy, brighter grass
+- [ ] Drawn sun and moon (big moon with craters), ring halos
+- [ ] Fluffy clouds by time of day
+- [ ] The dead drop their unshot arrows
+- [ ] An arrow bag in the hand
+
 ---
 
 ## Milestones
@@ -212,6 +221,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 4. ✅ **Silly bodies** (F11, F10, F14 energy/damage, F14b, F6 damage + time of day): rig, walk, hop, injuries, the play demo with controls.
 5. ✅ **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
 6. ✅ **Polish** (F16, quality, glb if wanted).
+7. **World design** (F17): softer, crisper colours after cowboy, lighter shadows, drawn sun and moon, clouds, the missing arm, dropped arrows, the arrow bag.
 
 ---
 
@@ -275,5 +285,5 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 
 ## Open questions
 - Torso hit: dead at once, or two torso hits? (milestone 4: dead at once)
-- Can the dead drop their quiver?
+- ~~Can the dead drop their quiver?~~ Yes, milestone 7.
 - ~~Repo~~: github.com/onkelhoy/arrow-warfare, live at https://onkelhoy.github.io/arrow-warfare/ (static `--base /arrow-warfare/`).
