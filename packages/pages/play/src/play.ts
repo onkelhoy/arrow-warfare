@@ -176,6 +176,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     window.addEventListener("resize", size);
     const stopBow = effect(() => controls.placeBow(settings().bow, play.clientWidth));
 
+    // keep the screen awake while playing, again when coming back to the tab
+    let wake: WakeLockSentinel | null = null;
+    let playing = true;
+    const awake = () => {
+        if (!playing || document.visibilityState !== "visible" || !("wakeLock" in navigator)) return;
+        navigator.wakeLock.request("screen").then(lock => {
+            if (playing) wake = lock;
+            else lock.release().catch(() => undefined);
+        }).catch(() => undefined);
+    };
+    awake();
+    document.addEventListener("visibilitychange", awake);
+
     // ------------------------------------------------------------------ the round
 
     // unlimited while developing on this machine
@@ -886,6 +899,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         remove() {
             for (const stop of unlisten) stop();
             stopBow();
+            playing = false;
+            document.removeEventListener("visibilitychange", awake);
+            wake?.release().catch(() => undefined);
             clearTimeout(settle);
             clearTimeout(ending);
             window.removeEventListener("resize", size);
