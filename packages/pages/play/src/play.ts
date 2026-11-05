@@ -43,6 +43,8 @@ export type PlayOptions = {
     bots?: boolean;
     /** Inside a box on a page (the view), not the whole screen. */
     contained?: boolean;
+    /** The quiver as the rule says, even on this machine (where it's unlimited for developing). */
+    ruleArrows?: boolean;
 };
 
 /** The insides, for the views and headless runs. Loosely typed: the types bundler can't follow Maps and Sets. */
@@ -137,7 +139,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     // ------------------------------------------------------------------ the round
 
     // unlimited while developing on this machine
-    const local = ["localhost", "127.0.0.1"].includes(location.hostname);
+    const local = ["localhost", "127.0.0.1"].includes(location.hostname) && !options.ruleArrows;
     let quiver = state.rules.arrows > 0 && !local ? state.rules.arrows : Infinity;
     let shots = 0;
     const dead = new Set<string>();

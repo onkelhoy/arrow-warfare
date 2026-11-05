@@ -16,7 +16,66 @@
 </head>
 
 <body>
-    <div id="stage"></div>
+    <h1>Play | experiment</h1>
+    <section>
+        <h2>A round alone, with the stand-ins</h2>
+        <p>Click the meadow to look, WASD to walk, hold space to draw, click an arrow to pick it up, E pulls one out of you. My phone judges hits on everyone, so the others can be shot. Esc lets the mouse go.</p>
+        <pap-codeblock display="both" color="canvas">
+            <div class="demo">
+                <div class="demo-stage"></div>
+                <form class="demo-controls">
+                    <label>Time of day
+                        <select name="time">
+                            <option value="clock">by my clock</option>
+                            <option value="night">night</option>
+                            <option value="dawn">dawn</option>
+                            <option value="noon" selected>noon</option>
+                            <option value="sunset">sunset</option>
+                        </select>
+                    </label>
+                    <label>Seed <input name="seed" type="number" value="1"></label>
+                    <label>Arrows
+                        <select name="arrows">
+                            <option value="1">1</option>
+                            <option value="4" selected>4</option>
+                            <option value="10">10</option>
+                            <option value="0">unlimited</option>
+                        </select>
+                    </label>
+                    <label>Trees
+                        <select name="trees">
+                            <option value="none">none</option>
+                            <option value="few" selected>a few</option>
+                            <option value="many">many</option>
+                        </select>
+                    </label>
+                    <label>Size
+                        <select name="size">
+                            <option value="small" selected>small</option>
+                            <option value="medium">medium</option>
+                            <option value="large">large</option>
+                        </select>
+                    </label>
+                    <label>Damage
+                        <select name="damage">
+                            <option value="injuries" selected>injuries</option>
+                            <option value="arcade">arcade</option>
+                        </select>
+                    </label>
+                    <label>Others can be shot <input name="bots" type="checkbox" checked></label>
+                    <fieldset>
+                        <legend>Injure me</legend>
+                        <button type="button" data-injure="leftArm">left arm</button>
+                        <button type="button" data-injure="rightArm">right arm</button>
+                        <button type="button" data-injure="leftLeg">left leg</button>
+                        <button type="button" data-injure="rightLeg">right leg</button>
+                        <button type="button" data-injure="">heal</button>
+                    </fieldset>
+                    <button type="button" data-do="restart">New round</button>
+                </form>
+            </div>
+        </pap-codeblock>
+    </section>
 </body>
 
 </html>

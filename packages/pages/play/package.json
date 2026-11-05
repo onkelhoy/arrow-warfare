@@ -54,7 +54,8 @@
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "@papit/theme": "*"
+    "@papit/theme": "*",
+    "@papit/codeblock": "*"
   },
   "papit": {
     "publish": false,
