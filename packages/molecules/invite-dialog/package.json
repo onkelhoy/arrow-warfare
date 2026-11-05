@@ -1,0 +1,55 @@
+{
+  "name": "@arrow-warfare/invite-dialog",
+  "description": "The invite: QR code, the link and a share button in a dialog.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "invite-dialog"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/molecules/invite-dialog",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/molecules/invite-dialog"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/dialog": "^0.0.17",
+    "@arrow-warfare/qr-code": "*",
+    "@arrow-warfare/share-link": "*",
+    "@arrow-warfare/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "papit": {
+    "publish": false,
+    "type": "library",
+    "main": "invite-dialog"
+  }
+}

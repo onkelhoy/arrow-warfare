@@ -1,0 +1,53 @@
+.aw-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-block-size: 0;
+}
+
+.aw-chat-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.aw-chat-tabs button {
+    font: inherit;
+    border: 0;
+    border-radius: 999px;
+    padding: 4px 12px;
+    background: rgb(0 0 0 / .08);
+    cursor: pointer;
+}
+
+.aw-chat-tabs button[aria-selected=true] {
+    background: #2f4a1f;
+    color: white;
+}
+
+.aw-chat-tabs button.unread::after {
+    content: " •";
+    color: #e2553d;
+}
+
+.aw-chat-lines {
+    flex: 1;
+    min-block-size: 6rem;
+    max-block-size: 14rem;
+    overflow-y: auto;
+    margin: 0;
+    padding: 8px;
+    list-style: none;
+    border-radius: 8px;
+    background: rgb(255 255 255 / .6);
+    overflow-wrap: anywhere;
+}
+
+.aw-chat-form {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.aw-chat-form pap-input {
+    flex: 1;
+}
