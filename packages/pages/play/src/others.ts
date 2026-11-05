@@ -35,6 +35,8 @@ export class Others {
     private viewProjection = new Float32Array(16);
     /** The round is over: bows down. */
     unarmed = false;
+    /** Names over their heads. */
+    names = true;
     /** Not drawn (the kill cam draws the past instead), they're still followed. */
     hidden = false;
     /** Poses that replace what the network says: the winners walking up to each other at the end. */
@@ -147,7 +149,7 @@ export class Others {
                 dead: !!other.corpse, tip: other.tip, unarmed: this.unarmed,
             });
             shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
-            if (this.hidden) other.label.hidden = true;
+            if (this.hidden || !this.names) other.label.hidden = true;
             else if (!other.corpse) this.placeLabel(other.label, place.x, this.field.height(place.x, place.z) + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
         }
         this.bodies.draw(this.hidden ? [] : [...shown, ...extra]);

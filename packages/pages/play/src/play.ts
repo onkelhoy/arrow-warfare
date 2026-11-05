@@ -63,6 +63,17 @@ const PIXELS = 1.5;
 const SETTLE = 2200;
 /** ms the winner is shown before the results, after the last kill cam. */
 const SHOW_WINNER = 3200;
+/** ms from the end of the round to the results with a winner: the last kill cam, then the circle. */
+const FINAL_SHOW = 15_000;
+/** Seconds the winners take to walk up beside the shooter. */
+const WALK_UP = 1.6;
+/** A medieval horn with a little banner hanging from it, in the winner's colour. */
+const HORN = `<svg class="aw-play-horn" viewBox="0 0 120 220" aria-hidden="true">
+    <path class="banner" d="M38 92 L78 86 L80 150 L60 138 L42 156 Z"/>
+    <path class="body" d="M58 214 C54 170 44 120 30 70 C22 44 14 26 4 14 L40 2 C42 22 46 46 52 76 C62 124 68 170 66 214 Z"/>
+    <path class="ring" d="M28 62 L50 56 M38 112 L56 108 M48 170 L64 168"/>
+    <ellipse class="bell" cx="22" cy="8" rx="20" ry="7" transform="rotate(-18 22 8)"/>
+</svg>`;
 /** Seconds of the spirit leaving my body. */
 const SPIRIT = 1.5;
 /** How far a body tips over when it dies (as in `others`). */
@@ -283,16 +294,71 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         hud.watching(watching ? `${t("hud.watching", { name: tag(watching) })} · ${t("hud.switch")}` : "");
     };
 
+    /** The end: the winners, standing together, the camera low and going round them. */
+    const circle = {
+        time: 0, members: [] as { id: string; from: Vec; to: Vec; yaw: number }[], centre: [0, 0, 0] as Vec, angle: 0, radius: 4,
+        shown: false,
+    };
+    const winnerSign = document.createElement("div");
+    winnerSign.className = "aw-play-winner";
+    winnerSign.hidden = true;
+    play.append(winnerSign);
+    const horns = document.createElement("div");
+    horns.className = "aw-play-horns";
+    horns.innerHTML = HORN + HORN;
+    play.append(horns);
+
     /** The round is over and its last kill cam shown: who won. */
     const finale = () => {
-        setView(walker.alive ? "play" : "watch");
-        if (!walker.alive) watch(watching);
-        if (!winner) return hud.say(t("hud.draw"));
-        const won = winner.kind === "player" ? winner.id === me : player(me)?.team === winner.id;
-        if (winner.kind === "player") return hud.say(won ? t("hud.youWin") : t("hud.wins", { name: player(winner.id)?.name ?? "?" }), won ? "win" : "lose");
+        const members = winner ? state.players.filter(other => !dead.has(other.id) && (winner!.kind === "player" ? other.id === winner!.id : other.team === winner!.id)).map(other => other.id) : [];
+        const at = (id: string) => id === me ? myPose() : others.poseOf(id);
+        if (!winner || !members.some(at))
+        {
+            setView(walker.alive ? "play" : "watch");
+            if (!walker.alive) watch(watching);
+            return hud.say(winner ? t("hud.wins", { name: winnerName() }) : t("hud.draw"), winner ? "win" : "");
+        }
+        // the one who fired the last shot in the middle, the rest walk up beside them
+        const shooter = finalDeath ? replay.deaths.get(finalDeath)?.by : undefined;
+        const leader = members.includes(shooter ?? "") && at(shooter!) ? shooter! : members.find(at)!;
+        const place = at(leader)!;
+        const right: Vec = [Math.cos(place.yaw), 0, -Math.sin(place.yaw)];
+        const order = [leader, ...members.filter(id => id !== leader && at(id))];
+        circle.members = order.map((id, i) => {
+            const now = at(id)!;
+            const step = Math.ceil(i / 2) * 1.05 * (i % 2 ? 1 : -1);
+            const x = place.x + right[0] * step, z = place.z + right[2] * step;
+            return { id, from: [now.x, now.y, now.z], to: [x, field.height(x, z), z], yaw: place.yaw };
+        });
+        const xs = circle.members.map(member => member.to);
+        circle.centre = [xs.reduce((sum, p) => sum + p[0], 0) / xs.length, place.y, xs.reduce((sum, p) => sum + p[2], 0) / xs.length];
+        circle.radius = 3.4 + .55 * xs.length;
+        circle.angle = place.yaw;
+        circle.time = 0;
+        circle.shown = false;
+        hud.say("");
+        others.names = false;
+        winnerSign.textContent = t("hud.wins", { name: winnerName() });
+        const team = winner.kind === "team" ? state.teams.find(other => other.id === winner!.id) : null;
+        winnerSign.style.setProperty("--colour", COLOURS[team ? team.colour : player(leader) ? wears(state, player(leader)!) : 0].hex);
+        horns.style.setProperty("--colour", winnerSign.style.getPropertyValue("--colour"));
+        setView("circle");
+    };
+
+    const winnerName = () => {
+        if (!winner) return "";
+        if (winner.kind === "player") return player(winner.id)?.name ?? "?";
         const team = state.teams.find(other => other.id === winner!.id);
-        const name = team ? teamName(team) || t(`colour.${COLOURS[team.colour].name}`) : "?";
-        hud.say(won ? t("hud.youWin") : t("hud.wins", { name }), won ? "win" : "lose");
+        return team ? teamName(team) || t(`colour.${COLOURS[team.colour].name}`) : "?";
+    };
+
+    /** Where on the screen a point in the world is, null behind the camera. */
+    const onScreen = (p: Vec): [number, number] | null => {
+        const v = camera.viewMatrix, q = camera.projectionMatrix;
+        const x = v[0] * p[0] + v[4] * p[1] + v[8] * p[2] + v[12], y = v[1] * p[0] + v[5] * p[1] + v[9] * p[2] + v[13], z = v[2] * p[0] + v[6] * p[1] + v[10] * p[2] + v[14];
+        const cx = q[0] * x + q[4] * y + q[8] * z + q[12], cy = q[1] * x + q[5] * y + q[9] * z + q[13], w = q[3] * x + q[7] * y + q[11] * z + q[15];
+        if (w <= .05) return null;
+        return [(cx / w * .5 + .5) * play.clientWidth, (1 - (cy / w * .5 + .5)) * play.clientHeight];
     };
 
     /** A tap anywhere: skips the kill cam, or watches the next player. */
@@ -337,6 +403,43 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         {
             film.update(dt);
             if (film.done) afterFilm(film.victim, film.killer);
+        }
+        else if (view === "circle")
+        {
+            circle.time += dt;
+            // the others walk up to their places beside the shooter, then they all turn to face the same way
+            const walk = Math.min(1, circle.time / WALK_UP);
+            for (const member of circle.members)
+            {
+                const e = walk * walk * (3 - 2 * walk);
+                const x = member.from[0] + (member.to[0] - member.from[0]) * e, z = member.from[2] + (member.to[2] - member.from[2]) * e;
+                const moving = Math.hypot(member.to[0] - member.from[0], member.to[2] - member.from[2]) > .2 && walk < 1;
+                const yaw = moving ? Math.atan2(-(member.to[0] - member.from[0]), -(member.to[2] - member.from[2])) : member.yaw;
+                if (member.id === me)
+                {
+                    walker.x = x;
+                    walker.z = z;
+                    walker.y = field.height(x, z);
+                    walker.yaw = yaw;
+                    walker.pitch = 0;
+                }
+                else others.override.set(member.id, { time: net.shared(), x, y: field.height(x, z), z, yaw, pitch: .15, speed: moving ? 2.5 : 0, draw: 0, stage: 0, left: false, wounds: 0, resting: false });
+            }
+            // low, looking up at them, going round
+            circle.angle += dt * .32;
+            const [cx, cy, cz] = circle.centre;
+            const eye: Vec = [cx - Math.sin(circle.angle) * circle.radius, 0, cz - Math.cos(circle.angle) * circle.radius];
+            eye[1] = Math.max(cy + .65, field.height(eye[0], eye[2]) + .65);
+            aim(camera, eye, [cx, cy + 1.05, cz]);
+            if (circle.time >= WALK_UP && !circle.shown)
+            {
+                circle.shown = true;
+                winnerSign.hidden = false;
+                horns.classList.add("up");
+                sound("fanfare");
+            }
+            const top = onScreen([cx, cy + 2.05, cz]);
+            if (top) winnerSign.style.transform = `translate(${top[0].toFixed(1)}px, ${top[1].toFixed(1)}px) translate(-50%, -100%)`;
         }
         else if (view === "watch")
         {
@@ -412,6 +515,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             replay.death({ id, by, arrow: String(arrow ?? ""), time: replay.hits.get(arrow)?.time ?? net.shared() });
             tally.death(id, net.shared());
             if (player(by)) tally.hit(by, Number(distance) || 0, true);
+            if (by === me && id !== me) kills++;
             hud.line(`${tag(by)} ${t(by === id ? "hud.shotSelf" : "hud.shot")} ${by === id ? "" : tag(id)} ${t(`hud.zone.${zone}`)}`);
             if (id === me) hud.say(t(by === me ? "hud.youSelf" : "hud.youDied", { name: player(by)?.name ?? "?" }), "lose");
             // the one I watch went down: I see it as they did, then follow who got them
@@ -464,7 +568,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const results = tally.results(state.players, net.shared());
             const last = [...replay.deaths.values()].sort((a, b) => b.time - a.time)[0];
             broadcast("over", { winner: results.winner, last: last?.id ?? null });
-            ending = setTimeout(() => options.onEnd?.(results), SHOW_WINNER);
+            // the last kill cam and the winners' circle first
+            ending = setTimeout(() => options.onEnd?.(results), results.winner ? FINAL_SHOW : SHOW_WINNER + 6000);
         }, SETTLE);
     };
 
@@ -539,6 +644,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const hint = play.querySelector<HTMLElement>(".aw-play-hint")!;
     let sent = 0;
     let botShots = 0;
+    let kills = 0;
     let recorded = 0;
     let wanted = false;
     let creak = 0;
@@ -557,7 +663,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         walker.limit = wounds.walk;
         draw.rate = wounds.drawRate < 1 ? wounds.drawRate / KEY_DRAW : Infinity;
         draw.shake = wounds.shake;
-        if (walker.alive) walker.update(dt, controls, settings().sensitivity, draw);
+        if (walker.alive && view === "play") walker.update(dt, controls, settings().sensitivity, draw);
         if (view === "play") walker.place(camera, draw);
         else direct(dt);
         if (!walker.alive) myTip = Math.min(FALL, myTip + dt * 3.2 * (.3 + myTip));
@@ -585,7 +691,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         fire(draw.update(dt));
 
         firstPerson.update(dt, camera, draw, { speed: walker.speed, stride: walker.stride, alive: walker.alive }, quiver, settings().hand === "left");
-        others.frame(now, dt, camera, play.clientWidth, play.clientHeight, walker.alive ? [] : [{ rig: myRig, look: { clothes: colourOf(me), skin: mySkin } }]);
+        const meToo = !walker.alive || (view === "circle" && circle.members.some(member => member.id === me));
+        others.frame(now, dt, camera, play.clientWidth, play.clientHeight, meToo ? [{ rig: myRig, look: { clothes: colourOf(me), skin: mySkin } }] : []);
         myRig.update(dt, {
             x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch,
             draw: draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
@@ -621,6 +728,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         for (let i = controls.pulls(); i > 0; i--) pullOut();
 
         hud.arrows(quiver);
+        hud.kills(kills);
         hud.tired(draw.tunnel);
         hud.damage(wounds.hits);
         hud.wounds(wounds.bits, injuries);
@@ -659,13 +767,14 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const debug: PlayDebug = {
         walker, draw, arrows, others, hud, replay, film, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
         /** The view's "a bot shoots me": the nearest standing bot sends a strong arrow at my chest. */
-        shootMe(by?: string) {
+        shootMe(by?: string, at = me) {
             const pose = (id: string) => others.poseOf(id);
             const bot = by ?? others.living.map(other => other.id).filter(id => !dead.has(id))
                 .sort((a, b) => Math.hypot(pose(a)!.x - walker.x, pose(a)!.z - walker.z) - Math.hypot(pose(b)!.x - walker.x, pose(b)!.z - walker.z))[0];
-            const from = bot ? pose(bot) : null;
-            if (!bot || !from || !walker.alive) return;
-            const start: Vec = [from.x, from.y + 1.2, from.z], target: Vec = [walker.x, walker.y + .8, walker.z];
+            const from = bot ? (bot === me ? myPose() : pose(bot)) : null;
+            const to = at === me ? myPose() : pose(at);
+            if (!bot || !from || !to || dead.has(at)) return;
+            const start: Vec = [from.x, from.y + 1.2, from.z], target: Vec = [to.x, to.y + .62, to.z];
             const dx = target[0] - start[0], dy = target[1] - start[1], dz = target[2] - start[2];
             const flat = Math.hypot(dx, dz), speed = 32;
             // a little up, for the drop on the way
@@ -709,6 +818,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             others.destroy();
             arrows.destroy();
             film.destroy();
+            winnerSign.remove();
+            horns.remove();
             blood.destroy();
             firstPerson.destroy();
             hud.destroy();
