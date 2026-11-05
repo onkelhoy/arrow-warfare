@@ -8,6 +8,11 @@
     -webkit-user-select: none;
 }
 
+/* inside a box on a page (the view), not the whole screen */
+.aw-play.contained {
+    position: absolute;
+}
+
 .aw-play-canvas {
     position: absolute;
     inset: 0;
@@ -131,6 +136,89 @@
     position: absolute;
     inset: 0;
     background: radial-gradient(ellipse at center, transparent 22%, rgb(12 8 4 / 70%) 55%, rgb(12 8 4 / 97%) 85%);
+}
+
+/* darker and redder with each hit taken, a flash of red as one lands */
+.aw-hud-damage {
+    --damage: 0;
+    position: absolute;
+    inset: 0;
+    opacity: calc(.35 + var(--damage) * .65);
+    background: radial-gradient(ellipse farthest-side at center,
+        transparent calc(66% - var(--damage) * 32%),
+        rgb(110 8 6 / calc(10% + var(--damage) * 55%)) calc(88% - var(--damage) * 16%),
+        rgb(45 2 2 / calc(40% + var(--damage) * 58%)) 100%);
+}
+
+.aw-hud-damage.hit {
+    animation: aw-hud-damage 600ms ease-out;
+}
+
+@keyframes aw-hud-damage {
+    0% { background-color: rgb(200 20 10 / 35%); }
+    100% { background-color: transparent; }
+}
+
+.aw-hud-body {
+    position: absolute;
+    inset: auto max(18px, env(safe-area-inset-right)) calc(max(14px, env(safe-area-inset-bottom)) + 34px) auto;
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+
+    svg {
+        inline-size: 30px;
+        block-size: 39px;
+        fill: rgb(255 255 255 / 30%);
+        stroke: rgb(255 255 255 / 85%);
+        stroke-width: 2;
+        stroke-linecap: round;
+        filter: drop-shadow(0 1px 2px rgb(0 0 0 / 50%));
+    }
+
+    path {
+        stroke-width: 4;
+    }
+
+    .hurt {
+        stroke: #ff3b2f;
+        fill: rgb(255 59 47 / 60%);
+    }
+}
+
+.aw-hud-energy {
+    --energy: 1;
+    inline-size: 46px;
+    block-size: 6px;
+    border-radius: 3px;
+    background: rgb(0 0 0 / 40%);
+    overflow: hidden;
+
+    i {
+        display: block;
+        block-size: 100%;
+        inline-size: calc(var(--energy) * 100%);
+        background: #8be06a;
+    }
+}
+
+.aw-hud-energy.resting i {
+    background: #ffb347;
+}
+
+.aw-hud-pull {
+    position: absolute;
+    inset: auto auto calc(max(14px, env(safe-area-inset-bottom)) + 34px) 50%;
+    translate: -50% 0;
+    pointer-events: auto;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 85%);
+    color: #3a2412;
+    font: inherit;
+    text-shadow: none;
+    cursor: pointer;
 }
 
 .aw-hud-marker {

@@ -180,7 +180,11 @@
         "rightArm": "i höger arm",
         "leftLeg": "i vänster ben",
         "rightLeg": "i höger ben"
-      }
+      },
+      "energy": "Ork",
+      "pull": "Dra ut pilen ({count})",
+      "hit": "träffade",
+      "hitSelf": "träffade sig själv"
     },
     "results": {
       "title": "Rundan är slut",

@@ -1,5 +1,6 @@
-import { fly, heading, hitBody, launch, toWorld, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
+import { fly, heading, hitBody, launch, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
 import { multiply, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
+import type { Rig } from "@arrow-warfare/rig";
 import { arrow as arrowModel, ARROW_LENGTH, beam, type Field } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
 
@@ -19,7 +20,9 @@ type Point = { x: number; y: number; z: number; at: number };
 const TRAIL_FADE = 450;
 
 export type Landed = { arrow: Arrow; kind: "ground" | "wood" | "wall" };
-export type Struck = { arrow: Arrow; id: string; hit: BodyHit; place: BodyPlace };
+/** `local` is where it went in, in the part's own space. */
+export type Struck = { arrow: Arrow; id: string; hit: BodyHit; place: BodyPlace; local: { point: Vec; direction: Vec }; at: Vec };
+type RigOf = (id: string) => Rig | null;
 
 /**
  * Every arrow of the round. Each phone flies each shot from the shared clock, so they all land the same.
@@ -49,14 +52,18 @@ export class Arrows {
         return arrow;
     }
 
-    /** It went into a player, as they said. */
-    stick(id: string, body: string, point: Vec, direction: Vec) {
+    /** It went into a player's `part`, as they said, `point` and `direction` in the part's space. */
+    stick(id: string, body: string, part: string, point: Vec, direction: Vec) {
         const arrow = this.all.get(id);
         if (!arrow || arrow.gone) return null;
         arrow.rest = { in: "body", id: body };
         arrow.local = { point, direction };
+        this.parts.set(id, part);
         return arrow;
     }
+
+    /** The part each stuck arrow is in. */
+    private parts = new Map<string, string>();
 
     remove(id: string) {
         const arrow = this.all.get(id);
@@ -67,7 +74,7 @@ export class Arrows {
      * Flies everything on to `now`. `judge` are the bodies this phone decides hits for, with where they
      * are. Returns what landed in the field and what struck a judged body.
      */
-    update(now: number, judge: { id: string; place: BodyPlace }[]) {
+    update(now: number, judge: { id: string; rig: Rig }[]) {
         const landed: Landed[] = [];
         const struck: Struck[] = [];
         for (const arrow of this.all.values())
@@ -77,11 +84,14 @@ export class Arrows {
                 for (const body of judge)
                 {
                     if (body.id === arrow.shot.by && arrow.at - arrow.shot.time < OWN_GRACE) continue;
-                    const hit = hitBody(body.place, from, to);
+                    const place = body.rig.where;
+                    const hit = hitBody(place, from, to, body.rig.capsules);
                     if (!hit) continue;
+                    const local = { point: body.rig.toPart(hit.part, hit.point), direction: body.rig.toPart(hit.part, hit.direction, 0) };
                     arrow.rest = { in: "body", id: body.id };
-                    arrow.local = { point: hit.point, direction: hit.direction };
-                    struck.push({ arrow, id: body.id, hit, place: body.place });
+                    arrow.local = local;
+                    this.parts.set(arrow.shot.id, hit.part);
+                    struck.push({ arrow, id: body.id, hit, place: { ...place }, local, at: body.rig.world(hit.point) });
                     return true;
                 }
                 return false;
@@ -94,13 +104,14 @@ export class Arrows {
     }
 
     /** Where an arrow's tip is and where it points, a body's arrows riding along with it. */
-    where(arrow: Arrow, now: number, bodyOf: (id: string) => BodyPlace | null): { tip: Vec; direction: Vec } | null {
+    where(arrow: Arrow, now: number, rigOf: RigOf): { tip: Vec; direction: Vec } | null {
         if (arrow.gone) return null;
         if (arrow.rest?.in === "body")
         {
-            const place = bodyOf(arrow.rest.id);
-            if (!place || !arrow.local) return null;
-            return { tip: toWorld(place, arrow.local.point), direction: toWorld(place, arrow.local.direction, 0) };
+            const rig = rigOf(arrow.rest.id);
+            const part = this.parts.get(arrow.shot.id) ?? "torso";
+            if (!rig || !arrow.local) return null;
+            return { tip: rig.fromPart(part, arrow.local.point), direction: rig.fromPart(part, arrow.local.direction, 0) };
         }
         const direction = heading(arrow);
         if (arrow.rest) return { tip: [arrow.x, arrow.y, arrow.z], direction };
@@ -110,11 +121,13 @@ export class Arrows {
     }
 
     /** `eye` is the camera: trails keep about the same width on screen however far they are. */
-    draw(now: number, bodyOf: (id: string) => BodyPlace | null, eye: Vec) {
+    draw(now: number, rigOf: RigOf, eye: Vec) {
         let index = 0;
         for (const [id, arrow] of this.all)
         {
-            const at = this.where(arrow, now, bodyOf);
+            // in me, only the legs: the rest is up at my eyes, where my body isn't drawn
+            if (arrow.rest?.in === "body" && arrow.rest.id === this.me && !/Thigh|Shin/.test(this.parts.get(id) ?? "")) continue;
+            const at = this.where(arrow, now, rigOf);
             if (!at) continue;
             const [dx, dy, dz] = at.direction;
             // the model points along -z
@@ -124,11 +137,11 @@ export class Arrows {
             index++;
         }
         this.batch.count = index;
-        this.drawTrails(now, bodyOf, eye);
+        this.drawTrails(now, rigOf, eye);
     }
 
     /** A point behind each flying arrow every frame, the old ones let go, drawn thinning out to the tail. */
-    private drawTrails(now: number, bodyOf: (id: string) => BodyPlace | null, eye: Vec) {
+    private drawTrails(now: number, rigOf: RigOf, eye: Vec) {
         let index = 0;
         for (const [id, arrow] of this.all)
         {
@@ -136,7 +149,7 @@ export class Arrows {
             let points = this.trails.get(id);
             if (!arrow.rest && !arrow.gone)
             {
-                const at = this.where(arrow, now, bodyOf);
+                const at = this.where(arrow, now, rigOf);
                 // behind the feathers, and only from a little way out: at the bow it would fill the view
                 const [dx, dy, dz] = at?.direction ?? [0, 0, 0];
                 const back = at && { x: at.tip[0] - dx * ARROW_LENGTH, y: at.tip[1] - dy * ARROW_LENGTH, z: at.tip[2] - dz * ARROW_LENGTH, at: now };
@@ -185,14 +198,15 @@ export class Arrows {
      * The arrow to pick up for a tap at `x, y` on screen: resting, within reach of my feet, and the one
      * nearest the tap within `radius` pixels.
      */
-    pickable(x: number, y: number, radius: number, me: { x: number; y: number; z: number }, now: number, camera: Camera, width: number, height: number, bodyOf: (id: string) => BodyPlace | null) {
+    pickable(x: number, y: number, radius: number, me: { x: number; y: number; z: number }, now: number, camera: Camera, width: number, height: number, rigOf: RigOf) {
         multiply(this.viewProjection, camera.projectionMatrix, camera.viewMatrix);
         const m = this.viewProjection;
         let best: string | null = null, bestDistance = radius;
         for (const [id, arrow] of this.all)
         {
-            if (!arrow.rest || arrow.gone) continue;
-            const at = this.where(arrow, now, bodyOf);
+            // the ones in me are pulled out with their own button
+            if (!arrow.rest || arrow.gone || (arrow.rest.in === "body" && arrow.rest.id === this.me)) continue;
+            const at = this.where(arrow, now, rigOf);
             if (!at) continue;
             // the middle of the shaft, it's what sticks out
             const half = arrow.rest.in === "body" ? .45 : .35;
@@ -215,6 +229,11 @@ export class Arrows {
             }
         }
         return best;
+    }
+
+    /** The arrows stuck in a body, for pulling them out. */
+    in(id: string) {
+        return [...this.all.values()].filter(arrow => !arrow.gone && arrow.rest?.in === "body" && arrow.rest.id === id);
     }
 
     destroy() {

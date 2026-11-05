@@ -180,7 +180,11 @@
         "rightArm": "in the right arm",
         "leftLeg": "in the left leg",
         "rightLeg": "in the right leg"
-      }
+      },
+      "energy": "Energy",
+      "pull": "Pull out the arrow ({count})",
+      "hit": "hit",
+      "hitSelf": "hit themselves"
     },
     "results": {
       "title": "Round over",

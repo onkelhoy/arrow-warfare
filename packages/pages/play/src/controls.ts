@@ -23,7 +23,7 @@ type Looker = { x: number; y: number; startX: number; startY: number; at: number
 /**
  * What the player asks for, from any device. Touch: the joystick on the left moves, dragging anywhere else
  * looks, the bow button draws and aims, a tap picks up. Desktop: click to lock the mouse and look, WASD or
- * the arrows to walk, hold space to draw, click to pick up.
+ * the arrows to walk, hold space to draw, click to pick up, E pulls an arrow out of myself.
  */
 export class Controls {
     /** Looking turned this much since the last `look()`, in radians before sensitivity. */
@@ -41,6 +41,8 @@ export class Controls {
     pull = 0;
     /** Taps since the last `taps()`, in CSS pixels on the page. */
     private tapped: [number, number][] = [];
+    /** Asked to pull an arrow out of myself (E, or the button) since the last `pulls()`. */
+    private pulled = 0;
 
     constructor(root: HTMLElement) {
         this.surface = document.createElement("div");
@@ -101,6 +103,18 @@ export class Controls {
         const taps = this.tapped;
         this.tapped = [];
         return taps;
+    }
+
+    /** The pull out button was pressed. */
+    pullOut() {
+        this.pulled++;
+    }
+
+    /** How many times pulling out was asked for since the last call. */
+    pulls() {
+        const pulled = this.pulled;
+        this.pulled = 0;
+        return pulled;
     }
 
     destroy() {
@@ -175,6 +189,11 @@ export class Controls {
             return;
         }
         const key = event.key.toLowerCase();
+        if (key === "e")
+        {
+            if (event.type === "keydown" && !event.repeat) this.pulled++;
+            return;
+        }
         if (!(key in KEYS)) return;
         event.preventDefault();
         if (event.type === "keydown") this.keys.add(key);

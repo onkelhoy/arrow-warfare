@@ -26,7 +26,7 @@ export const MEASURE = {
     forearm: .23,
     neck: .68,
     /** Hit capsule radii. */
-    torso: .3,
+    torso: .27,
     head: .25,
     arm: .08,
     leg: .09,
@@ -315,8 +315,9 @@ export class Rig {
         const [head, torso, ...limbs] = this.capsules;
         head.a = this.point(this.head, 0, .16, 0);
         head.b = this.point(this.head, 0, .28, 0);
-        torso.a = this.point(this.torso, 0, .02, 0);
-        torso.b = this.point(this.torso, 0, .6 * this.heave, 0);
+        // the round ends stay inside the torso: the tiny legs below it can be hit
+        torso.a = this.point(this.torso, 0, .22, 0);
+        torso.b = this.point(this.torso, 0, .42 * this.heave, 0);
         const bones = [this.arms[0].upper, this.arms[0].lower, this.arms[1].upper, this.arms[1].lower, this.legs[0].upper, this.legs[0].lower, this.legs[1].upper, this.legs[1].lower];
         bones.forEach((bone, i) => {
             limbs[i].a = [bone.head[0], bone.head[1], bone.head[2]];

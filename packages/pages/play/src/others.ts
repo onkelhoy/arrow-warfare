@@ -1,8 +1,9 @@
 import { COLOURS, escape, SKINS, wears, type GameState } from "@arrow-warfare/core";
-import { toWorld, type BodyPlace } from "@arrow-warfare/archery";
+import { woundOf, type BodyPlace, type Zone } from "@arrow-warfare/archery";
 import type { Pose } from "@arrow-warfare/net";
-import { compose, mat4, multiply, rgb, type Batch, type Renderer } from "@arrow-warfare/render";
-import { arrow, body, bow, head, NECK, type Field, type Spawn } from "@arrow-warfare/world";
+import { multiply, rgb, type Renderer, type Vec3 } from "@arrow-warfare/render";
+import { Bodies, Rig } from "@arrow-warfare/rig";
+import type { Field, Spawn } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
 
 /** ms behind the newest pose that others are drawn, so there's usually a pose on each side to blend. */
@@ -16,34 +17,27 @@ const FALL = Math.PI / 2 * .94;
 const FALL_SPEED = 3.2;
 
 type Other = {
-    id: string; poses: Pose[]; label: HTMLElement; stride: number; lastX: number; lastZ: number; colour: number; skin: number;
-    /** 0 bow low .. 1 up for a shot, eased. */
-    raise: number;
+    id: string; poses: Pose[]; label: HTMLElement; clothes: Vec3; skin: Vec3;
+    rig: Rig;
+    /** Wounds from hits this phone saw (the bots of the view send no poses). */
+    wounds: number;
     /** Where they lie, once dead. */
     corpse: BodyPlace | null;
     tip: number;
-    /** What was drawn this frame, for hit tests and stuck arrows. */
-    place: BodyPlace;
-    clock: number;
+    /** The pose drawn, a dead body keeps its last. */
+    last: Pose;
 };
 
-/** Everyone else: their poses as they come, drawn a little in the past and blended between. */
+/** Everyone else: their poses as they come, drawn a little in the past and blended between, on their rigs. */
 export class Others {
     private others = new Map<string, Other>();
-    private bodies: Batch;
-    private heads: Batch;
-    private bows: Batch;
-    private nocked: Batch;
+    private bodies: Bodies;
     private viewProjection = new Float32Array(16);
-    private local = mat4();
-    private world = mat4();
-    private holder = mat4();
+    /** The round is over: bows down. */
+    unarmed = false;
 
-    constructor(private renderer: Renderer, private field: Field, private labels: HTMLElement, private me: string, spawns: Record<string, Spawn>, state: GameState) {
-        this.bodies = renderer.batch(body(), { capacity: 16, dynamic: true });
-        this.heads = renderer.batch(head(), { capacity: 16, dynamic: true });
-        this.bows = renderer.batch(bow(), { capacity: 16, dynamic: true });
-        this.nocked = renderer.batch(arrow(), { capacity: 16, dynamic: true });
+    constructor(renderer: Renderer, private field: Field, private labels: HTMLElement, private me: string, spawns: Record<string, Spawn>, state: GameState) {
+        this.bodies = new Bodies(renderer);
         this.update(state, spawns);
     }
 
@@ -67,16 +61,18 @@ export class Others {
                 label.className = "aw-play-name";
                 this.labels.append(label);
                 const y = this.field.height(spawn.x, spawn.z);
+                const pose: Pose = { time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: false, wounds: 0, resting: false };
                 other = {
-                    id: player.id, label, stride: 0, lastX: spawn.x, lastZ: spawn.z, colour: 0, skin: 0, raise: 0, corpse: null, tip: 0, clock: Math.random() * 10,
-                    place: { x: spawn.x, y, z: spawn.z, yaw: spawn.yaw },
-                    poses: [{ time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: false }],
+                    id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, tip: 0, wounds: 0,
+                    rig: new Rig((x, z) => this.field.height(x, z)),
+                    poses: [pose], last: pose,
                 };
                 this.others.set(player.id, other);
             }
-            other.label.innerHTML = `<span style="background: ${COLOURS[wears(state, player)].hex}"></span>${escape(player.name)}`;
-            other.colour = wears(state, player);
-            other.skin = player.skin;
+            const colour = wears(state, player);
+            other.label.innerHTML = `<span style="background: ${COLOURS[colour].hex}"></span>${escape(player.name)}`;
+            other.clothes = rgb(COLOURS[colour].hex);
+            other.skin = rgb(SKINS[player.skin] ?? SKINS[0]);
         }
     }
 
@@ -98,96 +94,47 @@ export class Others {
         other.label.hidden = true;
     }
 
-    /** Where a body is drawn now (tipped over if dead), null for someone not here. */
-    bodyOf(id: string): BodyPlace | null {
-        return this.others.get(id)?.place ?? null;
+    /** A wound this phone saw, for bodies that send no poses (the view's bots). */
+    hurt(id: string, zone: Zone) {
+        const other = this.others.get(id);
+        if (other) other.wounds |= woundOf(zone);
+    }
+
+    /** A body's rig, null for someone not here. */
+    rigOf(id: string): Rig | null {
+        return this.others.get(id)?.rig ?? null;
     }
 
     /** The living, as drawn: for the view, where my phone judges everyone. */
     get living() {
-        return [...this.others.values()].filter(other => !other.corpse).map(other => ({ id: other.id, place: other.place }));
+        return [...this.others.values()].filter(other => !other.corpse).map(other => ({ id: other.id, rig: other.rig }));
     }
 
     /** Draws everyone as they were `DELAY` ms ago on the shared clock, and puts their names over them. */
     frame(now: number, dt: number, camera: Camera, width: number, height: number) {
         const at = now - DELAY;
         multiply(this.viewProjection, camera.projectionMatrix, camera.viewMatrix);
-        let index = 0, bows = 0, nocked = 0;
+        const shown: Parameters<Bodies["draw"]>[0] = [];
         for (const other of this.others.values())
         {
-            other.clock += dt;
-            const { colour, skin } = other;
-            const pose = other.corpse ? null : sample(other.poses, at);
-            let place: BodyPlace, pitch = 0, draw = 0, stage = 0, hop = 0, side = 1;
-            if (pose)
-            {
-                const moved = Math.hypot(pose.x - other.lastX, pose.z - other.lastZ);
-                other.stride += moved * 2.7;
-                other.lastX = pose.x;
-                other.lastZ = pose.z;
-                hop = Math.abs(Math.sin(other.stride)) * .06 * Math.min(1, pose.speed / 3);
-                place = { x: pose.x, y: this.field.height(pose.x, pose.z) + hop, z: pose.z, yaw: pose.yaw };
-                pitch = pose.pitch;
-                draw = pose.draw;
-                stage = pose.stage;
-                side = pose.left ? -1 : 1;
-            }
-            else
-            {
-                other.tip = Math.min(FALL, other.tip + dt * FALL_SPEED * (.3 + other.tip));
-                place = { ...other.corpse!, tip: other.tip };
-            }
-            other.place = place;
-            other.raise += ((draw > .02 ? 1 : 0) - other.raise) * (1 - Math.exp(-dt * 8));
-
-            // panting heaves the whole body
-            const heave = stage === 3 ? 1 + Math.sin(other.clock * 7) * .035 : 1;
-            compose(this.local, 0, place.x, place.y, place.z, place.yaw, place.tip ?? 0, 0, 1, heave, 1);
-            this.bodies.matrix(index, this.local);
-            this.bodies.tint(index, rgb(COLOURS[colour].hex));
-            const neck = toWorld(place, [0, NECK * heave, 0]);
-            this.heads.place(index, neck[0], neck[1], neck[2], place.yaw, (place.tip ?? 0) + pitch * .6);
-            this.heads.tint(index, rgb(SKINS[skin] ?? SKINS[0]));
-            index++;
-
-            if (pose)
-            {
-                this.holdBow(other, place, pitch, draw, stage, side, bows);
-                bows++;
-                if (draw > .02)
-                {
-                    // the arrow along the aim, from the string forward
-                    this.nocked.matrix(nocked, multiply(this.world, this.holder, compose(this.local, 0, .018 * side, .012, .1 + .3 * draw - .78)));
-                    this.nocked.tint(nocked, rgb(COLOURS[colour].hex));
-                    nocked++;
-                }
-                this.placeLabel(other.label, place.x, place.y + 1.75, place.z, camera, width, height);
-            }
+            if (other.corpse) other.tip = Math.min(FALL, other.tip + dt * FALL_SPEED * (.3 + other.tip));
+            else other.last = sample(other.poses, at);
+            const pose = other.last;
+            const place = other.corpse ?? pose;
+            other.rig.update(dt, {
+                x: place.x, y: this.field.height(place.x, place.z), z: place.z, yaw: place.yaw,
+                pitch: pose.pitch, draw: other.corpse ? 0 : pose.draw, left: pose.left, stage: pose.stage,
+                wounds: pose.wounds | other.wounds, resting: pose.resting,
+                dead: !!other.corpse, tip: other.tip, unarmed: this.unarmed,
+            });
+            shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
+            if (!other.corpse) this.placeLabel(other.label, place.x, this.field.height(place.x, place.z) + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
         }
-        this.bodies.count = this.heads.count = index;
-        this.bows.count = bows;
-        this.nocked.count = nocked;
-    }
-
-    /** Low at the side while walking, up in front along the aim while drawing, bent by the draw. */
-    private holdBow(other: Other, place: BodyPlace, pitch: number, draw: number, stage: number, side: number, index: number) {
-        const r = other.raise;
-        const shake = stage >= 2 ? Math.sin(other.clock * 29) * .02 * draw : 0;
-        // around the shoulders, turned by the aim's pitch when up
-        compose(this.holder, 0, place.x, place.y + .95, place.z, place.yaw, pitch * r + shake, 0);
-        const x = (-.42 + .3 * r) * side, y = -.35 + .35 * r, z = -.1 - .45 * r;
-        const roll = (-.2 * (1 - r) + (.6 - .48 * draw) * r) * side, tilt = -1.1 * (1 - r);
-        const bend = 1 + draw * .9;
-        compose(this.local, 0, x, y, z, 0, tilt, roll, 1, 1 - draw * .06, bend);
-        this.bows.matrix(index, multiply(this.world, this.holder, this.local));
-        this.bows.tint(index, [1, 1, 1]);
-        // the nocked arrow is placed in the bow's frame, without its bend
-        compose(this.local, 0, x, y, z, 0, tilt, roll);
-        multiply(this.holder, this.holder, this.local);
+        this.bodies.draw(shown);
     }
 
     destroy() {
-        for (const batch of [this.bodies, this.heads, this.bows, this.nocked]) this.renderer.removeBatch(batch);
+        this.bodies.destroy();
         for (const other of this.others.values()) other.label.remove();
         this.others.clear();
     }
@@ -246,6 +193,7 @@ function blend(a: Pose, b: Pose, t: number): Pose {
         draw: a.draw + (b.draw - a.draw) * t,
         stage: t < .5 ? a.stage : b.stage,
         left: b.left,
+        wounds: b.wounds,
+        resting: b.resting,
     };
 }
-

@@ -15,15 +15,19 @@ export type Pose = {
     stage: number;
     /** Left handed: the bow in the right hand. */
     left: boolean;
+    /** Wound bits (arms and legs), with injuries on. */
+    wounds: number;
+    /** Sat down to rest, out of energy. */
+    resting: boolean;
 };
 
 export const POSE_RATE = 20;
 
 /** Type byte first, so other fast messages can share the channel later. */
 const POSE = 1;
-const BYTES = 1 + 8 + 4 * 6 + 2;
+const BYTES = 1 + 8 + 4 * 6 + 3;
 
-/** 35 bytes: a type byte, the time as a double, the rest as floats, the draw and stage as a byte each. */
+/** 36 bytes: a type byte, the time as a double, the rest as floats, then a byte each for the draw, the stage and hand, the wounds and resting. */
 export function packPose(pose: Pose) {
     const view = new DataView(new ArrayBuffer(BYTES));
     view.setUint8(0, POSE);
@@ -36,6 +40,7 @@ export function packPose(pose: Pose) {
     view.setFloat32(29, pose.speed);
     view.setUint8(33, Math.round(Math.max(0, Math.min(1, pose.draw)) * 255));
     view.setUint8(34, (pose.stage & 3) | (pose.left ? 4 : 0));
+    view.setUint8(35, (pose.wounds & 15) | (pose.resting ? 16 : 0));
     return view.buffer;
 }
 
@@ -55,5 +60,6 @@ export function unpackPose(data: ArrayBuffer): Pose | null {
         draw: view.getUint8(33) / 255,
         stage: view.getUint8(34) & 3,
     };
-    return Object.values(pose).every(Number.isFinite) ? { ...pose, left: (view.getUint8(34) & 4) !== 0 } : null;
+    const flags = view.getUint8(35);
+    return Object.values(pose).every(Number.isFinite) ? { ...pose, left: (view.getUint8(34) & 4) !== 0, wounds: flags & 15, resting: (flags & 16) !== 0 } : null;
 }

@@ -1,12 +1,13 @@
 import "@papit/button";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
-import { Draw, powerOf, speedOf, standing, Tally, toWorld, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
+import { Draw, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
 import { adopt, COLOURS, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
+import { Rig } from "@arrow-warfare/rig";
 import { Sfx, type SfxName, type Sound } from "@arrow-warfare/sound";
-import { currentPalette, Field, Meadow } from "@arrow-warfare/world";
+import { currentPalette, Field, Meadow, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
 import { Controls } from "./controls";
@@ -40,6 +41,15 @@ export type PlayOptions = {
     onEnd?(results: Results): void;
     /** The view: my phone judges hits on everyone, so the stand-ins can be shot. */
     bots?: boolean;
+    /** Inside a box on a page (the view), not the whole screen. */
+    contained?: boolean;
+};
+
+/** The insides, for the views and headless runs. Loosely typed: the types bundler can't follow Maps and Sets. */
+export type PlayDebug = {
+    /** A wound as if an arrow went in, `null` heals everything. */
+    injure(zone: Zone | null): void;
+    [inside: string]: any;
 };
 
 /** At most this many device pixels per CSS pixel, a 3x phone draws at half its resolution. */
@@ -49,7 +59,8 @@ const SETTLE = 2200;
 /** ms the winner is shown before the results. */
 const SHOW_WINNER = 3200;
 
-type Hit = { arrow: string; victim: string; zone: Zone; point: Vec; direction: Vec; place: BodyPlace; distance: number };
+/** `point` and `direction` are in the hit part's own space, `at` is where in the world. */
+type Hit = { arrow: string; victim: string; zone: Zone; part: string; point: Vec; direction: Vec; place: BodyPlace; at: Vec; distance: number };
 
 /**
  * The round in first person. Everyone builds the same field from the state's seed and rules, starts at
@@ -64,7 +75,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const sfx = options.sound ? new Sfx(options.sound) : null;
 
     const play = document.createElement("main");
-    play.className = "aw-play";
+    play.className = options.contained ? "aw-play contained" : "aw-play";
     const density = () => Math.min(window.devicePixelRatio || 1, PIXELS);
     play.innerHTML = `
         <canvas class="aw-play-canvas"></canvas>
@@ -91,13 +102,20 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     const field = new Field({ seed: state.seed, size: state.rules.size, trees: state.rules.trees });
     const coarse = matchMedia("(pointer: coarse)").matches;
-    const meadow = engine.add(new Meadow(renderer, field, { palette: currentPalette(), grass: coarse ? .7 : 1 }));
+    // the rule's time of day, or my own clock
+    const time = state.rules.time;
+    const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: coarse ? .7 : 1 }));
     const spawns = field.spawns(state.players);
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
     const controls = new Controls(play);
     const hud = new Hud(play);
     const draw = new Draw();
+    const injuries = (state.rules.damage ?? "injuries") === "injuries";
+    const wounds = new Wounds();
+    // my own body, never drawn: hits on me are judged against it, as others see it
+    const myRig = new Rig((x, z) => field.height(x, z));
+    const rigOf = (id: string) => id === me ? myRig : others.rigOf(id);
 
     const player = (id: string) => state.players.find(other => other.id === id);
     const colourOf = (id: string): Vec3 => {
@@ -165,22 +183,32 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         }),
 
         net.on("hit", (hit: Hit, sender) => {
-            if (!hit || (hit.victim !== sender && !options.bots) || !ZONES.includes(hit.zone)) return;
-            const arrow = arrows.stick(hit.arrow, hit.victim, hit.point, hit.direction);
+            if (!hit || (hit.victim !== sender && !options.bots) || !ZONES.includes(hit.zone) || typeof hit.part !== "string") return;
+            const arrow = arrows.stick(hit.arrow, hit.victim, hit.part, hit.point, hit.direction);
             if (!arrow) return;
-            if (hit.victim !== me) others.kill(hit.victim, hit.place);
-            sound("body", toWorld(hit.place, hit.point));
+            // arcade: every hit kills. Injuries: the head and torso do, arms and legs wound
+            const lethal = !injuries || LETHAL.includes(hit.zone);
+            const { victim } = hit;
+            tally.taken(victim);
+            if (victim !== me) lethal ? others.kill(victim, hit.place) : others.hurt(victim, hit.zone);
+            sound("body", hit.at);
             const shooter = arrow.shot.by;
-            if (shooter === me && hit.victim !== me)
+            if (shooter === me && victim !== me)
             {
-                // a kill: every hit is one, until injuries. A strong shot lands harder
+                // a strong shot lands harder, a kill harder still
                 const power = powerOf(arrow.shot.speed);
-                hud.hit(true);
-                walker.punch(.01 + .018 * power, .02 + .04 * power);
-                vibrate([20 + Math.round(25 * power), 40, 40 + Math.round(60 * power)]);
-                sound("kill", undefined, .6 + .4 * power);
+                const size = lethal ? 1 : .5;
+                hud.hit(lethal);
+                walker.punch((.01 + .018 * power) * size, (.02 + .04 * power) * size);
+                vibrate(lethal ? [20 + Math.round(25 * power), 40, 40 + Math.round(60 * power)] : 20 + Math.round(20 * power));
+                if (lethal) sound("kill", undefined, .6 + .4 * power);
             }
-            if (host && !dead.has(hit.victim) && !over) broadcast("death", { id: hit.victim, by: shooter, zone: hit.zone, distance: hit.distance });
+            if (!lethal)
+            {
+                if (player(shooter)) tally.hit(shooter, hit.distance, false);
+                hud.line(`${tag(shooter)} ${t(shooter === victim ? "hud.hitSelf" : "hud.hit")} ${shooter === victim ? "" : tag(victim)} ${t(`hud.zone.${hit.zone}`)}`);
+            }
+            else if (host && !dead.has(victim) && !over) broadcast("death", { id: victim, by: shooter, zone: hit.zone, distance: hit.distance });
         }),
 
         net.on("death", ({ id, by, zone, distance }, sender) => {
@@ -213,6 +241,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         net.on("over", ({ winner }, sender) => {
             if (sender !== state.host) return;
             over = true;
+            others.unarmed = true;
             draw.cancel();
             if (!winner) return hud.say(t("hud.draw"));
             const won = winner.kind === "player" ? winner.id === me : player(me)?.team === winner.id;
@@ -267,12 +296,33 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const struck = (hit: Hit) => {
         broadcast("hit", hit);
         if (hit.victim !== me) return;
+        if (injuries && !LETHAL.includes(hit.zone))
+        {
+            // a wound: it hurts, the shot still counts
+            wounds.hurt(hit.zone);
+            walker.punch(.03, .04);
+            walker.shake(.008, .25);
+            vibrate(90);
+            sound("pant", undefined, .7);
+            return;
+        }
+        wounds.hits++;
         walker.alive = false;
         draw.cancel();
         walker.punch(.05, .08);
         walker.shake(.012, .35);
         vibrate(180);
     };
+
+    /** An arrow out of me, into my quiver: the host settles it like a pick up. The wound stays. */
+    const pullOut = () => {
+        const stuck = arrows.in(me).filter(arrow => !taken.has(arrow.shot.id));
+        if (!walker.alive || over || draw.phase === "drawing" || !stuck.length) return;
+        net.send([state.host], "pick", { arrow: stuck[stuck.length - 1].shot.id });
+        walker.shake(.006, .2);
+        sound("pant", undefined, .5);
+    };
+    hud.onPull = pullOut;
 
     // ------------------------------------------------------------------ every frame
 
@@ -289,6 +339,12 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const tick = (dt: number) => {
         const now = net.shared();
         const alive = walker.alive && !over;
+        // what my wounds leave me
+        wounds.update(dt, walker.speed);
+        walker.posture = walker.alive ? wounds.posture : "stand";
+        walker.limit = wounds.walk;
+        draw.rate = wounds.drawRate < 1 ? wounds.drawRate / KEY_DRAW : Infinity;
+        draw.shake = wounds.shake;
         walker.update(dt, controls, settings().sensitivity, draw);
         walker.place(camera, draw);
 
@@ -302,7 +358,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         wanted = want;
         if (draw.phase === "drawing")
         {
-            if (controls.thumb) draw.pull(controls.pull);
+            if (controls.thumb) draw.pull(controls.pull, dt);
             else if (controls.space) draw.hold(dt);
             if (!want) fire(draw.release());
             // a creak each step of the pull
@@ -315,20 +371,23 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
         firstPerson.update(dt, camera, draw, { speed: walker.speed, stride: walker.stride, alive: walker.alive }, quiver, settings().hand === "left");
         others.frame(now, dt, camera, play.clientWidth, play.clientHeight);
+        myRig.update(dt, {
+            x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch,
+            draw: draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
+            wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, tip: 0,
+        });
 
         // arrows, and the bodies my phone judges
-        const bodyOf = (id: string) => id === me ? { ...walker.body, tip: 0 } : others.bodyOf(id);
-        const judge = walker.alive ? [{ id: me, place: walker.body }] : [];
+        const judge = walker.alive ? [{ id: me, rig: myRig }] : [];
         if (options.bots) judge.push(...others.living.filter(other => !dead.has(other.id)));
         const flown = arrows.update(now, judge);
         for (const landed of flown.landed) sound(landed.kind === "ground" ? "ground" : "wood", [landed.arrow.x, landed.arrow.y, landed.arrow.z]);
-        for (const { arrow, id, hit, place } of flown.struck)
+        for (const { arrow, id, hit, place, local, at } of flown.struck)
         {
-            const point = toWorld(place, hit.point);
-            const distance = Math.hypot(point[0] - arrow.shot.x, point[2] - arrow.shot.z);
-            struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, point: hit.point, direction: hit.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, distance });
+            const distance = Math.hypot(at[0] - arrow.shot.x, at[2] - arrow.shot.z);
+            struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance });
         }
-        arrows.draw(now, bodyOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
+        arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
 
         // picking up: a tap near an arrow in reach, never while drawing
         const width = play.clientWidth, height = play.clientHeight;
@@ -337,13 +396,18 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         for (const [x, y] of controls.taps())
         {
             if (!canPick) continue;
-            const id = arrows.pickable(x, y, radius, walker.body, now, camera, width, height, bodyOf);
+            const id = arrows.pickable(x, y, radius, walker.body, now, camera, width, height, rigOf);
             if (id) net.send([state.host], "pick", { arrow: id });
         }
-        hud.pickable(canPick && controls.locked && !!arrows.pickable(width / 2, height / 2, radius * .6, walker.body, now, camera, width, height, bodyOf));
+        hud.pickable(canPick && controls.locked && !!arrows.pickable(width / 2, height / 2, radius * .6, walker.body, now, camera, width, height, rigOf));
+        for (let i = controls.pulls(); i > 0; i--) pullOut();
 
         hud.arrows(quiver);
         hud.tired(draw.tunnel);
+        hud.damage(wounds.hits);
+        hud.wounds(wounds.bits, injuries);
+        hud.energy(wounds.energy, wounds.resting);
+        hud.pull(alive && draw.phase !== "drawing" ? arrows.in(me).filter(arrow => !taken.has(arrow.shot.id)).length : 0);
         const left = standing(state.players, [...dead]).length;
         hud.standing(t("hud.left", { count: String(left) }));
         controls.bow.hidden = !alive;
@@ -357,6 +421,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             net.sendFast(peers, packPose({
                 time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
                 draw: draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
+                wounds: wounds.bits, resting: wounds.resting,
             }));
         }
     };
@@ -366,12 +431,23 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     (screen.orientation as ScreenOrientation & { lock?(orientation: string): Promise<void> })?.lock?.("landscape").catch(() => undefined);
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
-    const debug = { walker, draw, arrows, others, hud, firstPerson, get quiver() { return quiver; }, dead };
+    const debug: PlayDebug = {
+        walker, draw, arrows, others, hud, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
+        /** The view's "injure me": a wound as if an arrow went in, or `null` heals everything. */
+        injure(zone: Zone | null) {
+            if (!zone) return wounds.heal();
+            if (!LETHAL.includes(zone)) wounds.hurt(zone);
+        },
+    };
     Object.defineProperty(play, "debug", { value: debug });
 
     return {
         element: play,
         debug,
+        /** Another time of day, straight away (the view). */
+        palette(name: PaletteName | "clock") {
+            meadow.palette(name === "clock" ? currentPalette() : name);
+        },
         /** Players who left are gone and count as out, nothing else about the field changes mid round. */
         update(next: GameState) {
             state = next;
