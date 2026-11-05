@@ -125,6 +125,9 @@ export class Rig {
 
     /** Where the body is now, for hit tests: the feet and facing, tipped or not. */
     where = { x: 0, y: 0, z: 0, yaw: 0, tip: 0 };
+    /** Dead this long, and each limb's twitch (arms then legs), fading. */
+    private deadFor = 0;
+    private twitch = [0, 0, 0, 0];
 
     update(dt: number, input: RigInput) {
         this.clock += dt;
@@ -144,6 +147,13 @@ export class Rig {
         else this.vx = this.vz = 0;
         this.last = { x, z };
         const speed = input.dead ? 0 : Math.hypot(this.vx, this.vz);
+        // a dead body twitches now and then, less and less
+        this.deadFor = input.dead ? this.deadFor + dt : 0;
+        for (let i = 0; i < 4; i++)
+        {
+            this.twitch[i] *= Math.exp(-dt * 9);
+            if (input.dead && this.deadFor > .8 && Math.random() < dt * 1.2 * Math.exp(-this.deadFor / 6)) this.twitch[i] = (.06 + Math.random() * .1) * Math.exp(-this.deadFor / 8);
+        }
 
         const legs = legsHurt(input.wounds);
         const sitting = !input.dead && (input.resting || legs >= 2);
@@ -200,7 +210,7 @@ export class Rig {
             arm.pole.set([shoulder[0] + s * .3, shoulder[1] - .3, shoulder[2] + .4]);
             const hurt = (input.wounds & (i === 0 ? WOUND.leftArm : WOUND.rightArm)) !== 0;
             let target: Vec;
-            if (input.dead) target = [shoulder[0] + s * .45, shoulder[1] + .12, shoulder[2] + .1];
+            if (input.dead) target = [shoulder[0] + s * (.45 + this.twitch[i] * .5), shoulder[1] + .12 + this.twitch[i], shoulder[2] + .1];
             else if (arm === bowArm && this.armed) target = this.point(this.bow, 0, 0, .03);
             else if (arm === stringArm && this.armed && r > .05)
             {
@@ -299,7 +309,7 @@ export class Rig {
             let foot: Vec;
             if (sitting) foot = [s * .16, MEASURE.ankle, -.3 + (s * Math.sin(this.crawl) * .04)];
             else if (hopping) foot = hurt ? [s * MEASURE.hipWidth, this.lift + .15, .27] : [s * MEASURE.hipWidth, this.lift * .85 + MEASURE.ankle, 0];
-            else if (input.dead) foot = [s * .16, MEASURE.ankle, 0];
+            else if (input.dead) foot = [s * .16, MEASURE.ankle + this.twitch[2 + i] * .6, this.twitch[2 + i] * .8];
             else
             {
                 foot = toRig(this.steps[i].plant);
