@@ -59,7 +59,7 @@ export function grassTuft(seed: number): MeshData {
     for (let i = 0; i < blades; i++)
     {
         const angle = random() * Math.PI * 2;
-        tuft.blade("#3f7a2c", random() > .5 ? "#a8d36a" : "#93c45a", {
+        tuft.blade("#5c9a3c", random() > .5 ? "#a8d36a" : "#93c45a", {
             at: [Math.cos(angle) * .08, 0, Math.sin(angle) * .08],
             yaw: random() * Math.PI * 2,
             roll: (random() - .5) * .5,
@@ -209,7 +209,7 @@ export function hand(): MeshData {
 export function blob(): MeshData {
     const builder = new MeshBuilder();
     const sides = 12;
-    const inner: Vec3 = [.36, .54, .22], outer: Vec3 = [.41, .6, .25];
+    const inner: Vec3 = [.4, .6, .24], outer: Vec3 = [.45, .66, .27];
     for (let i = 0; i < sides; i++)
     {
         const a = (i / sides) * Math.PI * 2, b = ((i + 1) / sides) * Math.PI * 2;

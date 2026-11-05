@@ -135,8 +135,8 @@ function addGround(renderer: Renderer, field: Field) {
         for (let j = 0; j <= n; j++) grid[i].push(corner(i, j));
     }
 
-    const meadow: Vec3[] = [[.43, .66, .28], [.5, .72, .3], [.4, .62, .27], [.55, .72, .32]];
-    const forest: Vec3 = [.26, .38, .2];
+    const meadow: Vec3[] = [[.48, .74, .3], [.55, .8, .32], [.45, .7, .29], [.6, .8, .34]];
+    const forest: Vec3 = [.3, .45, .23];
     const ground = new MeshBuilder();
     const colourAt = (p: Vec3): Vec3 => {
         const distance = Math.hypot(p[0], p[2]);

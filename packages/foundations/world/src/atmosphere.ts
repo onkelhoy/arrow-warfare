@@ -3,24 +3,24 @@ import { mix, rgb, type Light } from "@arrow-warfare/render";
 /** The light of the meadow at four times of day. The sky colours are cowboy's palettes. */
 export const PALETTES = {
     night: palette({
-        zenith: "#0b1030", horizon: "#33407a", fog: "#28336a",
-        sunDirection: [-.3, .7, .45], sunColour: [.2, .24, .42], sky: [.2, .24, .42], ground: [.07, .08, .14],
-        fogDensity: 1 / 55, sunDisc: [0, 0, 0], moon: 1, stars: 1,
+        zenith: "#0b1030", horizon: "#33407a", fog: "#2a3468",
+        sunDirection: [-.3, .7, .45], sunColour: [.26, .3, .5], sky: [.3, .36, .62], ground: [.12, .14, .26],
+        fogDensity: 1 / 60, sunDisc: [0, 0, 0], moon: 1, stars: 1,
     }),
     dawn: palette({
-        zenith: "#f6ab5c", horizon: "#fdeabf", fog: "#f3d6a6",
-        sunDirection: [.85, .25, .3], sunColour: [.95, .72, .45], sky: [.62, .55, .52], ground: [.3, .26, .16],
-        fogDensity: 1 / 75, sunDisc: [1, .9, .7], moon: 0, stars: 0,
+        zenith: "#6cc0ec", horizon: "#fde9c4", fog: "#f2e6cc",
+        sunDirection: [.85, .25, .3], sunColour: [.62, .52, .38], sky: [.62, .64, .66], ground: [.32, .32, .22],
+        fogDensity: 1 / 90, sunDisc: [1, .9, .7], moon: 0, stars: 0,
     }),
     noon: palette({
-        zenith: "#2f9fc7", horizon: "#b6e3d4", fog: "#a9d8d0",
-        sunDirection: [.35, .85, .25], sunColour: [.75, .7, .58], sky: [.55, .63, .7], ground: [.3, .34, .2],
-        fogDensity: 1 / 95, sunDisc: [1, .97, .85], moon: 0, stars: 0,
+        zenith: "#2f8fe0", horizon: "#c4e8f6", fog: "#b8e0f2",
+        sunDirection: [.35, .85, .25], sunColour: [.55, .52, .42], sky: [.62, .68, .76], ground: [.32, .36, .24],
+        fogDensity: 1 / 110, sunDisc: [1, .97, .85], moon: 0, stars: 0,
     }),
     sunset: palette({
-        zenith: "#352a70", horizon: "#fdb45c", fog: "#e28a5e",
-        sunDirection: [-.85, .2, -.3], sunColour: [1, .55, .35], sky: [.45, .36, .5], ground: [.24, .16, .14],
-        fogDensity: 1 / 70, sunDisc: [1, .75, .45], moon: 0, stars: 0,
+        zenith: "#352a70", horizon: "#fdb45c", fog: "#ec9a6e",
+        sunDirection: [-.85, .2, -.3], sunColour: [.75, .45, .3], sky: [.56, .46, .62], ground: [.3, .2, .24],
+        fogDensity: 1 / 80, sunDisc: [1, .75, .45], moon: 0, stars: 0,
     }),
 } satisfies Record<string, Light>;
 
