@@ -3,7 +3,7 @@ import { mountChat } from "@arrow-warfare/chat";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
 import { Draw, heading, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
-import { adopt, CHAT_LENGTH, COLOURS, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
+import { adopt, CHAT_LENGTH, COLOURS, QUALITY, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig } from "@arrow-warfare/rig";
@@ -58,8 +58,6 @@ export type PlayDebug = {
     [inside: string]: any;
 };
 
-/** At most this many device pixels per CSS pixel, a 3x phone draws at half its resolution. */
-const PIXELS = 1.5;
 /** ms the host waits after a death before deciding the round, so a last trade of arrows is a draw. */
 const SETTLE = 2200;
 /** ms the winner is shown before the results, after the last kill cam. */
@@ -97,7 +95,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     const play = document.createElement("main");
     play.className = options.contained ? "aw-play contained" : "aw-play";
-    const density = () => Math.min(window.devicePixelRatio || 1, PIXELS);
+    const density = () => Math.min(window.devicePixelRatio || 1, QUALITY[settings().quality].pixels);
     play.innerHTML = `
         <canvas class="aw-play-canvas"></canvas>
         <div class="aw-play-names"></div>
@@ -126,7 +124,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const coarse = matchMedia("(pointer: coarse)").matches;
     // the rule's time of day, or my own clock
     const time = state.rules.time;
-    const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: coarse ? .7 : 1 }));
+    const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: QUALITY[settings().quality].grass }));
     const spawns = field.spawns(state.players);
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
@@ -175,6 +173,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     size();
     window.addEventListener("resize", size);
     const stopBow = effect(() => controls.placeBow(settings().bow, play.clientWidth));
+    // a new quality changes the resolution now, the grass next round
+    let quality = settings().quality;
+    const stopQuality = effect(() => {
+        if (settings().quality === quality) return;
+        quality = settings().quality;
+        size();
+    });
 
     // keep the screen awake while playing, again when coming back to the tab
     let wake: WakeLockSentinel | null = null;
@@ -899,6 +904,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         remove() {
             for (const stop of unlisten) stop();
             stopBow();
+            stopQuality();
             playing = false;
             document.removeEventListener("visibilitychange", awake);
             wake?.release().catch(() => undefined);

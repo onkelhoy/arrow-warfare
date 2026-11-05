@@ -15,7 +15,21 @@ export type Settings = {
     bow: BowPlace;
     /** The hand that pulls the string. Right handed holds the bow in the left hand. */
     hand: Hand;
+    /** How much the phone draws: resolution and grass. */
+    quality: Quality;
 };
+
+export type Quality = "low" | "medium" | "high";
+export const QUALITIES: Quality[] = ["low", "medium", "high"];
+/** Device pixels per CSS pixel at most, and the share of grass. */
+export const QUALITY: Record<Quality, { pixels: number; grass: number }> = {
+    low: { pixels: 1, grass: .35 },
+    medium: { pixels: 1.25, grass: .7 },
+    high: { pixels: 1.5, grass: 1 },
+};
+/** Phones start at medium, computers at high. */
+const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+export const QUALITY_DEFAULT: Quality = coarse ? "medium" : "high";
 
 export type Hand = "right" | "left";
 
@@ -28,7 +42,7 @@ export const BOW_SIZE = { min: 48, max: 140 };
 
 export const SENSITIVITY = { min: .3, max: 3 };
 
-export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1, bow: { ...BOW_PLACE }, hand: "right" };
+export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1, bow: { ...BOW_PLACE }, hand: "right", quality: QUALITY_DEFAULT };
 
 const volume = (value: unknown, fallback: number) =>
     typeof value === "number" && value >= 0 && value <= 1 ? value : fallback;
@@ -56,6 +70,7 @@ export function parseSettings(saved: string | null): Settings {
         sensitivity: typeof raw?.sensitivity === "number" && raw.sensitivity >= SENSITIVITY.min && raw.sensitivity <= SENSITIVITY.max ? raw.sensitivity : 1,
         bow: parseBow(raw?.bow),
         hand: raw?.hand === "left" ? "left" : "right",
+        quality: QUALITIES.includes(raw?.quality as Quality) ? raw!.quality as Quality : QUALITY_DEFAULT,
     };
 }
 

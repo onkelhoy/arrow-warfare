@@ -3,7 +3,7 @@ import "@papit/dialog";
 import "@papit/icon";
 import "@papit/input";
 import { effect } from "@papit/signals";
-import { adopt, canFullscreen, cleanName, NAME_LENGTH, SENSITIVITY, settings, t, toggleFullscreen, updateSettings, type Volumes } from "@arrow-warfare/core";
+import { adopt, canFullscreen, cleanName, NAME_LENGTH, QUALITIES, SENSITIVITY, settings, t, toggleFullscreen, updateSettings, type Quality, type Volumes } from "@arrow-warfare/core";
 import type { Sound } from "@arrow-warfare/sound";
 import { mountTouchLayout } from "@arrow-warfare/touch-layout";
 
@@ -31,6 +31,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
             ${VOLUMES.map(name => `<label class="aw-corner-row">${t(`corner.${name}`)} <input type="range" name="${name}" min="0" max="1" step=".01"></label>`).join("")}
             <label class="aw-corner-row">${t("corner.sensitivity")} <input type="range" name="sensitivity" min="${SENSITIVITY.min}" max="${SENSITIVITY.max}" step=".05"></label>
             <label class="aw-corner-row">${t("corner.hand")} <select name="hand"><option value="right">${t("corner.right")}</option><option value="left">${t("corner.left")}</option></select></label>
+            <label class="aw-corner-row">${t("corner.quality")} <select name="quality">${QUALITIES.map(quality => `<option value="${quality}">${t(`corner.${quality}`)}</option>`).join("")}</select></label>
             ${matchMedia("(pointer: coarse)").matches ? `<pap-button data-do="layout" size="small" variant="outline">${t("layout.open")}</pap-button>` : ""}
         </pap-dialog>
     `;
@@ -60,6 +61,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
         for (const volume of VOLUMES) find<HTMLInputElement>(`input[name=${volume}]`).value = String(volumes[volume]);
         find<HTMLInputElement>("input[name=sensitivity]").value = String(settings().sensitivity);
         find<HTMLSelectElement>("select[name=hand]").value = settings().hand;
+        find<HTMLSelectElement>("select[name=quality]").value = settings().quality;
         panel.showModal();
     });
 
@@ -73,6 +75,10 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
         if (value) updateSettings({ name: value });
     });
 
+    find<HTMLSelectElement>("select[name=quality]").addEventListener("change", event => {
+        const value = (event.target as HTMLSelectElement).value as Quality;
+        if (QUALITIES.includes(value)) updateSettings({ quality: value });
+    });
     find<HTMLSelectElement>("select[name=hand]").addEventListener("change", event => {
         updateSettings({ hand: (event.target as HTMLSelectElement).value === "left" ? "left" : "right" });
     });

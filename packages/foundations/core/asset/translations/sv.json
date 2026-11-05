@@ -14,6 +14,10 @@
       "sounds": "Ljudeffekter",
       "sensitivity": "Tittfart",
       "hand": "Dragande hand",
+      "quality": "Kvalitet",
+      "low": "Låg",
+      "medium": "Mellan",
+      "high": "Hög",
       "right": "Höger",
       "left": "Vänster"
     },

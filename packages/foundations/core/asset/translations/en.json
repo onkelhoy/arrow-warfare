@@ -14,6 +14,10 @@
       "sounds": "Sounds",
       "sensitivity": "Look speed",
       "hand": "Drawing hand",
+      "quality": "Quality",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
       "right": "Right",
       "left": "Left"
     },
