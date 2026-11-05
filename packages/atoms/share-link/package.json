@@ -1,0 +1,61 @@
+{
+  "name": "@arrow-warfare/share-link",
+  "description": "Button that shares or copies an invite link, from cowboy.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "share-link"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/atoms/share-link",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/atoms/share-link"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/web-component": "^0.0.14",
+    "@papit/translator": "^0.1.1",
+    "@papit/button": "^0.1.10"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "papit": {
+    "publish": false,
+    "type": "web-component",
+    "main": "share-link",
+    "htmlprefix": "aw",
+    "components": {
+      "share-link": {
+        "className": "ShareLink",
+        "htmlprefix": "aw"
+      }
+    }
+  }
+}
