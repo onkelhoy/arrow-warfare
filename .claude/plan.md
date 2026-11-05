@@ -3,7 +3,7 @@
 Host starts, everyone walks the same meadow and sees each other. Covers F7 basics, F8, F12 basic, F9 movement, plus the views and theme fix.
 
 ## Where we are
-Confirmed, running all tasks. Next: task 5.
+Confirmed, running all tasks. Next: task 8.
 
 ## Views and theme (first, small)
 Found: every view except `game` puts `@import "@papit/theme"` in an inline `<style>`. The dev server only rewrites bare `@import`s in served `.css` files, so the browser asks for `views/x/@papit/theme`, gets a 500, and the hardcoded `#9fd6f0` sky blue shows instead of the theme.
@@ -14,9 +14,9 @@ Found: every view except `game` puts `@import "@papit/theme"` in an inline `<sty
 ## Milestone 2
 - [x] **3. `render` foundation** (`npm run create`, game template, `foundations/render`). WebGL2 on a game-engine `Layer3D` and its `Camera`: a mesh from position/normal/colour arrays, a flat-shaded toon material with vertex colours, sun + ambient + hemisphere light, distance fog, instanced draws. View: a few shapes in light and fog with the orbit camera.
 - [x] **4. Sky and grass sway.** A gradient sky dome with a sun disc. A grass shader that sways in the vertex shader. No shadows or stars yet.
-- [ ] **5. Low-poly models in code** (in `render` or a `models` part of `world`): tree (a few kinds), grass tuft, flower, mushroom, stone, log, and a placeholder player (round head, big torso, in their colour). Silly bodies proper come in milestone 4. View: all models side by side.
-- [ ] **6. `world` foundation** (`foundations/world`). Seeded: the same seed builds the same field on every phone. Gentle heightmap ground, forest wall at the edge, trees by setting, grass, flowers, mushrooms, stones, a log or stump. Spawn points spread apart, by team. Collision data: trunk circles and the edge. View: a meadow from a seed you type in, orbit camera.
-- [ ] **7. Time of day.** Palettes for night, dawn gold, noon and sunset (copied from cowboy's atmosphere) driving sky, sun, fog and light colours, from the clock by default. Fireflies at night.
+- [x] **5. Low-poly models in code** (in `render` or a `models` part of `world`): tree (a few kinds), grass tuft, flower, mushroom, stone, log, and a placeholder player (round head, big torso, in their colour). Silly bodies proper come in milestone 4. View: all models side by side.
+- [x] **6. `world` foundation** (`foundations/world`). Seeded: the same seed builds the same field on every phone. Gentle heightmap ground, forest wall at the edge, trees by setting, grass, flowers, mushrooms, stones, a log or stump. Spawn points spread apart, by team. Collision data: trunk circles and the edge. View: a meadow from a seed you type in, orbit camera.
+- [x] **7. Time of day.** Palettes for night, dawn gold, noon and sunset (copied from cowboy's atmosphere) driving sky, sun, fog and light colours, from the clock by default. Fireflies at night.
 - [ ] **8. Rules: trees and map size.** Rules tab gets trees (none, few, many) and map size (small, medium, large). They go into `Rules` and into the world.
 - [ ] **9. `joystick` atom** (`aw-joystick`, made with `npm run create`). Touch joystick that appears where you put your thumb on its side, gives a direction and strength. View with a codeblock preview.
 - [ ] **10. Controls.** Touch: joystick on the left, look by dragging anywhere else. Desktop: pointer lock mouse look and WASD. Sensitivity saved in settings. Drawing the bow is milestone 3 and stays open (F12 question).
@@ -29,3 +29,5 @@ Found: every view except `game` puts `@import "@papit/theme"` in an inline `<sty
 - Grass sway is taken into M2 (cheap, makes the field feel alive). Shadows and stars wait.
 - Poses go on a raw `@papit/webrtc` media channel, events stay on the reliable room messages.
 - The sky has a moon and stars already (cheap in the sky shader), the time of day turns them on.
+- Models live in `world` (`models.ts`), next to the field that places them.
+- `Field.spawns` returns a record, not a `Map` (the bundle-ts bug in bugs.md).
