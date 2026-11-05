@@ -3,7 +3,7 @@
 Host starts, everyone walks the same meadow and sees each other. Covers F7 basics, F8, F12 basic, F9 movement, plus the views and theme fix.
 
 ## Where we are
-Confirmed, running all tasks. Next: task 9.
+Confirmed, running all tasks. Next: task 10.
 
 ## Views and theme (first, small)
 Found: every view except `game` puts `@import "@papit/theme"` in an inline `<style>`. The dev server only rewrites bare `@import`s in served `.css` files, so the browser asks for `views/x/@papit/theme`, gets a 500, and the hardcoded `#9fd6f0` sky blue shows instead of the theme.
@@ -18,7 +18,7 @@ Found: every view except `game` puts `@import "@papit/theme"` in an inline `<sty
 - [x] **6. `world` foundation** (`foundations/world`). Seeded: the same seed builds the same field on every phone. Gentle heightmap ground, forest wall at the edge, trees by setting, grass, flowers, mushrooms, stones, a log or stump. Spawn points spread apart, by team. Collision data: trunk circles and the edge. View: a meadow from a seed you type in, orbit camera.
 - [x] **7. Time of day.** Palettes for night, dawn gold, noon and sunset (copied from cowboy's atmosphere) driving sky, sun, fog and light colours, from the clock by default. Fireflies at night.
 - [x] **8. Rules: trees and map size.** Rules tab gets trees (none, few, many) and map size (small, medium, large). They go into `Rules` and into the world.
-- [ ] **9. `joystick` atom** (`aw-joystick`, made with `npm run create`). Touch joystick that appears where you put your thumb on its side, gives a direction and strength. View with a codeblock preview.
+- [x] **9. `joystick` atom** (`aw-joystick`, made with `npm run create`). Touch joystick that appears where you put your thumb on its side, gives a direction and strength. View with a codeblock preview.
 - [ ] **10. Controls.** Touch: joystick on the left, look by dragging anywhere else. Desktop: pointer lock mouse look and WASD. Sensitivity saved in settings. Drawing the bow is milestone 3 and stays open (F12 question).
 - [ ] **11. First person movement.** Camera at eye height, follows the ground, a little head bob. Fast walk (slow-while-drawing comes with the bow). Circle collision against trunks and the forest edge.
 - [ ] **12. Net: seed, spawns and poses.** On start the host sends the seed and each player's spawn. Poses (position, yaw, pitch) go 20 times a second on an unreliable data channel (`maxRetransmits: 0`), packed binary. Other players are drawn as their placeholder in their colour, interpolated, with their name above them.

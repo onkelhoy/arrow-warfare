@@ -1,0 +1,40 @@
+:host {
+    --radius: 56px;
+    position: relative;
+    display: block;
+    min-block-size: 160px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.base {
+    position: absolute;
+    inset-inline-start: var(--origin-x, 50%);
+    inset-block-start: var(--origin-y, 50%);
+    inline-size: calc(var(--radius) * 2);
+    block-size: calc(var(--radius) * 2);
+    translate: -50% -50%;
+    border-radius: 50%;
+    border: 2px solid rgb(255 255 255 / 45%);
+    background: rgb(255 255 255 / 12%);
+    opacity: 0;
+    transition: opacity 120ms;
+    pointer-events: none;
+}
+
+:host([active]) .base {
+    opacity: 1;
+}
+
+.knob {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    inline-size: 44%;
+    block-size: 44%;
+    translate: calc(-50% + var(--knob-x, 0px)) calc(-50% + var(--knob-y, 0px));
+    border-radius: 50%;
+    background: rgb(255 255 255 / 70%);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+}

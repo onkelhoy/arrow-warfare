@@ -1,0 +1,73 @@
+{
+  "name": "@arrow-warfare/joystick",
+  "description": "A touch joystick: appears under the thumb, gives a direction and how far it's pushed.",
+  "keywords": [
+    "papit",
+    "web-component",
+    "typescript",
+    "joystick"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build --error",
+    "analyse": "npx @papit/analyse",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live",
+    "component": "npm create @papit -- --component"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/atoms/joystick",
+  "bugs": {
+    "url": "https://github.com/onkelhoy/arrow-warfare/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/atoms/joystick"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/web-component": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@papit/theme": "*",
+    "@papit/translator": "*",
+    "@papit/codeblock": "*"
+  },
+  "browserslist": [
+    "defaults",
+    "not IE 11",
+    "not dead"
+  ],
+  "papit": {
+    "publish": false,
+    "type": "web-component",
+    "main": "joystick",
+    "htmlprefix": "aw",
+    "components": {
+      "joystick": {
+        "className": "Joystick",
+        "htmlprefix": "aw"
+      }
+    }
+  }
+}
