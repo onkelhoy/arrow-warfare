@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sound</title>
+    <script type="module" defer src="main.ts"></script>
+</head>
+<body style="font-family: system-ui; padding: 24px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+    <button data-list="lobby">Lobby playlist</button>
+    <button data-list="game">Game playlist</button>
+    <button data-list="">Stop</button>
+    <button id="next">Next song</button>
+    <button id="dip">Dip music</button>
+    <label>Music <input id="music" type="range" min="0" max="1" step=".01" value=".6"></label>
+    <p style="width: 100%">Songs and lists come from <code>asset/audio/songs.json</code> in the root, run a build of <code>packages/game</code> once so they're copied in.</p>
+</body>
+</html>

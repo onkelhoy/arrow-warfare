@@ -9,7 +9,7 @@ First person multiplayer archer game for phones, built on papit. WebRTC: a chord
 ## How we work
 - Present the tasks before working on them, the owner confirms. "do next task", "do the next 4 tasks" or "do all tasks" runs that many, then stops with a short status.
 - Everything on `main`, no branches. No tests for now.
-- Push to `main` when a feature is finished (it auto deploys to GitHub Pages), so the owner can test live. Deploying often is fine.
+- Commit locally as tasks finish. Push to `main` only when a milestone is done (it auto deploys to GitHub Pages), then the owner tests live.
 - Atomic design: `packages/foundations`, `atoms`, `molecules`, `pages`. The app in `packages/game` pulls the pages together and builds `docs/`.
 - Every package with UI has `views/` so it can be seen alone in the dev server.
 - Reuse `@papit/*` before building. No runtime dependencies outside papit without asking.
