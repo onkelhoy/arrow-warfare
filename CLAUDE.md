@@ -4,6 +4,7 @@ First person multiplayer archer game for phones, built on papit. WebRTC: a chord
 
 ## Start here
 - `.claude/backlog.md`: the whole game, features, decisions, milestones.
+- `.claude/bugs.md`: known and suspected bugs with their workarounds. Add to it, don't let one get lost.
 - `.claude/plan.md`: the current confirmed tasks. Its "Where we are" says what's next. Delete it when all its tasks are done, and tick the backlog.
 
 ## How we work

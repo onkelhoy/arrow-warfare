@@ -210,12 +210,10 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 ---
 
 ## Notes from milestone 1 (for the owner to review)
-- **Papit, api-extractor**: `@papit/bundle-ts` silently writes no `bundle.d.ts` when a public signature uses a lib type like `Iterable` or `Map` (api-extractor throws "Unable to follow symbol", the build still says nothing and exits 0). Worked around here with arrays and a private map. Worth reporting.
-- **Papit, carried join refused**: a join into a `ParentBootstrap` room that the host's `accept` refuses seemed to time out on the guest ("join timed out") instead of rejecting with `rejected`. So `accept` isn't used; the host answers the hello with a reason instead. Not dug into further.
+- Bugs, suspected bugs and their workarounds: `.claude/bugs.md`.
 - The password lives only on the host, it's never sent out. A wrong one keeps the guest connected and asks again.
 - Ready only works once locked. Everyone ready starts the 3 2 1 by itself (one player alone too, handy for testing). The host can force ready 15 s after locking.
 - Selects in the Game and Rules tabs are native `<select>`: papit has no select yet.
-- Tested with playwright against a local signal server: host, password join, chat, lock (a late guest is turned away), teams, name ideas, team chat tab, ready, 3 2 1, play, back, kick. Not yet tested on real phones or the public signal server.
 
 ## Open questions
 - Draw vs look on touch (F12).
