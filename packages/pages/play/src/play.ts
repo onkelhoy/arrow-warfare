@@ -1,7 +1,7 @@
 import "@papit/button";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
-import { Draw, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
+import { Draw, heading, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
 import { adopt, COLOURS, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
@@ -10,6 +10,7 @@ import { Sfx, type SfxName, type Sound } from "@arrow-warfare/sound";
 import { currentPalette, Field, Meadow, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
+import { Blood } from "./blood";
 import { Controls } from "./controls";
 import { FirstPerson } from "./firstperson";
 import { Hud, nameTag } from "./hud";
@@ -133,6 +134,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const firstPerson = new FirstPerson(renderer, rgb(SKINS[mine?.skin ?? 0] ?? SKINS[0]), colourOf(me), colourOf(me));
     const arrows = new Arrows(renderer, field, me, colourOf);
     const replay = new Replay();
+    const blood = new Blood(renderer, field);
 
     size();
     window.addEventListener("resize", size);
@@ -201,6 +203,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             tally.taken(victim);
             if (victim !== me) lethal ? others.kill(victim, hit.place) : others.hurt(victim, hit.zone);
             sound("body", hit.at);
+            blood.spray(hit.at, heading(arrow), powerOf(arrow.shot.speed));
             const shooter = arrow.shot.by;
             if (shooter === me && victim !== me)
             {
@@ -398,6 +401,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const distance = Math.hypot(at[0] - arrow.shot.x, at[2] - arrow.shot.z);
             struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance, time: arrow.at });
         }
+        blood.update(dt);
         arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
 
         // picking up: a tap near an arrow in reach, never while drawing
@@ -481,6 +485,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             controls.destroy();
             others.destroy();
             arrows.destroy();
+            blood.destroy();
             firstPerson.destroy();
             hud.destroy();
             engine.remove(driver);
