@@ -243,8 +243,10 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - The bow leans over when up and stands nearly upright at full draw.
 - White trails behind flying arrows, mine longer and brighter, widening with distance so they stay visible.
 - Unlimited arrows on localhost, for developing.
-- The bow leans right by default (left handed: left). A shot leaves from the nocked arrow, which points at the middle of the view 30 m out.
+- The bow starts low on the drawing side, diagonal, and the pull brings it in towards the middle, nearly upright (mirrored for the left handed). A shot leaves from the nocked arrow, which points at the middle of the view 30 m out.
 - My trail stays whole for the flight (up to 1.8 s) and fades out together once the arrow lands.
+- Weaker draw: 9 to 34 m/s, power grows slowly at first (pull^1.6), so a light pull is a short lob.
+- The hit feel (punch, vibration, kill sound) scales with the shot's strength.
 - Hits feel like one thump that springs back (a punch) instead of a rattle. The tunnel vision has no blur (it would cost every frame).
 
 ## Open questions

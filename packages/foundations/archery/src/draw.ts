@@ -10,7 +10,9 @@ export const MIN_SHOT = .15;
 /** Seconds from nothing to full on the keyboard. */
 export const KEY_DRAW = .9;
 /** Arrow speed in m/s at the weakest and the strongest shot. */
-export const SPEED = { min: 14, max: 52 };
+export const SPEED = { min: 9, max: 34 };
+/** Power grows slowly at first: a light pull is a short lob, the last part of the pull counts most. */
+const CURVE = 1.6;
 
 /** Seconds of a strong draw before each stage starts. */
 export const FATIGUE = {
@@ -161,5 +163,10 @@ export class Draw {
 
 /** m/s for a shot of `power` 0..1. */
 export function speedOf(power: number) {
-    return SPEED.min + (SPEED.max - SPEED.min) * power;
+    return SPEED.min + (SPEED.max - SPEED.min) * power ** CURVE;
+}
+
+/** 0..1 how strong a shot was, from its speed: the hit feel scales with it. */
+export function powerOf(speed: number) {
+    return Math.max(0, Math.min(1, (speed - SPEED.min) / (SPEED.max - SPEED.min)));
 }

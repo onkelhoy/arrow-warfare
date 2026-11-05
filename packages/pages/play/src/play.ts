@@ -1,7 +1,7 @@
 import "@papit/button";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
-import { Draw, speedOf, standing, Tally, toWorld, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
+import { Draw, powerOf, speedOf, standing, Tally, toWorld, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
 import { adopt, COLOURS, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
@@ -173,11 +173,12 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const shooter = arrow.shot.by;
             if (shooter === me && hit.victim !== me)
             {
-                // a kill: every hit is one, until injuries
+                // a kill: every hit is one, until injuries. A strong shot lands harder
+                const power = powerOf(arrow.shot.speed);
                 hud.hit(true);
-                walker.punch(.022, .05);
-                vibrate([30, 40, 70]);
-                sound("kill");
+                walker.punch(.01 + .018 * power, .02 + .04 * power);
+                vibrate([20 + Math.round(25 * power), 40, 40 + Math.round(60 * power)]);
+                sound("kill", undefined, .6 + .4 * power);
             }
             if (host && !dead.has(hit.victim) && !over) broadcast("death", { id: hit.victim, by: shooter, zone: hit.zone, distance: hit.distance });
         }),

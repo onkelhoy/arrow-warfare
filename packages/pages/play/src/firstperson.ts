@@ -5,16 +5,15 @@ import { arrow, ARROW_LENGTH, beam, bow, BOW, hand } from "@arrow-warfare/world"
 
 /** Camera space: x right, y up, -z ahead. Where the grip is held, lowered and up for a shot. */
 const LOW = { at: [.24, -.36, -.5] as Vec3, yaw: .35, pitch: .1, roll: -1.05 };
-const AIM = { at: [-.08, -.1, -.78] as Vec3, yaw: 0, pitch: 0, roll: .6 };
+const AIM = { at: [.1, -.1, -.76] as Vec3, yaw: 0, pitch: 0, roll: -.15 };
+/** How far up the bow comes the moment a draw starts, the pull brings it the rest of the way. */
+const START = .2;
 /** Metres ahead where the nocked arrow points: the middle of the view, so the shot goes where I look. */
 const CONVERGE = 30;
-/** Up for a shot the bow leans over, fully drawn it stands nearly upright. */
-const UPRIGHT = .12;
 /** How far behind the tips the nock comes at a full draw, in bow space. */
 const PULL = .2;
-/** Where the shoulders are, for the forearms. */
-/** The shoulder of the bow arm, for a right handed archer. */
-const LEFT_SHOULDER: Vec3 = [-.24, -.66, -.42];
+/** Where the bow arm comes from, for a right handed archer: low on the right, like the bow. */
+const SHOULDER: Vec3 = [.3, -.68, -.4];
 
 /**
  * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
@@ -56,7 +55,8 @@ export class FirstPerson {
         const side = left ? -1 : 1;
         this.clock += dt;
         const drawing = draw.phase === "drawing";
-        const target = !walk.alive ? -1 : drawing ? 1 : draw.phase === "panting" ? -.2 : 0;
+        // the pull lifts the bow from low on my side in towards the middle, upright
+        const target = !walk.alive ? -1 : drawing ? START + (1 - START) * draw.amount : draw.phase === "panting" ? -.2 : 0;
         this.raise += (target - this.raise) * (1 - Math.exp(-dt * (drawing ? 12 : 6)));
         this.kick = Math.max(0, this.kick - dt * 4);
         const all = [this.bow, this.string, this.arrow, this.hands, this.arms];
@@ -79,9 +79,8 @@ export class FirstPerson {
         const tremble = draw.tired * amount * .006;
         const yaw = (LOW.yaw + (AIM.yaw - LOW.yaw) * r) * side + Math.sin(this.clock * 31) * tremble;
         const pitch = LOW.pitch + (AIM.pitch - LOW.pitch) * r + Math.sin(this.clock * 27 + 1) * tremble;
-        // the top leans right for a right handed archer (towards the drawing hand)
-        const aimRoll = -(AIM.roll + (UPRIGHT - AIM.roll) * amount);
-        const roll = (LOW.roll + (aimRoll - LOW.roll) * r) * side;
+        // diagonal low on the right, nearly upright drawn: mirrored for the left handed
+        const roll = (LOW.roll + (AIM.roll - LOW.roll) * r) * side;
         // drawn, the limbs bend back and get a touch shorter
         const bend = 1 + amount * .9, shorter = 1 - amount * .06;
 
@@ -109,7 +108,7 @@ export class FirstPerson {
         if (nocked)
         {
             // the nock on the string, the tip pointing at where I look: the shot leaves from here
-            const back = inBow(.018 * side, .012, tipZ + PULL * amount);
+            const back = inBow(-.018 * side, .012, tipZ + PULL * amount);
             const dx = -back[0], dy = -back[1], dz = -CONVERGE - back[2];
             const length = Math.hypot(dx, dy, dz);
             const tip: Vec3 = [back[0] + dx / length * ARROW_LENGTH, back[1] + dy / length * ARROW_LENGTH, back[2] + dz / length * ARROW_LENGTH];
@@ -122,9 +121,9 @@ export class FirstPerson {
         this.arrow.count = nocked ? 1 : 0;
 
         // the left hand on the grip, the right on the string when drawing
-        const hold = inBow(-.01 * side, 0, .02);
+        const hold = inBow(.01 * side, 0, .02);
         this.place(this.hands, 0, hold, this.skin);
-        this.beam(this.arms, 0, [LEFT_SHOULDER[0] * side, LEFT_SHOULDER[1], LEFT_SHOULDER[2]], hold, .055, this.clothes);
+        this.beam(this.arms, 0, [SHOULDER[0] * side, SHOULDER[1], SHOULDER[2]], hold, .055, this.clothes);
         this.arms.count = 1;
         // the right hand on the string is right at the eye, too close to show
         this.hands.count = 1;
