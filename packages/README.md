@@ -11,6 +11,6 @@ Atomic design. A package only depends on layers below or beside it.
 
 Every package with UI has a `views/` folder, so `npm start` shows it on its own.
 
-`game/` at the root is the app. It pulls the pages together, and `npm run pages` builds it into `docs/` for GitHub Pages.
+`game/` is the app. It pulls the pages together, and `npm run pages` builds it into `docs/` for GitHub Pages.
 
 Add a package with `npm run create`, then move it into its layer folder.

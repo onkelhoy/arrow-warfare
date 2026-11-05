@@ -1,0 +1,53 @@
+{
+  "name": "@arrow-warfare/game",
+  "description": "Arrow Warfare, the app: brings the pages together and builds the site.",
+  "keywords": [
+    "papit",
+    "game",
+    "typescript"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npm run build && npx @papit/server --info --live",
+    "pages": "npm run build && npx @papit/static -- --base /arrow-warfare/ --output ../../docs --info"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/game",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/game"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/theme": "*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "papit": {
+    "publish": false,
+    "type": "game",
+    "main": "game"
+  }
+}

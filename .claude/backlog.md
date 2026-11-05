@@ -17,7 +17,7 @@ This is the big picture, split into features. When we pick up work, the tasks fo
 | D5 | **Who decides what** | Like cowboy: **the player who is hit decides the hit** (their pose is exact on their screen). **The host decides shared state**: arrow pickups, deaths, round start, end, win. If the host leaves, the oldest player takes over. |
 | D6 | **Kill cam** | Every phone already receives everyone's poses and arrows, so each keeps a ring buffer of the last ~6 s. When you die it replays from there: slow motion of the shooter, then ride along the arrow, then the hit. No prediction needed. |
 | D7 | **Networking** | Copy cowboy: one shared chord lobby `arrow-warfare` on the same signal server, a game is a `mesh` room carried by it. Poses at ~20 Hz unreliable, events reliable, shared clock for start. |
-| D8 | **App layout** | `game/` at the root is the app: a workspace package (own `package.json`, `src/`, `tsconfig`) that pulls the pages together. `@papit/static` needs a package with a `src/`, so the root `package.json` can't be it directly. `npm run pages` builds it into `docs/`. Every page package also has its own `views/` to look at alone in the dev server. |
+| D8 | **App layout** | `packages/game` is the app: it pulls the pages together, `npm run pages` builds it into `docs/`. It can't sit at the root: papit's build and `@papit/static` only find packages inside `packages/`. Every page package also has its own `views/` to look at alone in the dev server. |
 | D9 | **Languages** | English and Swedish through `@papit/translator`, like cowboy. |
 
 ---
@@ -25,8 +25,8 @@ This is the big picture, split into features. When we pick up work, the tasks fo
 ## Package layout (atomic design)
 
 ```
-game/                          the app: routes between pages, builds to docs/
 packages/
+  game/                        the app: routes between pages, builds to docs/
   foundations/
     core/                      settings (saved name, volumes, mute, touch layout), config, ids, colours
     net/                       lobby (chord), room (mesh), clock, message types

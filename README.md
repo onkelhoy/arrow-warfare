@@ -47,7 +47,7 @@ Then add `?signal=ws://localhost:3001` to the page address. Invite links keep it
 
 ## Layout
 
-See [packages/README.md](packages/README.md). `game/` at the root is the app that brings the pages together.
+See [packages/README.md](packages/README.md). `packages/game` is the app that brings the pages together.
 
 ## Put it online
 

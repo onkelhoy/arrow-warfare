@@ -1,0 +1,13 @@
+node_modules/
+lib/
+dist/
+.temp/
+test-results/
+.DS_Store
+
+# copied from the root asset folder
+asset/owner/
+
+# made by bin/icons.mjs
+views/game/manifest.logo.svg
+views/game/favicon.svg

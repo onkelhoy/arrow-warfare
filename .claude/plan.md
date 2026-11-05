@@ -3,7 +3,7 @@
 Proposed, waiting for confirmation. Delete this file when every task is done.
 
 1. ~~**Setup**: `CLAUDE.md`, README, package layout folders, repo URLs, `.gitignore` for `docs/`~~ done
-2. **App package `game/`**: a workspace package with a hello page, `npm start` shows it with every package's views
+2. ~~**App package `packages/game`**: a workspace package with a hello page, `npm start` shows it with every package's views~~ done
 3. **Deploy**: `npm run pages` builds `docs/` with `@papit/static`, `pages.yml` deploys on push to `main`. Needs the GitHub repo. *Push.*
 4. **Assets into the app**: copy root `asset/` (songs, logo) like cowboy's `sync-assets`, page icons and manifest
 5. **Sound core + playlists**: `foundations/sound`, `asset/audio/songs.json` with `lobby` and `game`, shuffle, next on end, crossfade

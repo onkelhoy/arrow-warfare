@@ -31,7 +31,6 @@
         "url": "git+https://github.com/onkelhoy/arrow-warfare.git"
     },
     "workspaces": [
-        "game",
         "packages/**/*",
         "!packages/**/asset/**",
         "!packages/**/dist/**"
