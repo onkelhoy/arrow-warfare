@@ -118,8 +118,8 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Arrows per player: 1–10 or unlimited (default 4)
 - [x] Trees in the field: none, few, many; map size: small, medium, large
 - [x] Friendly fire: always on for now, maybe a setting later
-- [ ] Damage: arcade (any body hit kills) or injuries (see F10)
-- [ ] Time of day: by clock (default) or fixed (night, dawn, noon, sunset)
+- [x] Damage: arcade (any body hit kills) or injuries (see F10)
+- [x] Time of day: by clock (default) or fixed (night, dawn, noon, sunset)
 - [ ] Rounds: one, or best of N
 
 ### F7. Renderer (`render`)
@@ -146,25 +146,25 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Draw, hold, release: power by pull (touch) or time (space), heavier look while drawn. Held too long: growing sway, tunnel vision, the arrow slips (where you point + sway), then panting
 - [x] Arrows: ballistic flight, stick into trees, ground and players
 - [x] Limited quiver (setting), pick up arrows by tapping near them on screen, standing close (about 1.5 m, not while drawing) from the ground, trees, bodies
-- [ ] Out of yourself (with injuries)
+- [x] Out of yourself (with injuries)
 - [x] Arrows flying out stick in the forest wall at the edge (gnomes moved to `finesse.md`)
 - [x] Hit zones: head, torso, left/right arm, left/right leg
 - [x] Other players: interpolated poses, aim direction, draw state, bow held low or up, panting
 
 ### F10. Injuries (when the setting is on)
-- [ ] Head or torso: dead
-- [ ] Arm: can still shoot, but the aim shakes and drawing is slower
-- [ ] Leg: hop on the other leg, hopping costs energy, out of energy you sit down to rest
-- [ ] Both legs: sit/crawl
-- [ ] Pull an arrow out of yourself (and it goes in your quiver)
+- [x] Head or torso: dead
+- [x] Arm: can still shoot, but the aim shakes and drawing is slower
+- [x] Leg: hop on the other leg, hopping costs energy, out of energy you sit down to rest
+- [x] Both legs: sit/crawl
+- [x] Pull an arrow out of yourself (and it goes in your quiver)
 
 ### F11. Characters and animation
-- [ ] Silly body: big torso, short tiny legs, round head, colour = clothes (team colour in a team), random skin colour
-- [ ] Armature rig with rigid parts
-- [ ] Procedural walk: feet plant with IK, step when the foot is too far behind
-- [ ] Hop, sit, draw pose, aim with the upper body following pitch
-- [ ] Death: fall over (a tipping stand-in is in, the real one with the rig)
-- [ ] Arrows stuck in bodies show and move with the bone
+- [x] Silly body: big torso, short tiny legs, round head, colour = clothes (team colour in a team), random skin colour
+- [x] Armature rig with rigid parts
+- [x] Procedural walk: feet plant with IK, step when the foot is too far behind
+- [x] Hop, sit, draw pose, aim with the upper body following pitch
+- [x] Death: fall over (a tipping stand-in is in, the real one with the rig)
+- [x] Arrows stuck in bodies show and move with the bone
 
 ### F12. Touch controls
 - [x] Joystick element for moving
@@ -184,16 +184,16 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Kill feed ("henry (red) shot anna (blue) in the leg")
 - [x] Players left / team status
 - [x] Countdown and banners (you died, you win, a draw)
-- [ ] Energy, injury marks (milestone 4)
-- [ ] Damage darkens the screen edges, more with every hit taken, tinted a little red
+- [x] Energy, injury marks (milestone 4)
+- [x] Damage darkens the screen edges, more with every hit taken, tinted a little red
 
 ### F14b. Play demo view
-- [ ] The play view runs the game inside a papit codeblock preview, with controls next to it: time of day, seed, rules (arrows, trees, size, damage), bots on/off, injure me (arm, leg, both legs)
+- [x] The play view runs the game inside a papit codeblock preview, with controls next to it: time of day, seed, rules (arrows, trees, size, damage), bots on/off, injure me (arm, leg, both legs)
 
 ### F15. Results
 - [x] Winner, or draw
 - [x] Per player: arrows shot, hits, hit rate, kills, longest shot, picked up, time alive
-- [ ] Damage taken (with injuries)
+- [x] Damage taken (with injuries)
 - [x] Back to lobby, rematch
 
 ### F16. Phone polish
@@ -253,7 +253,18 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - The hit feel (punch, vibration, kill sound) scales with the shot's strength.
 - Hits feel like one thump that springs back (a punch) instead of a rattle. The tunnel vision has no blur (it would cost every frame).
 
+## Notes from milestone 4 (for the owner to review)
+- New package `foundations/rig` (on `@papit/armature`): rigid parts, IK legs to feet planted in the world that step when the body gets ahead, IK arms to the bow and string, hop, sit, crawl, fall. Hit capsules come from the bones, stuck arrows ride their bone. Its view shows every posture.
+- New rules: damage (injuries by default, or arcade) and time of day (each player's clock, or fixed).
+- Injuries: head or torso kills, an arm draws at under half speed and shakes the aim, one leg hops (2.1 m/s, costs energy, out of energy you sit until 60%), both legs crawl. The one hit decides, the host only turns lethal hits into deaths. Numbers are in `archery/src/wounds.ts`.
+- Pull out: a button (E on a computer) when an arrow is in you, the host settles it like a pickup. The wound stays.
+- The damage vignette darkens and reddens with each hit taken (`1 - 0.68^hits`), with a red flash on each one.
+- The pose is 36 bytes now (wounds and resting).
+- The play view: the round inside a codeblock with time, seed, rules, bots, injure me and a new round button.
+- Tested headless: hits on rig parts (wounds and kills), wounds on me, pull out, the demo controls, three browsers through the real app. Not on a real phone, and hopping and the walk weren't watched over the network.
+- My own body isn't drawn in first person, and arrows in my head, torso or arms aren't shown (they'd be at my eyes).
+
 ## Open questions
-- Torso hit: dead at once, or two torso hits? (milestone 3: any hit kills)
+- Torso hit: dead at once, or two torso hits? (milestone 4: dead at once)
 - Can the dead drop their quiver?
 - ~~Repo~~: github.com/onkelhoy/arrow-warfare, live at https://onkelhoy.github.io/arrow-warfare/ (static `--base /arrow-warfare/`).

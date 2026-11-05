@@ -9,3 +9,6 @@ Small touches for late, after the game works. Not planned yet, just kept so they
 
 ## World
 - **Gnomes**: an arrow that flies out of bounds gets thrown back in by a gnome a few seconds later, landing near the edge and pointing in. Just a fun idea, not a planned feature. Until then the forest wall catches the arrows.
+
+## Papit
+- **Collision and math onto papit**: `Field.collide` and the trunk checks in `archery/flight.ts` onto `@papit/circle-intersection` / `line-intersection`, `render/math.ts` onto `@papit/matrix` / `vector`. The 3D segment against capsule test (`archery/body.ts`) has no papit match: a candidate to report. From milestone 4 on, new code uses papit packages where one fits.

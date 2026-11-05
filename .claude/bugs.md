@@ -6,8 +6,8 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 
 ### bundle-ts writes no types for lib types in public signatures
 - **What:** a public signature using `Iterable` or `Map` makes api-extractor throw "Unable to follow symbol". `@papit/build` says nothing, exits 0, and `lib/bundle.d.ts` is missing. Packages that depend on it then fail with "has no exported member".
-- **Seen in:** `core` (`pickUnused(used: Iterable<number>)`), `net` (`Room.pings: Map`).
-- **Workaround:** arrays instead of `Iterable`, a private `Map` behind `pingOf(peer)`.
+- **Seen in:** `core` (`pickUnused(used: Iterable<number>)`), `net` (`Room.pings: Map`), `play` (a `Set` and a `Map` in the `debug` object, so its `bundle.d.ts` was stale since milestone 3).
+- **Workaround:** arrays instead of `Iterable`, a private `Map` behind `pingOf(peer)`, a loose `PlayDebug` type for play's debug object.
 - **To check:** whether the build is missing `lib/bundle.d.ts`. To see the real error: `node -e 'import("@papit/bundle-ts").then(async m => console.log(await m.tsBundle(new Map([["force",true]]), process.cwd())))'` in the package.
 
 ### A join refused by `accept` times out instead of rejecting (suspected)
