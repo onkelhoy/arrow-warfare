@@ -79,21 +79,46 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [ ] Invite dialog: QR code, link, copy/share button
 - [ ] Join by link, wait for a sleeping host, clear errors
 - [ ] Shared clock (pings), host migration
-- [ ] Message types: hello/profile, colour claim, settings, ready, chat, start, pose, shoot, hit, pickup, death, end
+- [ ] Message types: hello/profile, colour claim, game info, lock, teams, team name idea/vote, rules, ready, force ready, chat, team chat, start, pose, shoot, hit, pickup, death, end
+- [ ] Password through the webrtc network password, max players and the lock through the room's `accept`
+- [ ] Ping per player from the clock pings
 - [ ] Binary pose packing to keep 10 phones light (9 links each)
 - [ ] Late joiner while a round runs waits in the lobby or spectates
 
-### F5. Menu and lobby UI
-- [ ] Menu: name (saved), host a game, or arrive by link
-- [ ] Lobby: player list "henry (red)", pick a colour (taken ones greyed, host settles clashes), skin colour
-- [ ] Lobby chat
-- [ ] Ready, host starts when everyone is ready, countdown
-- [ ] Host game settings (below)
+### F5. Menu and lobby
+The lobby has phases, and the host panel (tabs) is open the whole time.
 
-### F6. Game settings (host)
+**Phases**
+1. **Open**: the host creates a game and invites. Players join with their name and pick a colour (taken colours are greyed out, the host settles clashes) and a skin colour. The list reads "henry (red)".
+2. **Locked**: the host presses continue. Nobody new can join and the player list is final, so teams can be made.
+3. **Ready**: everyone presses ready. After a short delay the host can force a player, or a whole team, to ready.
+4. **Countdown**: the host starts, the shared clock gives 3, 2, 1, and play begins.
+
+**Host panel, tabs**
+- [ ] **Invite**: QR code, link, copy/share (hidden once locked)
+- [ ] **Game**: game name, optional password, max players. More than 10 is allowed, for computers
+- [ ] **Players**: the list, ping per player with a weak connection warning, kick
+- [ ] **Teams** (only once locked): create a team, add players from the list, set the team colour, delete the team. No teams means free for all. One vs all is just a team of one against the rest
+- [ ] **Rules**: see F6
+- [ ] Players see every tab read-only, so everyone knows the rules
+
+**Team names**
+- [ ] Team members write name ideas. The first one becomes the name straight away
+- [ ] Once there's more than one idea, members vote on them, shown like a little wooden sign or banner board. Most votes wins, and on a tie the earliest idea wins
+
+**Chat** (plain text only)
+- [ ] Everyone's chat in the lobby, all the time
+- [ ] Team chat once you're in a team (a tab next to everyone's chat)
+- [ ] During play: the dead chat (see F13)
+
+**Other**
+- [ ] Menu: name (saved), host a game, or arrive by link (asks for the password if there is one)
+- [ ] The host can go back from locked to open (to let someone in late)
+
+### F6. Rules (host, Rules tab)
 - [ ] Arrows per player: 1–10 or unlimited (default 4)
 - [ ] Trees in the field: none, few, many; map size: small, medium, large
-- [ ] Mode: free for all, teams (2–4), one vs all
+- [ ] Friendly fire on or off (when there are teams)
 - [ ] Damage: arcade (any body hit kills) or injuries (see F10)
 - [ ] Gnomes on or off (arrows out of bounds come back)
 - [ ] Time of day: by clock (default) or fixed
@@ -176,7 +201,7 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 
 ## Milestones
 
-1. **Together in a lobby** (F1, F2 playlists, F3, F4 lobby/room/invite, F5 basic): open a link, see each other's names and colours, chat, hear lobby music. Deployed.
+1. **Together in a lobby** (F1, F2 playlists, F3, F4 lobby/room/invite, F5, F6 tab with what exists): open a link, pick names and colours, chat, the host locks, makes teams, everyone readies, 3 2 1. Deployed.
 2. **A field to walk in** (F7 basics, F8, F12 basic, F9 movement): host starts, everyone walks the same meadow and sees each other.
 3. **Shoot each other** (F9 archery, F14, F15 basic): arrows, hits, deaths, last one wins, results.
 4. **Silly bodies** (F11, F10): rig, walk, hop, injuries.
@@ -189,5 +214,6 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - Draw vs look on touch (F12).
 - Torso hit: dead at once, or two torso hits?
 - Can you pick up arrows while drawing? Can the dead drop their quiver?
-- Friendly fire in teams?
+- Friendly fire: default on or off?
+- With teams, do clothes take the team colour (and the player colour becomes a trim), or does the player keep their own colour?
 - ~~Repo~~: github.com/onkelhoy/arrow-warfare, live at https://onkelhoy.github.io/arrow-warfare/ (static `--base /arrow-warfare/`).

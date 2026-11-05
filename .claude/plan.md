@@ -11,10 +11,14 @@ Proposed, waiting for confirmation. Delete this file when every task is done.
 7. **QR and share link**: copy `qr-code` and `share-link` from cowboy into `atoms/`
 8. **Lobby network**: `foundations/net`, port cowboy's chord lobby and config, lobby name `arrow-warfare`
 9. **Room + invite**: host creates a mesh room, invite link, `molecules/invite-dialog`, join by link with host wait
-10. **Menu page**: name (saved), host a game, arriving by link joins. *Push.*
-11. **Lobby page**: player list "name (colour)", colour picking with taken colours, host settles clashes, skin colour
-12. **Lobby chat**: `molecules/chat`
-13. **Ready and start**: ready toggles, host starts when all ready, shared clock countdown, goes to a placeholder play page. *Push.*
+10. **Menu page**: name (saved), host a game, arriving by link joins (password prompt if needed). *Push.*
+11. **Lobby page, open phase**: player list "name (colour)", colour picking with taken colours, host settles clashes, skin colour
+12. **Chat**: `molecules/chat`, everyone's chat, plain text
+13. **Host panel**: tabs Invite, Game (name, password, max players), Players (ping, weak connection warning, kick), Rules (arrow count for now). Players see it read-only
+14. **Lock**: the host locks and unlocks the room, nobody joins while locked
+15. **Teams**: Teams tab when locked: create, add players from the list, team colour, delete. No teams = free for all
+16. **Team names and team chat**: ideas, the first becomes the name, then voting on a little sign board. Team chat tab
+17. **Ready and start**: ready toggles, the host can force a player or team after a delay, shared clock 3 2 1, then a placeholder play page. *Push.*
 
 ## Where we are
 Nothing built yet. Next: task 1 once confirmed.
