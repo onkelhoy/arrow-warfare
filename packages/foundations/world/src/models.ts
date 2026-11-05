@@ -204,3 +204,18 @@ export function arrow(): MeshData {
 export function hand(): MeshData {
     return new MeshBuilder().ball("#ffffff", { scale: [.045, .05, .055], tint: 1 }, 1).build();
 }
+
+/** A soft dark spot on the grass under a tree or a player, 1 m across. Shadows on the cheap. */
+export function blob(): MeshData {
+    const builder = new MeshBuilder();
+    const sides = 12;
+    const inner: Vec3 = [.3, .47, .2], outer: Vec3 = [.36, .55, .23];
+    for (let i = 0; i < sides; i++)
+    {
+        const a = (i / sides) * Math.PI * 2, b = ((i + 1) / sides) * Math.PI * 2;
+        const near = (angle: number, r: number): Vec3 => [Math.cos(angle) * r, 0, -Math.sin(angle) * r];
+        builder.triangle([0, 0, 0], near(a, .3), near(b, .3), inner);
+        builder.quad(near(a, .3), near(a, .5), near(b, .5), near(b, .3), outer);
+    }
+    return builder.build();
+}

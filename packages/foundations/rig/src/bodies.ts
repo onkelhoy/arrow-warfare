@@ -1,5 +1,5 @@
 import { compose, mat4, MeshBuilder, multiply, type Batch, type MeshData, type Renderer, type Vec3 } from "@arrow-warfare/render";
-import { arrow, ARROW_LENGTH, bow, head } from "@arrow-warfare/world";
+import { arrow, ARROW_LENGTH, blob, bow, head } from "@arrow-warfare/world";
 
 import { MEASURE, type Rig } from "./rig";
 
@@ -52,6 +52,7 @@ export class Bodies {
     private feet: Batch;
     private bows: Batch;
     private nocked: Batch;
+    private shadows: Batch;
     private local = mat4();
     private world = mat4();
 
@@ -65,6 +66,7 @@ export class Bodies {
         this.feet = renderer.batch(boot(), setting(2));
         this.bows = renderer.batch(bow(), setting(1));
         this.nocked = renderer.batch(arrow(), setting(1));
+        this.shadows = renderer.batch(blob(), { ...setting(1), twoSided: true });
     }
 
     draw(rigs: { rig: Rig; look: Look }[]) {
@@ -72,6 +74,9 @@ export class Bodies {
         for (const { rig, look } of rigs)
         {
             const place = rig.place;
+            // a dark spot on the ground under the body
+            const x = place[12], z = place[14];
+            this.shadows.place(body, x, rig.ground(x, z) + .03, z, 0, 0, 0, 1.1);
             multiply(this.world, place, rig.torso);
             multiply(this.world, this.world, compose(this.local, 0, 0, 0, 0, 0, 0, 0, 1, rig.heave, 1));
             this.torsos.matrix(body, this.world);
@@ -117,7 +122,7 @@ export class Bodies {
                 nocked++;
             }
         }
-        this.torsos.count = this.heads.count = body;
+        this.torsos.count = this.heads.count = this.shadows.count = body;
         this.arms.count = arms;
         this.legs.count = legs;
         this.hands.count = hands;
@@ -127,7 +132,7 @@ export class Bodies {
     }
 
     destroy() {
-        for (const batch of [this.torsos, this.heads, this.arms, this.legs, this.hands, this.feet, this.bows, this.nocked]) this.renderer.removeBatch(batch);
+        for (const batch of [this.torsos, this.heads, this.arms, this.legs, this.hands, this.feet, this.bows, this.nocked, this.shadows]) this.renderer.removeBatch(batch);
     }
 
     /** A bone's frame in the world, its x stretched to the bone's length. */

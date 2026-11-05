@@ -102,7 +102,7 @@ export class Rig {
     private scratch = mat4();
     private scratch2 = mat4();
 
-    constructor(private ground: (x: number, z: number) => number) {
+    constructor(readonly ground: (x: number, z: number) => number) {
         const limb = (name: string, upper: number, lower: number): Limb => {
             const top = this.armature.add(name, { length: upper });
             const bottom = this.armature.add(`${name}-lower`, { length: lower, parent: top });

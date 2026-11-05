@@ -3,7 +3,7 @@ import { MeshBuilder, seeded, type Batch, type MeshData, type Renderer, type Vec
 
 import { PALETTES, type PaletteName } from "./atmosphere";
 import { Field, STONES, VARIANTS } from "./field";
-import { flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
+import { blob, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
 
 /** Petal colours, a flower's `colour` picks one. */
 const PETALS: Vec3[] = [[.98, .96, .92], [.98, .82, .25], [.9, .42, .62], [.6, .55, .95], [.95, .5, .3]];
@@ -46,6 +46,9 @@ export class Meadow extends GameObject {
             for (let variant = 0; variant < VARIANTS; variant++)
                 add(kind(field.seed + k * 7 + variant * 13), trees.filter(tree => tree.kind === k && tree.variant === variant), {}, .1);
         });
+
+        // a dark spot under each tree in the meadow, the only shadows there are
+        add(blob(), field.trees.map(tree => ({ x: tree.x, z: tree.z, yaw: tree.yaw, scale: tree.scale * 2.4 })), { twoSided: true }, -.03);
 
         add(log(), field.logs, {}, .05);
         add(stump(), field.stumps, {}, .05);
