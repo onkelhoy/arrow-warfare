@@ -77,12 +77,12 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [x] Room: host creates a mesh room inside the lobby, invite link `?game=…&host=…&by=…`
 - [x] Invite dialog: QR code, link, copy/share button
 - [x] Join by link, wait for a sleeping host, clear errors
-- [ ] Shared clock (pings) (done), host migration (not yet: when the host leaves, the game ends for everyone)
-- [ ] Message types: hello/profile, colour assignment, game info, lock, teams, team name idea/vote, rules, ready, force ready, chat, team chat, start, pose, shoot, hit, pickup, death, end
+- [x] Shared clock (pings). Host migration left out: when the host leaves, the game ends for everyone
+- [x] Message types: hello/profile, colour assignment, game info, lock, teams, team name idea/vote, rules, ready, force ready, chat, team chat, start, pose, shoot, hit, pickup, death, end
 - [x] Password, max players, the lock and kicks: app level, the host answers each guest's hello with `state` or `denied {reason}` (see notes)
 - [x] Ping per player from the clock pings
 - [x] Binary pose packing to keep 10 phones light (9 links each): 33 bytes on a lossy `pose` channel
-- [ ] Late joiner while a round runs waits in the lobby or spectates
+- [x] Late joiner while a round runs waits in the lobby (a reconnect during play; strangers can't join once locked)
 
 ### F5. Menu and lobby
 The lobby has phases, and the host panel (tabs) is open the whole time.
@@ -98,7 +98,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] **Game**: game name, optional password, max players. More than 10 is allowed, for computers
 - [x] **Players**: the list, ping per player with a weak connection warning, kick
 - [x] **Teams** (only once locked): create a team, add players from the list, delete the team. Each team gets a random unused colour and every member wears it, replacing their own. No teams means free for all. One vs all is just a team of one against the rest
-- [ ] **Rules**: see F6
+- [x] **Rules**: see F6
 - [x] Players see every tab read-only, so everyone knows the rules
 
 **Team names**
@@ -127,10 +127,10 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Sun + ambient + hemisphere light, distance fog
 - [x] Instanced draws for grass, flowers, mushrooms, trees
 - [x] Sky dome with gradient, sun/moon, stars at night
-- [ ] Shadows (one cascade, low res, can be turned off on weak phones)
+- [x] Shadows: blob shadows under trees and players (no shadow maps)
 - [x] Grass sway in the vertex shader
-- [ ] Quality setting (resolution scale, shadow on/off, grass density)
-- [ ] Later: `.glb` loader
+- [x] Quality setting (low, medium, high: resolution scale, grass density)
+- [ ] Later: `.glb` loader (left out of milestone 6)
 
 ### F8. World
 - [x] Meadow ground (gentle heightmap), forest wall at the edge, scattered trees by setting
@@ -198,20 +198,20 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 
 ### F16. Phone polish
 - [ ] Test on real phones, find the player limit
-- [ ] Performance budget, quality presets
-- [ ] Wake lock, reconnect on a short drop, rotate prompt
-- [ ] PWA manifest and icons
+- [x] Quality presets (a performance budget comes from the owner's phone tests)
+- [x] Wake lock, reconnect on a short drop, rotate prompt
+- [x] PWA manifest and icons
 
 ---
 
 ## Milestones
 
-1. **Together in a lobby** (F1, F2 playlists, F3, F4 lobby/room/invite, F5, F6 tab with what exists): open a link, give a name, get a colour, chat, the host locks, makes teams, everyone readies, 3 2 1. Deployed.
-2. **A field to walk in** (F7 basics, F8, F12 basic, F9 movement): host starts, everyone walks the same meadow and sees each other.
-3. **Shoot each other** (F9 archery, F14, F15 basic): arrows, hits, deaths, last one wins, results.
-4. **Silly bodies** (F11, F10, F14 energy/damage, F14b, F6 damage + time of day): rig, walk, hop, injuries, the play demo with controls.
+1. ✅ **Together in a lobby** (F1, F2 playlists, F3, F4 lobby/room/invite, F5, F6 tab with what exists): open a link, give a name, get a colour, chat, the host locks, makes teams, everyone readies, 3 2 1. Deployed.
+2. ✅ **A field to walk in** (F7 basics, F8, F12 basic, F9 movement): host starts, everyone walks the same meadow and sees each other.
+3. ✅ **Shoot each other** (F9 archery, F14, F15 basic): arrows, hits, deaths, last one wins, results.
+4. ✅ **Silly bodies** (F11, F10, F14 energy/damage, F14b, F6 damage + time of day): rig, walk, hop, injuries, the play demo with controls.
 5. ✅ **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
-6. **Polish** (F16, quality, glb if wanted).
+6. ✅ **Polish** (F16, quality, glb if wanted).
 
 ---
 
@@ -263,6 +263,15 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - The play view: the round inside a codeblock with time, seed, rules, bots, injure me and a new round button.
 - Tested headless: hits on rig parts (wounds and kills), wounds on me, pull out, the demo controls, three browsers through the real app. Not on a real phone, and hopping and the walk weren't watched over the network.
 - My own body isn't drawn in first person, and arrows in my head, torso or arms aren't shown (they'd be at my eyes).
+
+## Notes from milestone 6 (for the owner to review)
+- **Bow button, new:** hold to draw (by time, like space). The same thumb aims every way. Let go in the strip at the right edge (shown while drawing, lights up when the thumb is in it) to shoot, anywhere else lets the bow down. The strip is 12% of the screen width (60 to 130 px).
+- Wake lock while playing, taken again when coming back to the tab.
+- Quality in settings: low, medium, high (1, 1.25, 1.5 device pixels per CSS pixel, 35%, 70%, 100% grass). Phones start at medium. Resolution changes at once, grass the next round.
+- Shadows: a dark spot under each meadow tree and each player.
+- Reconnect: a guest who loses the host tries for 25 s, the host keeps their place (name, colour, team) as long. A private token in `sessionStorage` proves it's them, so a reload works too. Back during a round they wait in the lobby and join when it ends, the round counted them out.
+- Not done: host migration, the `.glb` loader, real phone tests (the owner's).
+- Nothing tested here, the owner tests live.
 
 ## Open questions
 - Torso hit: dead at once, or two torso hits? (milestone 4: dead at once)
