@@ -13,6 +13,8 @@ export type Pose = {
     draw: number;
     /** 0 fresh, 1 swaying, 2 tunnel vision, 3 panting. */
     stage: number;
+    /** Left handed: the bow in the right hand. */
+    left: boolean;
 };
 
 export const POSE_RATE = 20;
@@ -33,7 +35,7 @@ export function packPose(pose: Pose) {
     view.setFloat32(25, pose.pitch);
     view.setFloat32(29, pose.speed);
     view.setUint8(33, Math.round(Math.max(0, Math.min(1, pose.draw)) * 255));
-    view.setUint8(34, pose.stage);
+    view.setUint8(34, (pose.stage & 3) | (pose.left ? 4 : 0));
     return view.buffer;
 }
 
@@ -51,7 +53,7 @@ export function unpackPose(data: ArrayBuffer): Pose | null {
         pitch: view.getFloat32(25),
         speed: view.getFloat32(29),
         draw: view.getUint8(33) / 255,
-        stage: Math.min(3, view.getUint8(34)),
+        stage: view.getUint8(34) & 3,
     };
-    return Object.values(pose).every(Number.isFinite) ? pose : null;
+    return Object.values(pose).every(Number.isFinite) ? { ...pose, left: (view.getUint8(34) & 4) !== 0 } : null;
 }

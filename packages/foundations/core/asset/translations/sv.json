@@ -12,7 +12,10 @@
       "everything": "Allt",
       "music": "Musik",
       "sounds": "Ljudeffekter",
-      "sensitivity": "Tittfart"
+      "sensitivity": "Tittfart",
+      "hand": "Dragande hand",
+      "right": "Höger",
+      "left": "Vänster"
     },
     "invite": {
       "header": "Bjud in vänner",

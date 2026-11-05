@@ -1,12 +1,20 @@
 import { fly, heading, hitBody, launch, toWorld, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
 import { multiply, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
-import { arrow as arrowModel, ARROW_LENGTH, type Field } from "@arrow-warfare/world";
+import { arrow as arrowModel, ARROW_LENGTH, beam, type Field } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
 
 /** ms an arrow can't hit its own shooter, so it leaves the bow. */
 const OWN_GRACE = 300;
 /** Pick up reach: metres sideways from my feet, and how high up. */
 export const REACH = { side: 1.6, low: -.4, high: 2.6 };
+
+/** A white trail behind each flying arrow: seconds it lasts and how thick it starts. Mine shows more. */
+const TRAIL = { mine: { life: .9, width: .018, brightness: 1.6 }, others: { life: .25, width: .014, brightness: 1.1 } };
+
+/** Metres from the bow before a trail starts. */
+const TRAIL_START = 2;
+
+type Point = { x: number; y: number; z: number; at: number };
 
 export type Landed = { arrow: Arrow; kind: "ground" | "wood" | "wall" };
 export type Struck = { arrow: Arrow; id: string; hit: BodyHit; place: BodyPlace };
@@ -18,12 +26,15 @@ export type Struck = { arrow: Arrow; id: string; hit: BodyHit; place: BodyPlace 
 export class Arrows {
     readonly all = new Map<string, Arrow>();
     private batch: Batch;
+    private trail: Batch;
+    private trails = new Map<string, Point[]>();
     private colours = new Map<string, Vec3>();
     private viewProjection = new Float32Array(16);
 
     /** `colourOf` a shooter is their feathers. */
-    constructor(private renderer: Renderer, private field: Field, private colourOf: (id: string) => Vec3) {
+    constructor(private renderer: Renderer, private field: Field, private me: string, private colourOf: (id: string) => Vec3) {
         this.batch = renderer.batch(arrowModel(), { capacity: 32, dynamic: true });
+        this.trail = renderer.batch(beam(3), { capacity: 64, dynamic: true, emissive: 1 });
     }
 
     add(shot: Shot) {
@@ -94,7 +105,8 @@ export class Arrows {
         return { tip: [arrow.x + arrow.vx * ahead, arrow.y + arrow.vy * ahead, arrow.z + arrow.vz * ahead], direction };
     }
 
-    draw(now: number, bodyOf: (id: string) => BodyPlace | null) {
+    /** `eye` is the camera: trails keep about the same width on screen however far they are. */
+    draw(now: number, bodyOf: (id: string) => BodyPlace | null, eye: Vec) {
         let index = 0;
         for (const [id, arrow] of this.all)
         {
@@ -108,6 +120,52 @@ export class Arrows {
             index++;
         }
         this.batch.count = index;
+        this.drawTrails(now, bodyOf, eye);
+    }
+
+    /** A point behind each flying arrow every frame, the old ones let go, drawn thinning out to the tail. */
+    private drawTrails(now: number, bodyOf: (id: string) => BodyPlace | null, eye: Vec) {
+        let index = 0;
+        for (const [id, arrow] of this.all)
+        {
+            const trail = TRAIL[arrow.shot.by === this.me ? "mine" : "others"];
+            let points = this.trails.get(id);
+            if (!arrow.rest && !arrow.gone)
+            {
+                const at = this.where(arrow, now, bodyOf);
+                // behind the feathers, and only from a little way out: at the bow it would fill the view
+                const [dx, dy, dz] = at?.direction ?? [0, 0, 0];
+                const back = at && { x: at.tip[0] - dx * ARROW_LENGTH, y: at.tip[1] - dy * ARROW_LENGTH, z: at.tip[2] - dz * ARROW_LENGTH, at: now };
+                if (back && Math.hypot(back.x - arrow.shot.x, back.y - arrow.shot.y, back.z - arrow.shot.z) > TRAIL_START)
+                {
+                    if (!points) this.trails.set(id, points = []);
+                    points.push(back);
+                }
+            }
+            if (!points) continue;
+            while (points.length && now - points[0].at > trail.life * 1000) points.shift();
+            if (points.length < 2)
+            {
+                if (arrow.rest || arrow.gone) this.trails.delete(id);
+                continue;
+            }
+            for (let i = 0; i + 1 < points.length; i++)
+            {
+                const a = points[i], b = points[i + 1];
+                const length = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+                if (length < 1e-4) continue;
+                const fresh = 1 - (now - (a.at + b.at) / 2) / (trail.life * 1000);
+                if (fresh <= 0) continue;
+                const far = Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]);
+                const width = trail.width * fresh * Math.max(1, far / 3);
+                // a beam runs along -z, from a to b
+                const yaw = Math.atan2(-(b.x - a.x), -(b.z - a.z)), pitch = Math.asin(Math.max(-1, Math.min(1, (b.y - a.y) / length)));
+                this.trail.place(index, a.x, a.y, a.z, yaw, pitch, 0, width, width, length);
+                this.trail.tint(index, [1, 1, 1], trail.brightness * (.4 + .6 * fresh));
+                index++;
+            }
+        }
+        this.trail.count = index;
     }
 
     /**
@@ -148,6 +206,7 @@ export class Arrows {
 
     destroy() {
         this.renderer.removeBatch(this.batch);
+        this.renderer.removeBatch(this.trail);
         this.all.clear();
     }
 }

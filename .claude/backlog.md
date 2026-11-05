@@ -238,6 +238,12 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - My own right hand isn't drawn, at a full draw it's right at the eye. Feathers take the shooter's colour.
 - Tested headless: shooting, hits on the stand-ins (the play view judges them), pickup, slip and panting, the bow button with real touches, and two browsers through the real app: shot, hit decided by the guest, death, results, rematch. Not on a real phone yet.
 
+## After milestone 3
+- Drawing hand in settings (right by default, saved): left handed mirrors the bow, others see it.
+- The bow leans over when up and stands nearly upright at full draw.
+- White trails behind flying arrows, mine longer and brighter, widening with distance so they stay visible.
+- Hits feel like one thump that springs back (a punch) instead of a rattle. The tunnel vision has no blur (it would cost every frame).
+
 ## Open questions
 - Torso hit: dead at once, or two torso hits? (milestone 3: any hit kills)
 - Can the dead drop their quiver?

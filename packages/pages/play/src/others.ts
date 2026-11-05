@@ -70,7 +70,7 @@ export class Others {
                 other = {
                     id: player.id, label, stride: 0, lastX: spawn.x, lastZ: spawn.z, colour: 0, skin: 0, raise: 0, corpse: null, tip: 0, clock: Math.random() * 10,
                     place: { x: spawn.x, y, z: spawn.z, yaw: spawn.yaw },
-                    poses: [{ time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0 }],
+                    poses: [{ time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: false }],
                 };
                 this.others.set(player.id, other);
             }
@@ -118,7 +118,7 @@ export class Others {
             other.clock += dt;
             const { colour, skin } = other;
             const pose = other.corpse ? null : sample(other.poses, at);
-            let place: BodyPlace, pitch = 0, draw = 0, stage = 0, hop = 0;
+            let place: BodyPlace, pitch = 0, draw = 0, stage = 0, hop = 0, side = 1;
             if (pose)
             {
                 const moved = Math.hypot(pose.x - other.lastX, pose.z - other.lastZ);
@@ -130,6 +130,7 @@ export class Others {
                 pitch = pose.pitch;
                 draw = pose.draw;
                 stage = pose.stage;
+                side = pose.left ? -1 : 1;
             }
             else
             {
@@ -151,12 +152,12 @@ export class Others {
 
             if (pose)
             {
-                this.holdBow(other, place, pitch, draw, stage, bows);
+                this.holdBow(other, place, pitch, draw, stage, side, bows);
                 bows++;
                 if (draw > .02)
                 {
                     // the arrow along the aim, from the string forward
-                    this.nocked.matrix(nocked, multiply(this.world, this.holder, compose(this.local, 0, .018, .012, .1 + .3 * draw - .78)));
+                    this.nocked.matrix(nocked, multiply(this.world, this.holder, compose(this.local, 0, .018 * side, .012, .1 + .3 * draw - .78)));
                     this.nocked.tint(nocked, rgb(COLOURS[colour].hex));
                     nocked++;
                 }
@@ -169,13 +170,13 @@ export class Others {
     }
 
     /** Low at the side while walking, up in front along the aim while drawing, bent by the draw. */
-    private holdBow(other: Other, place: BodyPlace, pitch: number, draw: number, stage: number, index: number) {
+    private holdBow(other: Other, place: BodyPlace, pitch: number, draw: number, stage: number, side: number, index: number) {
         const r = other.raise;
         const shake = stage >= 2 ? Math.sin(other.clock * 29) * .02 * draw : 0;
         // around the shoulders, turned by the aim's pitch when up
         compose(this.holder, 0, place.x, place.y + .95, place.z, place.yaw, pitch * r + shake, 0);
-        const x = -.42 + .3 * r, y = -.35 + .35 * r, z = -.1 - .45 * r;
-        const roll = -.2 * (1 - r) + .25 * r, tilt = -1.1 * (1 - r);
+        const x = (-.42 + .3 * r) * side, y = -.35 + .35 * r, z = -.1 - .45 * r;
+        const roll = (-.2 * (1 - r) + (.6 - .48 * draw) * r) * side, tilt = -1.1 * (1 - r);
         const bend = 1 + draw * .9;
         compose(this.local, 0, x, y, z, 0, tilt, roll, 1, 1 - draw * .06, bend);
         this.bows.matrix(index, multiply(this.world, this.holder, this.local));
@@ -244,6 +245,7 @@ function blend(a: Pose, b: Pose, t: number): Pose {
         speed: a.speed + (b.speed - a.speed) * t,
         draw: a.draw + (b.draw - a.draw) * t,
         stage: t < .5 ? a.stage : b.stage,
+        left: b.left,
     };
 }
 

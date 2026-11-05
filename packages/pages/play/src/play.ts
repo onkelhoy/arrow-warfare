@@ -110,7 +110,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     };
     const mine = player(me);
     const firstPerson = new FirstPerson(renderer, rgb(SKINS[mine?.skin ?? 0] ?? SKINS[0]), colourOf(me), colourOf(me));
-    const arrows = new Arrows(renderer, field, colourOf);
+    const arrows = new Arrows(renderer, field, me, colourOf);
 
     size();
     window.addEventListener("resize", size);
@@ -173,8 +173,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             {
                 // a kill: every hit is one, until injuries
                 hud.hit(true);
-                walker.shake(.03, .45);
-                vibrate([45, 35, 110]);
+                walker.punch(.022, .05);
+                vibrate([30, 40, 70]);
                 sound("kill");
             }
             if (host && !dead.has(hit.victim) && !over) broadcast("death", { id: hit.victim, by: shooter, zone: hit.zone, distance: hit.distance });
@@ -249,7 +249,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         };
         broadcast("shoot", shot);
         firstPerson.shot();
-        walker.shake(.007, .15);
+        walker.punch(-.006);
         sound("twang", undefined, .5 + event.power * .5);
         if (event.slipped)
         {
@@ -264,8 +264,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (hit.victim !== me) return;
         walker.alive = false;
         draw.cancel();
-        walker.shake(.05, .6);
-        vibrate(220);
+        walker.punch(.05, .08);
+        walker.shake(.012, .35);
+        vibrate(180);
     };
 
     // ------------------------------------------------------------------ every frame
@@ -307,7 +308,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         else creak = 0;
         fire(draw.update(dt));
 
-        firstPerson.update(dt, camera, draw, { speed: walker.speed, stride: walker.stride, alive: walker.alive }, quiver);
+        firstPerson.update(dt, camera, draw, { speed: walker.speed, stride: walker.stride, alive: walker.alive }, quiver, settings().hand === "left");
         others.frame(now, dt, camera, play.clientWidth, play.clientHeight);
 
         // arrows, and the bodies my phone judges
@@ -322,7 +323,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const distance = Math.hypot(point[0] - arrow.shot.x, point[2] - arrow.shot.z);
             struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, point: hit.point, direction: hit.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, distance });
         }
-        arrows.draw(now, bodyOf);
+        arrows.draw(now, bodyOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
 
         // picking up: a tap near an arrow in reach, never while drawing
         const width = play.clientWidth, height = play.clientHeight;
@@ -350,7 +351,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const peers = everyone().filter(id => id !== me);
             net.sendFast(peers, packPose({
                 time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
-                draw: draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage,
+                draw: draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
             }));
         }
     };

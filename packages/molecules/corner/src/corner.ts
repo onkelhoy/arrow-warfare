@@ -30,6 +30,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
             <label class="aw-corner-row">${t("corner.name")} <pap-input name="name" maxlength="${NAME_LENGTH}"></pap-input></label>
             ${VOLUMES.map(name => `<label class="aw-corner-row">${t(`corner.${name}`)} <input type="range" name="${name}" min="0" max="1" step=".01"></label>`).join("")}
             <label class="aw-corner-row">${t("corner.sensitivity")} <input type="range" name="sensitivity" min="${SENSITIVITY.min}" max="${SENSITIVITY.max}" step=".05"></label>
+            <label class="aw-corner-row">${t("corner.hand")} <select name="hand"><option value="right">${t("corner.right")}</option><option value="left">${t("corner.left")}</option></select></label>
             ${matchMedia("(pointer: coarse)").matches ? `<pap-button data-do="layout" size="small" variant="outline">${t("layout.open")}</pap-button>` : ""}
         </pap-dialog>
     `;
@@ -58,6 +59,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
         name.value = current;
         for (const volume of VOLUMES) find<HTMLInputElement>(`input[name=${volume}]`).value = String(volumes[volume]);
         find<HTMLInputElement>("input[name=sensitivity]").value = String(settings().sensitivity);
+        find<HTMLSelectElement>("select[name=hand]").value = settings().hand;
         panel.showModal();
     });
 
@@ -69,6 +71,10 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
     name.addEventListener("input", () => {
         const value = cleanName(name.value ?? "");
         if (value) updateSettings({ name: value });
+    });
+
+    find<HTMLSelectElement>("select[name=hand]").addEventListener("change", event => {
+        updateSettings({ hand: (event.target as HTMLSelectElement).value === "left" ? "left" : "right" });
     });
 
     panel.addEventListener("input", event => {

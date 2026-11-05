@@ -12,7 +12,10 @@
       "everything": "Everything",
       "music": "Music",
       "sounds": "Sounds",
-      "sensitivity": "Look speed"
+      "sensitivity": "Look speed",
+      "hand": "Drawing hand",
+      "right": "Right",
+      "left": "Left"
     },
     "invite": {
       "header": "Invite friends",

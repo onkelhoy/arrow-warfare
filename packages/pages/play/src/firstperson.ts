@@ -5,10 +5,13 @@ import { arrow, ARROW_LENGTH, beam, bow, BOW, hand } from "@arrow-warfare/world"
 
 /** Camera space: x right, y up, -z ahead. Where the grip is held, lowered and up for a shot. */
 const LOW = { at: [.24, -.36, -.5] as Vec3, yaw: .35, pitch: .1, roll: -1.05 };
-const AIM = { at: [-.08, -.1, -.78] as Vec3, yaw: 0, pitch: 0, roll: .22 };
+const AIM = { at: [-.08, -.1, -.78] as Vec3, yaw: 0, pitch: 0, roll: .6 };
+/** Up for a shot the bow leans over, fully drawn it stands nearly upright. */
+const UPRIGHT = .12;
 /** How far behind the tips the nock comes at a full draw, in bow space. */
 const PULL = .2;
 /** Where the shoulders are, for the forearms. */
+/** The shoulder of the bow arm, for a right handed archer. */
 const LEFT_SHOULDER: Vec3 = [-.24, -.66, -.42];
 
 /**
@@ -43,7 +46,9 @@ export class FirstPerson {
         this.kick = 1;
     }
 
-    update(dt: number, camera: Camera, draw: Draw, walk: { speed: number; stride: number; alive: boolean }, arrows: number) {
+    /** `left`: left handed, the bow in the right hand, everything mirrored. */
+    update(dt: number, camera: Camera, draw: Draw, walk: { speed: number; stride: number; alive: boolean }, arrows: number, left = false) {
+        const side = left ? -1 : 1;
         this.clock += dt;
         const drawing = draw.phase === "drawing";
         const target = !walk.alive ? -1 : drawing ? 1 : draw.phase === "panting" ? -.2 : 0;
@@ -61,15 +66,16 @@ export class FirstPerson {
         const amount = drawing ? draw.amount : 0;
         const bob = Math.min(1, walk.speed / 4) * (1 - r * .7);
         const at: Vec3 = [
-            LOW.at[0] + (AIM.at[0] - LOW.at[0]) * r + Math.cos(walk.stride) * .012 * bob,
+            (LOW.at[0] + (AIM.at[0] - LOW.at[0]) * r) * side + Math.cos(walk.stride) * .012 * bob,
             LOW.at[1] + (AIM.at[1] - LOW.at[1]) * r - Math.abs(Math.sin(walk.stride)) * .018 * bob + low * .4,
             LOW.at[2] + (AIM.at[2] - LOW.at[2]) * r + this.kick * this.kick * -.05,
         ];
         // tired arms shake a little on top of the sway the camera already has
         const tremble = draw.tired * amount * .006;
-        const yaw = LOW.yaw + (AIM.yaw - LOW.yaw) * r + Math.sin(this.clock * 31) * tremble;
+        const yaw = (LOW.yaw + (AIM.yaw - LOW.yaw) * r) * side + Math.sin(this.clock * 31) * tremble;
         const pitch = LOW.pitch + (AIM.pitch - LOW.pitch) * r + Math.sin(this.clock * 27 + 1) * tremble;
-        const roll = LOW.roll + (AIM.roll - LOW.roll) * r;
+        const aimRoll = AIM.roll + (UPRIGHT - AIM.roll) * amount;
+        const roll = (LOW.roll + (aimRoll - LOW.roll) * r) * side;
         // drawn, the limbs bend back and get a touch shorter
         const bend = 1 + amount * .9, shorter = 1 - amount * .06;
 
@@ -96,16 +102,16 @@ export class FirstPerson {
         const nocked = drawing && arrows > 0;
         if (nocked)
         {
-            const tip = inBow(.018, .012, tipZ + PULL * amount - ARROW_LENGTH);
-            const back = inBow(.018, .012, tipZ + PULL * amount);
+            const tip = inBow(.018 * side, .012, tipZ + PULL * amount - ARROW_LENGTH);
+            const back = inBow(.018 * side, .012, tipZ + PULL * amount);
             this.beam(this.arrow, 0, tip, back, 1, this.feathers, true);
         }
         this.arrow.count = nocked ? 1 : 0;
 
         // the left hand on the grip, the right on the string when drawing
-        const left = inBow(-.01, 0, .02);
-        this.place(this.hands, 0, left, this.skin);
-        this.beam(this.arms, 0, LEFT_SHOULDER, left, .055, this.clothes);
+        const hold = inBow(-.01 * side, 0, .02);
+        this.place(this.hands, 0, hold, this.skin);
+        this.beam(this.arms, 0, [LEFT_SHOULDER[0] * side, LEFT_SHOULDER[1], LEFT_SHOULDER[2]], hold, .055, this.clothes);
         this.arms.count = 1;
         // the right hand on the string is right at the eye, too close to show
         this.hands.count = 1;

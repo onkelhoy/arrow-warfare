@@ -37,6 +37,10 @@ export class Walker {
     private shakeLength = 1;
     private clock = 0;
     private fallen = 0;
+    /** A punch: one kick of the view that springs back, seconds since and how big. */
+    private punchTime = 9;
+    private punchSize = 0;
+    private punchSide = 0;
 
     constructor(private field: Field, spawn: Spawn) {
         this.x = spawn.x;
@@ -57,6 +61,7 @@ export class Walker {
         this.yaw -= yaw;
         this.pitch = Math.max(-PITCH, Math.min(PITCH, this.pitch - pitch));
         this.shakeTime = Math.max(0, this.shakeTime - dt);
+        this.punchTime += dt;
         if (!this.alive) this.fallen = Math.min(1, this.fallen + dt * 2.5);
 
         // forward is -z at yaw 0, right is +x
@@ -86,6 +91,19 @@ export class Walker {
         this.shakeTime = this.shakeLength = length;
     }
 
+    /**
+     * One kick of the view that springs back and settles, `size` in radians: a hit lands. Feels like a
+     * thump rather than a rattle. `zoom` pushes in a touch with it.
+     */
+    punch(size: number, zoom = 0) {
+        this.punchTime = 0;
+        this.punchSize = size;
+        this.punchSide = (Math.random() - .5) * .6;
+        this.punchZoom = zoom;
+    }
+
+    private punchZoom = 0;
+
     /** Puts the camera at my eyes, with the bow's sway and any shake on top. */
     place(camera: Camera, draw: Draw) {
         const bob = Math.abs(Math.sin(this.stride)) * BOB * Math.min(1, this.speed / WALK);
@@ -95,11 +113,16 @@ export class Walker {
         const t = this.clock * 55;
         const shakeYaw = (Math.sin(t) + Math.sin(t * 1.7 + 1) * .5) * size;
         const shakePitch = (Math.cos(t * 1.3) + Math.sin(t * 2.3 + 2) * .5) * size;
+        // a damped spring: up fast, back a little past, settled in about a third of a second
+        const p = this.punchTime;
+        const RISE = .05;
+        const spring = p < RISE ? Math.sin(p / RISE * Math.PI / 2) : p < .7 ? Math.cos((p - RISE) * 16) * Math.exp(-(p - RISE) * 10) : 0;
+        const punch = this.punchSize * spring;
         const eye = BODY.eye + (DEAD_EYE - BODY.eye) * this.fallen;
         camera.position.set([this.x, this.y + eye + bob, this.z]);
-        camera.rotation.set([this.pitch + swayPitch + shakePitch, this.yaw + swayYaw + shakeYaw, this.fallen * .35]);
+        camera.rotation.set([this.pitch + swayPitch + shakePitch + punch, this.yaw + swayYaw + shakeYaw + punch * this.punchSide, this.fallen * .35 + punch * this.punchSide * .5]);
         // a little zoom while drawn, as if looking down the arrow
-        camera.zoom = 1 + .12 * (draw.phase === "drawing" ? draw.amount : 0);
+        camera.zoom = 1 + .12 * (draw.phase === "drawing" ? draw.amount : 0) + this.punchZoom * Math.max(0, spring);
     }
 
     /** Where my feet are, and which way I face: for hit tests. */

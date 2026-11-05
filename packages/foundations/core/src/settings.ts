@@ -13,7 +13,11 @@ export type Settings = {
     sensitivity: number;
     /** Where the bow button sits on a touch screen. */
     bow: BowPlace;
+    /** The hand that pulls the string. Right handed holds the bow in the left hand. */
+    hand: Hand;
 };
+
+export type Hand = "right" | "left";
 
 /** The bow button's middle as fractions of the screen (0..1), and its size in CSS pixels. */
 export type BowPlace = { x: number; y: number; size: number };
@@ -24,7 +28,7 @@ export const BOW_SIZE = { min: 48, max: 140 };
 
 export const SENSITIVITY = { min: .3, max: 3 };
 
-export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1, bow: { ...BOW_PLACE } };
+export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1, bow: { ...BOW_PLACE }, hand: "right" };
 
 const volume = (value: unknown, fallback: number) =>
     typeof value === "number" && value >= 0 && value <= 1 ? value : fallback;
@@ -51,6 +55,7 @@ export function parseSettings(saved: string | null): Settings {
         },
         sensitivity: typeof raw?.sensitivity === "number" && raw.sensitivity >= SENSITIVITY.min && raw.sensitivity <= SENSITIVITY.max ? raw.sensitivity : 1,
         bow: parseBow(raw?.bow),
+        hand: raw?.hand === "left" ? "left" : "right",
     };
 }
 
