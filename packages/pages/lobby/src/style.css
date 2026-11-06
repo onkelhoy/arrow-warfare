@@ -7,11 +7,12 @@
     margin-inline: auto;
     padding: max(12px, env(safe-area-inset-top)) 12px 16px;
     box-sizing: border-box;
-    color: #2f4a1f;
+    color: var(--aw-text);
+    font-family: var(--aw-font);
 }
 
 .aw-dim {
-    opacity: .65;
+    color: var(--aw-text-soft);
 }
 
 .aw-lobby-head {
@@ -20,12 +21,12 @@
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    padding-inline-end: 132px; /* the corner buttons */
+    margin-inline-end: 132px; /* the corner buttons */
+    padding: 12px 16px;
 }
 
 .aw-lobby-name {
-    margin: 0;
-    font-size: 1.6rem;
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
 }
 
 .aw-lobby-phase {
@@ -40,9 +41,13 @@
 }
 
 .aw-lobby-tabs {
-    border-radius: 12px;
-    padding: 8px;
-    background: rgb(255 255 255 / .55);
+    padding: 10px 14px;
+}
+
+.aw-lobby-tabs pap-tab {
+    font-family: var(--aw-font-title);
+    font-weight: 700;
+    color: var(--aw-text);
 }
 
 .aw-lobby-tabs pap-tabpanel {
@@ -72,9 +77,10 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    padding: 4px 6px;
-    border-radius: 8px;
-    background: rgb(255 255 255 / .6);
+    padding: 6px 10px;
+    border: 2px solid color-mix(in oklch, var(--aw-ink), transparent 50%);
+    border-radius: 10px;
+    background: var(--aw-parchment-light);
 }
 
 .aw-player {
@@ -82,18 +88,18 @@
 }
 
 .aw-ready {
-    color: #2e7d32;
+    color: var(--aw-leaf);
     font-weight: bold;
 }
 
 .aw-ping {
     font-size: .8rem;
-    opacity: .7;
+    color: var(--aw-text-soft);
 }
 
 .aw-ping.weak {
     opacity: 1;
-    color: #c0392b;
+    color: var(--aw-banner);
 }
 
 .aw-form {
@@ -105,13 +111,18 @@
 .aw-form label {
     display: grid;
     gap: 4px;
+    font-weight: 700;
 }
 
 .aw-form select,
 .aw-team select {
     font: inherit;
-    padding: 6px;
-    border-radius: 6px;
+    font-weight: 400;
+    padding: 6px 10px;
+    border: var(--aw-outline);
+    border-radius: 10px;
+    background: var(--aw-parchment-light);
+    color: var(--aw-text);
 }
 
 .aw-teams {
@@ -125,15 +136,18 @@
 
 .aw-team {
     padding: 8px 10px;
+    border: var(--aw-outline);
+    border-inline-start: 10px solid var(--colour);
     border-radius: 10px;
-    border-inline-start: 6px solid var(--colour);
-    background: rgb(255 255 255 / .7);
+    background: var(--aw-parchment-light);
+    box-shadow: 0 3px 0 var(--aw-ink);
     display: grid;
     gap: 6px;
 }
 
 .aw-team h3 {
     margin: 0;
+    font-family: var(--aw-font-title);
 }
 
 .aw-members {
@@ -147,8 +161,9 @@
 
 .aw-members li {
     padding: 2px 8px;
+    border: 2px solid var(--aw-ink);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--colour) 30%, white);
+    background: color-mix(in srgb, var(--colour) 35%, var(--aw-parchment-light));
 }
 
 .aw-x {
@@ -156,6 +171,7 @@
     background: none;
     cursor: pointer;
     font: inherit;
+    color: var(--aw-text);
 }
 
 /* the team name ideas, on a little wooden sign */
@@ -243,8 +259,11 @@
     pointer-events: none;
     font-size: 30vmin;
     font-weight: 900;
-    color: #fff6e0;
-    text-shadow: 0 6px 0 #2f4a1f;
+    font-family: var(--aw-font-title);
+    color: var(--aw-gold);
+    -webkit-text-stroke: 6px var(--aw-ink);
+    paint-order: stroke fill;
+    text-shadow: 0 10px 0 var(--aw-ink);
     z-index: 60;
 }
 
@@ -266,7 +285,10 @@
     pointer-events: none;
     font-size: 7vmin;
     font-weight: 800;
-    color: #fff6e0;
-    text-shadow: 0 3px 0 #2f4a1f;
+    font-family: var(--aw-font-title);
+    color: #fff1d2;
+    -webkit-text-stroke: 3px var(--aw-ink);
+    paint-order: stroke fill;
+    text-shadow: 0 4px 0 var(--aw-ink);
     z-index: 61;
 }

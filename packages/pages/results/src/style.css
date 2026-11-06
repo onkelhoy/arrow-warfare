@@ -3,7 +3,6 @@
     z-index: 2;
     inset: 0;
     overflow: auto;
-    background: #9fd6f0;
     display: grid;
     place-content: center;
     justify-items: center;
@@ -12,25 +11,30 @@
     padding: 24px;
     box-sizing: border-box;
     text-align: center;
-    color: #2f4a1f;
+    color: var(--aw-text);
+    font-family: var(--aw-font);
 }
 
 .aw-results h1 {
     margin: 0;
-    font-size: clamp(1.8rem, 7vw, 3rem);
-    text-shadow: 0 3px 0 #fff6e0;
+    font-size: clamp(2rem, 8vw, 3.6rem);
+    rotate: -2deg;
 }
 
-.aw-results-over {
+.aw-results-over,
+.aw-results-actions p {
     margin: 0;
-    opacity: .75;
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #fff1d2;
+    background: rgb(43 29 18 / 55%);
 }
 
 .aw-results-table {
     max-inline-size: 92vw;
     overflow-x: auto;
-    border-radius: 12px;
-    background: rgb(255 246 224 / 75%);
+    padding: 6px;
 }
 
 .aw-results table {
@@ -52,11 +56,18 @@
 
 .aw-results th {
     font-size: .8rem;
-    opacity: .7;
+    font-family: var(--aw-font-title);
+    color: var(--aw-text-soft);
+    border-block-end: 2px dashed var(--aw-parchment-edge);
 }
 
 .aw-results tr.won td {
     font-weight: 700;
+}
+
+.aw-results tr.won td:first-child::before {
+    content: "♛ ";
+    color: var(--aw-gold-dark);
 }
 
 .aw-results tr.me td:first-child {
@@ -69,7 +80,7 @@
     block-size: 10px;
     margin-inline-end: 6px;
     border-radius: 50%;
-    border: 1px solid white;
+    border: 2px solid var(--aw-ink);
 }
 
 .aw-results-actions {

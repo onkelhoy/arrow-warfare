@@ -1,7 +1,10 @@
-import { loadText, type GameState } from "@arrow-warfare/core";
+import "@papit/codeblock";
+import "@arrow-warfare/backdrop";
+import { loadText, type GameState, useTheme } from "@arrow-warfare/core";
 import { mountResults } from "@arrow-warfare/results";
 
 await loadText();
+useTheme();
 const state = example();
 mountResults(document.querySelector<HTMLElement>("#team")!, { state, me: "a", host: true, onBack: () => alert("back"), onRematch: () => alert("rematch") });
 const draw = example();

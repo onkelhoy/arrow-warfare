@@ -40,7 +40,8 @@
   },
   "dependencies": {
     "@papit/button": "*",
-    "@arrow-warfare/core": "*"
+    "@arrow-warfare/core": "*",
+    "@arrow-warfare/backdrop": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

@@ -116,7 +116,16 @@ pap-button[color="primary"] {
     box-shadow: inset 0 2px 0 rgb(255 255 255 / 25%), inset 0 -3px 0 var(--aw-banner-dark), var(--aw-drop);
 }
 
-pap-button[variant="outline"],
+pap-button[variant="outline"] {
+    --btn-background: var(--aw-parchment);
+    --btn-hover: var(--aw-parchment-light);
+    --btn-active: var(--aw-parchment-edge);
+    color: var(--aw-text);
+    text-shadow: none;
+    background-image: none;
+    box-shadow: inset 0 -3px 0 var(--aw-parchment-edge), var(--aw-drop);
+}
+
 pap-button[variant="clear"] {
     --btn-background: transparent;
     --btn-hover: color-mix(in oklch, var(--aw-parchment), transparent 40%);
@@ -127,6 +136,7 @@ pap-button[variant="clear"] {
 }
 
 pap-button[variant="clear"] {
+    color: inherit;
     border-color: transparent;
     box-shadow: none;
     text-decoration: underline;

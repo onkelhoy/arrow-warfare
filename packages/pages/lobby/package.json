@@ -46,7 +46,8 @@
     "@papit/signals": "^0.0.1",
     "@arrow-warfare/core": "*",
     "@arrow-warfare/chat": "*",
-    "@arrow-warfare/invite-dialog": "*"
+    "@arrow-warfare/invite-dialog": "*",
+    "@arrow-warfare/backdrop": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

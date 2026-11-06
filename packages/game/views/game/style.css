@@ -8,10 +8,23 @@ body {
     overflow: hidden;
     overscroll-behavior: none;
     background: #9fd6f0;
-    font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    font-family: var(--aw-font, ui-rounded, system-ui, sans-serif);
+}
+
+.aw-app-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+}
+
+/* nothing to paint while the 3D is on */
+body:has(.aw-play) .aw-app-backdrop {
+    display: none;
 }
 
 .screen {
+    position: relative;
+    z-index: 1;
     height: 100%;
     overflow-y: auto;
 }
@@ -21,7 +34,7 @@ body {
     place-content: center;
     height: 100%;
     text-align: center;
-    color: #2f4a1f;
+    color: var(--aw-text, #2f4a1f);
 }
 
 /* reconnecting, or waiting for the round to end */

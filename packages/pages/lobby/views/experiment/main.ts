@@ -1,9 +1,12 @@
-import { loadText } from "@arrow-warfare/core";
+import "@papit/codeblock";
+import "@arrow-warfare/backdrop";
+import { loadText, useTheme } from "@arrow-warfare/core";
 import { mountLobby } from "@arrow-warfare/lobby";
 import type { GameState } from "@arrow-warfare/core";
 
 
 await loadText();
+useTheme();
 // the lobby alone, as the host (`?guest` to see it read-only), the actions just change the example
 const state = example();
 const me = new URLSearchParams(location.search).has("guest") ? "b" : "a";

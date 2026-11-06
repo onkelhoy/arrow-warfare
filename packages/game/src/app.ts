@@ -1,5 +1,6 @@
 import { effect } from "@papit/signals";
-import { loadText, roundWins, saveSettings, settings, t, teamName, type GameState } from "@arrow-warfare/core";
+import "@arrow-warfare/backdrop";
+import { loadText, roundWins, useTheme, saveSettings, settings, t, teamName, type GameState } from "@arrow-warfare/core";
 import { mountCorner } from "@arrow-warfare/corner";
 import { mountLobby } from "@arrow-warfare/lobby";
 import { mountMenu } from "@arrow-warfare/menu";
@@ -21,7 +22,13 @@ export async function startApp(root: HTMLElement = document.body) {
     const sound = new Sound();
     sound.unlockOnFirstTap();
     sound.playlist("lobby");
+    useTheme();
     mountCorner(sound, root);
+
+    // the painted sky, castle and mountains behind every menu
+    const backdrop = document.createElement("aw-backdrop");
+    backdrop.className = "aw-app-backdrop";
+    root.prepend(backdrop);
 
     const screen = document.createElement("div");
     screen.className = "screen";

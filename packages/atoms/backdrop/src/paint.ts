@@ -169,8 +169,11 @@ export function paint(seed = 7) {
         <g class="stars">${stars}</g>
         <g class="sun">
             <circle cx="1230" cy="210" r="170" fill="url(#glow)"/>
-            <circle class="disc" cx="1230" cy="210" r="62"/>
-            <circle class="bite" cx="1258" cy="192" r="52"/>
+            <mask id="crescent">
+                <rect x="1100" y="80" width="260" height="260" fill="white"/>
+                <circle class="bite" cx="1258" cy="192" r="52"/>
+            </mask>
+            <circle class="disc" cx="1230" cy="210" r="62" mask="url(#crescent)"/>
         </g>
         <path class="far" d="${far.d}"/>
         <path class="snow" d="${snow(far.peaks, far.base, random)}"/>
@@ -179,7 +182,7 @@ export function paint(seed = 7) {
         <path class="snow near-snow" d="${snow(near.peaks, near.base, random)}"/>
         <rect x="0" y="520" width="1600" height="220" fill="url(#haze)" opacity=".7"/>
         <path class="hill-back" d="${hills(random, 720, 60, 5)}"/>
-        ${castle(720, 640)}
+        ${castle(800, 640)}
         <path class="forest" d="${forest(random, 790)}"/>
         <path class="hill" d="${hills(random, 860, 50, 4)}"/>
     </svg>`;

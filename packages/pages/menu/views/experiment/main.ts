@@ -1,7 +1,10 @@
-import { loadText } from "@arrow-warfare/core";
+import "@papit/codeblock";
+import "@arrow-warfare/backdrop";
+import { loadText, useTheme } from "@arrow-warfare/core";
 import { mountMenu } from "@arrow-warfare/menu";
 
 await loadText();
+useTheme();
 // `?by=anna` shows the menu as it is for a link
 const by = new URLSearchParams(location.search).get("by");
 const menu = mountMenu(document.querySelector<HTMLElement>("#stage")!, {

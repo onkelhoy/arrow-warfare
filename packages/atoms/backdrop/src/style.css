@@ -163,7 +163,7 @@ slot {
 
 /* the sun, or a crescent moon at night */
 .disc { fill: var(--disc); }
-.bite { fill: var(--zenith); opacity: var(--bite); }
+.bite { fill: black; opacity: var(--bite); }
 .stars circle {
     fill: #fffbe8;
     opacity: var(--stars);

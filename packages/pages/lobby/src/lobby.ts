@@ -44,9 +44,9 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     const lobby = document.createElement("main");
     lobby.className = "aw-lobby";
     lobby.innerHTML = `
-        <header class="aw-lobby-head">
+        <header class="aw-lobby-head aw-panel">
             <div>
-                <h1 class="aw-lobby-name"></h1>
+                <h1 class="aw-lobby-name aw-title"></h1>
                 <p class="aw-lobby-phase aw-dim"></p>
             </div>
             <div class="aw-lobby-buttons">
@@ -55,7 +55,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                 <pap-button data-do="leave" variant="clear" size="small">${t("lobby.leave")}</pap-button>
             </div>
         </header>
-        <pap-tabs class="aw-lobby-tabs">
+        <pap-tabs class="aw-lobby-tabs aw-panel">
             <pap-tab value="players">${t("tab.players")}</pap-tab>
             <pap-tab value="invite">${t("tab.invite")}</pap-tab>
             <pap-tab value="teams">${t("tab.teams")}</pap-tab>
@@ -100,7 +100,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                 </div>
             </pap-tabpanel>
         </pap-tabs>
-        <div class="aw-lobby-chat"></div>
+        <div class="aw-lobby-chat aw-panel"></div>
         <div class="aw-countdown" aria-live="assertive"></div>
         <p class="aw-countdown-score" hidden></p>
     `;

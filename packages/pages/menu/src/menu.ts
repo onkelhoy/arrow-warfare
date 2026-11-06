@@ -21,7 +21,8 @@ export function mountMenu(root: HTMLElement, { by, onHost, onJoin }: MenuOptions
     menu.className = "aw-menu";
     const invited = by !== null;
     menu.innerHTML = `
-        <h1>${t("menu.title")}</h1>
+        <h1 class="aw-title">${t("menu.title")}</h1>
+        <div class="aw-panel aw-menu-panel">
         ${invited ? `<p class="aw-menu-invited">${by ? t("menu.invitedBy", { name: escape(by) }) : t("menu.invited")}</p>` : ""}
         <form class="aw-menu-form">
             <label>${t("menu.yourName")} <pap-input name="name" maxlength="${NAME_LENGTH}" autocomplete="nickname"></pap-input></label>
@@ -30,6 +31,7 @@ export function mountMenu(root: HTMLElement, { by, onHost, onJoin }: MenuOptions
             ${invited ? `<pap-button data-do="own" variant="clear" size="small">${t("menu.hostOwn")}</pap-button>` : ""}
         </form>
         <p class="aw-menu-status" role="status"></p>
+        </div>
     `;
     root.append(menu);
 

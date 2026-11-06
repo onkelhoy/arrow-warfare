@@ -1,4 +1,5 @@
 import "@papit/button";
+import "@arrow-warfare/backdrop";
 import { adopt, useTheme, COLOURS, escape, t, teamName, wears, type GameState } from "@arrow-warfare/core";
 
 import sheet from "./style.css" with { type: "css" };
@@ -40,13 +41,14 @@ export function mountResults(root: HTMLElement, { state, me, host, onBack, onRem
     }
 
     const rows = [...results.players].sort((a, b) => Number(b.won) - Number(a.won) || b.kills - a.kills || b.alive - a.alive);
-    const page = document.createElement("main");
+    const page = document.createElement("aw-backdrop");
+    page.setAttribute("role", "main");
     page.className = "aw-results";
     page.innerHTML = `
         <p class="aw-results-over">${t("results.title")} · ${seconds(results.duration)}</p>
-        <h1>${title}</h1>
+        <h1 class="aw-title">${title}</h1>
         ${results.wins ? `<p class="aw-results-over">${t("results.rounds")}: ${Object.entries(results.wins).map(([id, count]) => `${escape((state.teams.find(team => team.id === id) ? teamName(state.teams.find(team => team.id === id)!) : player(id)?.name) || "?")} ${count}`).join(" · ")}</p>` : ""}
-        <div class="aw-results-table">
+        <div class="aw-results-table aw-panel">
             <table>
                 <thead><tr>${["player", "kills", "shots", "hits", "rate", "longest", "picked", "taken", "alive"].map(key => `<th>${t(`results.${key}`)}</th>`).join("")}</tr></thead>
                 <tbody>${rows.map(stats => {

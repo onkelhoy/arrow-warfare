@@ -27,13 +27,12 @@ body {
     }
 }
 
-/* the game's own backdrop, for parts drawn for it */
+/* a phone sized box: fixed parts (results, countdown) stay inside it */
 .stage {
     position: relative;
+    display: block;
     overflow: auto;
-    block-size: 48rem;
+    block-size: 40rem;
     border-radius: 0.5rem;
-    background: #9fd6f0;
-    color: #2f4a1f;
-    font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    transform: translateZ(0);
 }
