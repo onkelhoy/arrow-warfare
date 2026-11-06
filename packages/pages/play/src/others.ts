@@ -2,7 +2,7 @@ import { COLOURS, escape, SKINS, wears, type GameState } from "@arrow-warfare/co
 import { woundOf, type BodyPlace, type Zone } from "@arrow-warfare/archery";
 import type { Pose } from "@arrow-warfare/net";
 import { multiply, rgb, type Renderer, type Vec3 } from "@arrow-warfare/render";
-import { Bodies, Rig } from "@arrow-warfare/rig";
+import { Bodies, Rig, type Blow } from "@arrow-warfare/rig";
 import type { Field, Spawn } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
 
@@ -12,9 +12,6 @@ const DELAY = 110;
 const AHEAD = 250;
 /** Names further away than this aren't shown. */
 const NAMES = 70;
-/** How far a body tips over when it dies, and how fast. */
-const FALL = Math.PI / 2 * .94;
-const FALL_SPEED = 3.2;
 
 type Other = {
     id: string; poses: Pose[]; label: HTMLElement; clothes: Vec3; skin: Vec3;
@@ -23,7 +20,8 @@ type Other = {
     wounds: number;
     /** Where they lie, once dead. */
     corpse: BodyPlace | null;
-    tip: number;
+    /** What threw them. */
+    blow: Blow | null;
     /** Metres walked, for footsteps. */
     walked: number;
     /** The pose drawn, a dead body keeps its last. */
@@ -76,7 +74,7 @@ export class Others {
                 const y = this.field.height(spawn.x, spawn.z);
                 const pose: Pose = { time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: false, wounds: 0, resting: false };
                 other = {
-                    id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, tip: 0, walked: 0, wounds: 0,
+                    id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, blow: null, walked: 0, wounds: 0,
                     rig: new Rig((x, z) => this.field.height(x, z)),
                     poses: [pose], last: pose,
                 };
@@ -100,10 +98,11 @@ export class Others {
     }
 
     /** They died where they say they were hit: they lie there from now on. */
-    kill(id: string, place: BodyPlace) {
+    kill(id: string, place: BodyPlace, blow: Blow | null = null) {
         const other = this.others.get(id);
         if (!other || other.corpse) return;
         other.corpse = { x: place.x, y: place.y, z: place.z, yaw: place.yaw };
+        other.blow = blow;
         other.label.hidden = true;
     }
 
@@ -145,8 +144,7 @@ export class Others {
         const shown: Parameters<Bodies["draw"]>[0] = [];
         for (const other of this.others.values())
         {
-            if (other.corpse) other.tip = Math.min(FALL, other.tip + dt * FALL_SPEED * (.3 + other.tip));
-            else other.last = this.override.get(other.id) ?? sample(other.poses, at);
+            if (!other.corpse) other.last = this.override.get(other.id) ?? sample(other.poses, at);
             const pose = other.last;
             const place = other.corpse ?? pose;
             if (!other.corpse && pose.speed > .3)
@@ -155,11 +153,16 @@ export class Others {
                 other.walked += pose.speed * dt;
                 if (Math.floor(other.walked / STEP) > before) this.onStep([place.x, this.field.height(place.x, place.z), place.z]);
             }
+            // the moment they die: stood where they say they were hit, then thrown from there
+            if (other.corpse && !other.rig.doll) other.rig.update(1e-4, {
+                x: place.x, y: this.field.height(place.x, place.z), z: place.z, yaw: place.yaw,
+                pitch: pose.pitch, draw: 0, left: pose.left, stage: pose.stage, wounds: pose.wounds | other.wounds, resting: pose.resting, dead: false,
+            });
             other.rig.update(dt, {
                 x: place.x, y: this.field.height(place.x, place.z), z: place.z, yaw: place.yaw,
                 pitch: pose.pitch, draw: other.corpse ? 0 : pose.draw, left: pose.left, stage: pose.stage,
                 wounds: pose.wounds | other.wounds, resting: pose.resting,
-                dead: !!other.corpse, tip: other.tip, unarmed: this.unarmed,
+                dead: !!other.corpse, blow: other.blow, unarmed: this.unarmed,
             });
             shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
             if (this.hidden || !this.names) other.label.hidden = true;

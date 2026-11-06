@@ -30,7 +30,7 @@ const figures: Figure[] = [
     still(-1.5, -3, { draw: 1, pitch: .2 }),
     still(0, -3.2, { wounds: WOUND.leftLeg }),
     still(1.5, -3, { wounds: WOUND.leftLeg | WOUND.rightLeg }),
-    still(3, -2.5, { dead: true, tip: Math.PI / 2 * .94 }),
+    still(3, -2.5, { dead: true }),
 ];
 
 let walked = 0;
@@ -56,7 +56,7 @@ engine.add(new class extends GameObject {
             const yaw = own ? Math.PI - angle : 0;
             const base: RigInput = {
                 x, y: ground(x, z), z, yaw, pitch: Number(form.get("pitch")), draw: Number(form.get("draw")), left: !!form.get("left"),
-                stage: form.get("panting") ? 3 : 0, wounds: own ? wounds : 0, resting: !!form.get("resting") && own, dead: !!form.get("dead") && own, tip: form.get("dead") && own ? Math.PI / 2 * .94 : 0,
+                stage: form.get("panting") ? 3 : 0, wounds: own ? wounds : 0, resting: !!form.get("resting") && own, dead: !!form.get("dead") && own, blow: { part: "torso", direction: [0, 0, 1], power: .7 },
             };
             if (!own) Object.assign(base, { pitch: 0, draw: 0, stage: 0 }, figure.input(t));
             figure.rig.update(dt, base);

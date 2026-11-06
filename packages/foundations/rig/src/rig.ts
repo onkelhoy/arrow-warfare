@@ -1,12 +1,16 @@
 import { Armature, type Bone } from "@papit/armature";
 import { legsHurt, WOUND, type Capsule, type Vec, type Zone } from "@arrow-warfare/archery";
 import { compose, invert, mat4, multiply, type Mat4 } from "@arrow-warfare/render";
+import type { Ragdoll } from "@arrow-warfare/ragdoll";
+
+import { frame, limp, type Blow, type LimpPoint } from "./limp";
 
 /**
  * The silly body: a big torso, a round head, short arms and tiny legs, rigid parts on an armature. Arms
  * and legs are two bones each, solved by IK: the feet to where they're planted on the ground, the hands
  * to the bow and its string. Everything is in rig space (the feet at 0, facing -z, right is +x), and
- * `place` puts it in the world, tipped over when dead.
+ * `place` puts it in the world. Dead, it goes limp: a ragdoll in the world, thrown by what killed it, and
+ * `place` is then the identity.
  */
 
 /** Measures, metres in rig space. The hips are the torso's origin. */
@@ -50,8 +54,10 @@ export type RigInput = {
     /** Sat down to rest. */
     resting: boolean;
     dead: boolean;
-    /** Tipped back by this many radians, when dead. */
-    tip: number;
+    /** What killed them, read once as they go limp. */
+    blow?: Blow | null;
+    /** Not used any more, the ragdoll falls. */
+    tip?: number;
     /** No bow (the round is over, or the view wants the hands). */
     unarmed?: boolean;
 };
@@ -129,14 +135,17 @@ export class Rig {
 
     /** Where the body is now, for hit tests: the feet and facing, tipped or not. */
     where = { x: 0, y: 0, z: 0, yaw: 0, tip: 0 };
-    /** Dead this long, and each limb's twitch (arms then legs), fading. */
-    private deadFor = 0;
-    private twitch = [0, 0, 0, 0];
+    /** The dead body, once limp. */
+    doll: Ragdoll<LimpPoint> | null = null;
+    private posed = false;
 
     update(dt: number, input: RigInput) {
+        if (input.dead) return this.limp(dt, input);
+        this.doll = null;
+        this.posed = true;
         this.clock += dt;
         const { x, y, z, yaw } = input;
-        this.where = { x, y, z, yaw, tip: input.dead ? input.tip : 0 };
+        this.where = { x, y, z, yaw, tip: 0 };
         compose(this.place, 0, x, y, z, yaw, this.where.tip);
 
         // how fast over the ground, a jump is a teleport (a spawn, a first pose)
@@ -151,13 +160,6 @@ export class Rig {
         else this.vx = this.vz = 0;
         this.last = { x, z };
         const speed = input.dead ? 0 : Math.hypot(this.vx, this.vz);
-        // a dead body twitches now and then, less and less
-        this.deadFor = input.dead ? this.deadFor + dt : 0;
-        for (let i = 0; i < 4; i++)
-        {
-            this.twitch[i] *= Math.exp(-dt * 9);
-            if (input.dead && this.deadFor > .8 && Math.random() < dt * 1.2 * Math.exp(-this.deadFor / 6)) this.twitch[i] = (.06 + Math.random() * .1) * Math.exp(-this.deadFor / 8);
-        }
 
         const legs = legsHurt(input.wounds);
         const sitting = !input.dead && (input.resting || legs >= 2);
@@ -215,8 +217,7 @@ export class Rig {
             arm.pole.set([shoulder[0] + s * .45, shoulder[1] - .3, shoulder[2] + .4]);
             const hurt = (input.wounds & (i === 0 ? WOUND.leftArm : WOUND.rightArm)) !== 0;
             let target: Vec;
-            if (input.dead) target = [shoulder[0] + s * (.45 + this.twitch[i] * .5), shoulder[1] + .12 + this.twitch[i], shoulder[2] + .1];
-            else if (arm === bowArm && this.armed) target = this.point(this.bow, 0, 0, .03);
+            if (arm === bowArm && this.armed) target = this.point(this.bow, 0, 0, .03);
             else if (arm === stringArm && this.armed && r > .05)
             {
                 // the string hand at the nock, coming from the side as the bow comes up
@@ -240,6 +241,64 @@ export class Rig {
             const tucked = hopping && (input.wounds & (i === 0 ? WOUND.leftLeg : WOUND.rightLeg)) !== 0;
             compose(this.feet[i], 0, leg.lower.tail[0], leg.lower.tail[1], leg.lower.tail[2], 0, low * 1.3 + (tucked ? -.6 : 0));
         }
+        this.updateCapsules();
+    }
+
+    /** Dead: the ragdoll from the last pose, then every part from its points. */
+    private limp(dt: number, input: RigInput) {
+        if (!this.doll)
+        {
+            // never posed (a body first seen dead): stand it up once to have a pose to fall from
+            if (!this.posed) this.update(1e-4, { ...input, dead: false, blow: null, draw: 0 });
+            const w = (p: ArrayLike<number>): Vec => this.world([p[0], p[1], p[2]]);
+            const [left, right] = this.arms, [leftLeg, rightLeg] = this.legs;
+            this.doll = limp({
+                pelvis: w(this.point(this.torso, 0, 0, 0)),
+                chest: w(this.point(this.torso, 0, MEASURE.shoulder, 0)),
+                head: w(this.point(this.head, 0, .22, 0)),
+                lShoulder: w(left.upper.head), lElbow: w(left.upper.tail), lHand: w(left.lower.tail),
+                rShoulder: w(right.upper.head), rElbow: w(right.upper.tail), rHand: w(right.lower.tail),
+                lHip: w(leftLeg.upper.head), lKnee: w(leftLeg.upper.tail), lFoot: w(leftLeg.lower.tail),
+                rHip: w(rightLeg.upper.head), rKnee: w(rightLeg.upper.tail), rFoot: w(rightLeg.lower.tail),
+            }, this.ground, [this.vx, 0, this.vz], input.blow ?? null);
+            this.vx = this.vz = 0;
+            this.last = null;
+        }
+        const doll = this.doll;
+        doll.update(dt);
+        const p = doll.points;
+        const at = (name: LimpPoint): Vec => [p[name].x, p[name].y, p[name].z];
+        const minus = (a: Vec, b: Vec): Vec => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+
+        compose(this.place, 0, 0, 0, 0, 0, 0);
+        const pelvis = at("pelvis"), chest = at("chest"), head = at("head");
+        const across = minus(at("rShoulder"), at("lShoulder"));
+        const up = minus(chest, pelvis);
+        frame(this.torso, pelvis, across, up);
+        const neckUp = minus(head, chest);
+        const n = Math.hypot(...neckUp) || 1;
+        frame(this.head, [head[0] - neckUp[0] / n * .22, head[1] - neckUp[1] / n * .22, head[2] - neckUp[2] / n * .22], across, neckUp);
+        const bone = (b: Bone, from: LimpPoint, to: LimpPoint) => {
+            const a = at(from), c = at(to);
+            b.head.set(a);
+            b.tail.set(c);
+            frame(b.worldMatrix as unknown as Float32Array, a, minus(c, a), up);
+        };
+        const [left, right] = this.arms, [leftLeg, rightLeg] = this.legs;
+        bone(left.upper, "lShoulder", "lElbow"); bone(left.lower, "lElbow", "lHand");
+        bone(right.upper, "rShoulder", "rElbow"); bone(right.lower, "rElbow", "rHand");
+        bone(leftLeg.upper, "lHip", "lKnee"); bone(leftLeg.lower, "lKnee", "lFoot");
+        bone(rightLeg.upper, "rHip", "rKnee"); bone(rightLeg.lower, "rKnee", "rFoot");
+        frame(this.hands[0], at("lHand"), across, up);
+        frame(this.hands[1], at("rHand"), across, up);
+        frame(this.feet[0], at("lFoot"), across, minus(at("lKnee"), at("lFoot")));
+        frame(this.feet[1], at("rFoot"), across, minus(at("rKnee"), at("rFoot")));
+
+        this.where = { x: pelvis[0], y: pelvis[1], z: pelvis[2], yaw: input.yaw, tip: 1 };
+        this.dead = true;
+        this.armed = false;
+        this.draw = 0;
+        this.heave = 1;
         this.updateCapsules();
     }
 
@@ -314,7 +373,6 @@ export class Rig {
             let foot: Vec;
             if (sitting) foot = [s * .16, MEASURE.ankle, -.3 + (s * Math.sin(this.crawl) * .04)];
             else if (hopping) foot = hurt ? [s * MEASURE.hipWidth, this.lift + .15, .27] : [s * MEASURE.hipWidth, this.lift * .85 + MEASURE.ankle, 0];
-            else if (input.dead) foot = [s * .16, MEASURE.ankle + this.twitch[2 + i] * .6, this.twitch[2 + i] * .8];
             else
             {
                 foot = toRig(this.steps[i].plant);

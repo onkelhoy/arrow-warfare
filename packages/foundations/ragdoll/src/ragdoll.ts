@@ -21,7 +21,7 @@ const AIR = .998;
 const GRIP = .82;
 const BOUNCE = .25;
 /** Below this speed (m/s) for this long (s), it sleeps. */
-const STILL = .12;
+const STILL = .2;
 const SETTLE = .6;
 
 /**
@@ -109,7 +109,7 @@ export class Ragdoll<Name extends string = string> {
 
     private step() {
         this.time += STEP;
-        let fastest = 0;
+        let speed = 0, count = 0;
         for (const name in this.points)
         {
             const p = this.points[name];
@@ -118,14 +118,15 @@ export class Ragdoll<Name extends string = string> {
             p.x += vx;
             p.y += vy - this.gravity * STEP * STEP;
             p.z += vz;
-            fastest = Math.max(fastest, Math.hypot(vx, vy, vz) / STEP);
+            speed += Math.hypot(vx, vy, vz) / STEP;
+            count++;
         }
         for (let pass = 0; pass < PASSES; pass++)
         {
             for (const stick of this.sticks) pull(stick);
             for (const name in this.points) this.ground(this.points[name], pass === PASSES - 1);
         }
-        this.still = fastest < STILL ? this.still + STEP : 0;
+        this.still = speed / (count || 1) < STILL ? this.still + STEP : 0;
         if (this.still >= SETTLE) this.resting = true;
     }
 

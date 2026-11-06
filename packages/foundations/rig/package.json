@@ -42,7 +42,8 @@
     "@arrow-warfare/archery": "*",
     "@arrow-warfare/render": "*",
     "@arrow-warfare/world": "*",
-    "@papit/armature": "^0.0.1"
+    "@papit/armature": "^0.0.1",
+    "@arrow-warfare/ragdoll": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

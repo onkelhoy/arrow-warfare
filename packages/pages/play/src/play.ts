@@ -8,7 +8,7 @@ import { Draw, heading, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wou
 import { adopt, CHAT_LENGTH, COLOURS, QUALITY, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
-import { Rig } from "@arrow-warfare/rig";
+import { Rig, type Blow } from "@arrow-warfare/rig";
 import { Sfx, type SfxName, type Sound } from "@arrow-warfare/sound";
 import { currentPalette, Field, Meadow, type PaletteName } from "@arrow-warfare/world";
 
@@ -72,8 +72,6 @@ const WALK_UP = 1.6;
 const SPIRIT = 1.5;
 /** The most arrows a dead player drops. */
 const MAX_DROP = 20;
-/** How far a body tips over when it dies (as in `others`). */
-const FALL = Math.PI / 2 * .94;
 
 /** `point` and `direction` are in the hit part's own space, `at` is where in the world. */
 type Hit = { arrow: string; victim: string; zone: Zone; part: string; point: Vec; direction: Vec; place: BodyPlace; at: Vec; distance: number; time: number };
@@ -257,8 +255,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     let finalDeath: string | null = null;
     let finalShown = false;
     let winner: Results["winner"] = null;
-    /** How far my body has tipped over. */
-    let myTip = 0;
+    /** What threw me when I died. */
+    let myBlow: Blow | null = null;
 
     const setView = (next: View) => {
         view = next;
@@ -420,7 +418,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const u = Math.min(1, spirit.time / (SPIRIT - .3));
             const e = u * u * (3 - 2 * u);
             const forward: Vec = [-Math.sin(spirit.yaw), 0, -Math.cos(spirit.yaw)];
-            const body: Vec = [walker.x, walker.y + .45, walker.z];
+            // where my body lies, thrown or not
+            const body: Vec = myRig.doll ? [myRig.where.x, myRig.where.y + .2, myRig.where.z] : [walker.x, walker.y + .45, walker.z];
             const out: Vec = [body[0] - forward[0] * 1.9, body[1] + 1.75, body[2] - forward[2] * 1.9];
             const eye: Vec = [spirit.from[0] + (out[0] - spirit.from[0]) * e, spirit.from[1] + (out[1] - spirit.from[1]) * e, spirit.from[2] + (out[2] - spirit.from[2]) * e];
             const ahead: Vec = [spirit.from[0] + forward[0] * 4, spirit.from[1], spirit.from[2] + forward[2] * 4];
@@ -523,7 +522,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const time = Number.isFinite(hit.time) ? hit.time : net.shared();
             replay.hit({ arrow: hit.arrow, victim, zone: hit.zone, part: hit.part, point: hit.point, direction: hit.direction, place: hit.place, at: hit.at, time, lethal });
             tally.taken(victim);
-            if (victim !== me) lethal ? others.kill(victim, hit.place) : others.hurt(victim, hit.zone);
+            const blow: Blow = { part: hit.part, direction: heading(arrow), power: powerOf(arrow.shot.speed) };
+            if (lethal && victim === me) myBlow ??= blow;
+            if (victim !== me) lethal ? others.kill(victim, hit.place, blow) : others.hurt(victim, hit.zone);
             sound("body", hit.at);
             sound("grunt", hit.at, lethal ? 1 : .7, .9 + Math.random() * .25);
             blood.spray(hit.at, heading(arrow), powerOf(arrow.shot.speed));
@@ -727,7 +728,6 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (walker.alive && view === "play") walker.update(dt, controls, settings().sensitivity, draw);
         if (view === "play") walker.place(camera, draw);
         else direct(dt);
-        if (!walker.alive) myTip = Math.min(FALL, myTip + dt * 3.2 * (.3 + myTip));
         arrows.showMine = !walker.alive;
 
         // the bow: the thumb on its button, or space
@@ -780,7 +780,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         myRig.update(dt, {
             x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch,
             draw: draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
-            wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, tip: myTip, unarmed: over,
+            wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, blow: myBlow, unarmed: over,
         });
 
         // arrows, and the bodies my phone judges
