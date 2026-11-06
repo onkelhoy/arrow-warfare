@@ -2,6 +2,7 @@ import { GameObject } from "@papit/game-engine";
 import { MeshBuilder, seeded, type Batch, type MeshData, type Renderer, type Vec3 } from "@arrow-warfare/render";
 
 import { CLOUDS, PALETTES, type PaletteName } from "./atmosphere";
+import { Backdrop } from "./backdrop";
 import { Field, STONES, VARIANTS } from "./field";
 import { blob, cloud, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
 
@@ -28,6 +29,7 @@ export class Meadow extends GameObject {
     private flies: { x: number; y: number; z: number; phase: number }[] = [];
     private clock = 0;
     private clouds: Batch[] = [];
+    private backdrop: Backdrop;
     private sky: { batch: number; index: number; x: number; y: number; z: number; yaw: number; scale: number }[] = [];
 
     constructor(readonly renderer: Renderer, readonly field: Field, setting: MeadowSetting = {}) {
@@ -70,6 +72,7 @@ export class Meadow extends GameObject {
         const tufts = [grassTuft(field.seed), grassTuft(field.seed + 1), grassTuft(field.seed + 2)];
         tufts.forEach((tuft, i) => add(tuft, grass.filter((_, g) => g % tufts.length === i), { sway: .12 }));
 
+        this.backdrop = new Backdrop(renderer, field.radius, field.seed, name);
         this.addClouds(name);
         if (name === "night") this.addFireflies();
     }
@@ -78,6 +81,7 @@ export class Meadow extends GameObject {
     palette(name: PaletteName) {
         this.renderer.light = structuredClone(PALETTES[name]);
         this.tintClouds(name);
+        this.backdrop.palette(name);
         if (name === "night" && !this.fireflies) this.addFireflies();
         if (name !== "night" && this.fireflies)
         {
@@ -117,6 +121,7 @@ export class Meadow extends GameObject {
         this.fireflies = null;
         for (const batch of this.clouds) this.renderer.removeBatch(batch);
         this.clouds.length = this.sky.length = 0;
+        this.backdrop.destroy();
     }
 
     /** Clouds high over the meadow and the forest, a few shapes, coloured by the time of day. */

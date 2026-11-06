@@ -118,7 +118,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         layer.resize();
         controls.placeBow(settings().bow, play.clientWidth);
     };
-    const camera = new Camera({ fov: 1.1, near: .05, far: 220 });
+    // far enough for the painted mountains round the field (`BACKDROP_REACH` past the edge)
+    const camera = new Camera({ fov: 1.1, near: .05, far: 320 });
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
 

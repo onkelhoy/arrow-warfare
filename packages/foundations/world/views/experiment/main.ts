@@ -50,6 +50,13 @@ function build() {
 
     const field = new Field({ seed: Number(data.get("seed")) || 0, size: data.get("size") as MapSize, trees: data.get("trees") as TreeAmount });
     meadow = engine.add(new Meadow(renderer, field, { palette }));
+    if (view === "backdrop")
+    {
+        // standing in the middle, eye high, looking out at the mountains and the castle (drag to turn)
+        target.position = { x: 0, y: field.height(0, 0) + 1.7, z: 0 };
+        look(1, .05);
+        return;
+    }
     target.position = { x: 0, y: 0, z: 0 };
     look(view === "spawns" ? 45 : 70, view === "spawns" ? .9 : .55);
 

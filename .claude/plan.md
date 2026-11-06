@@ -2,7 +2,7 @@
 
 ## Where we are
 
-Plan confirmed. Next: task 6.
+Plan confirmed. Next: task 7.
 
 ## Tasks
 
@@ -11,7 +11,7 @@ Plan confirmed. Next: task 6.
 3. [x] Medieval controls: wooden plaque buttons, parchment panels, inputs; restyle atoms/molecules (bow-button left as is, chat, invite-dialog, share-link, corner).
 4. [x] Restyle pages menu, lobby, results onto the backdrop.
 5. [x] `aw-fanfare` atom: CSS-only SVG trumpets with flags rotating in from the sides, bob/squash while playing, random kazoo of 3.
-6. [ ] In-game: put the painted backdrop (mountains, castle, sky) behind the 3D scene in `play`.
+6. [x] In-game: put the painted backdrop (mountains, castle, sky) behind the 3D scene in `play`.
 7. [ ] Hillier terrain in `foundations/world`: more and taller rolling hills, still fair for spawns and walking.
 8. [ ] Results use `aw-fanfare`; remove synthesised `fanfare` sfx.
 9. [ ] SKIP: All non-game `views/`: `pap-codeblock` + light/dark toggle.
