@@ -7,8 +7,8 @@ import type { DrawEvent } from "./types";
 
 /**
  * The bow button. Hold a thumb on it and the bow draws by time (the game decides how fast). The same
- * thumb aims freely, every direction. Slide off it to aim, come back onto it and let go to shoot. Let go
- * anywhere else and the bow comes down.
+ * thumb aims freely, every direction. On press the button snaps to the right edge and becomes a cancel
+ * button: let go anywhere to shoot, let go on it to bring the bow down. Then it snaps back.
  *
  * @element aw-bow-button
  *
@@ -17,7 +17,7 @@ import type { DrawEvent } from "./types";
  *
  * @fires drawstart {DrawEvent} the thumb went down on it
  * @fires drawmove {DrawEvent} the thumb moved
- * @fires drawend {DrawEvent} the thumb let go, `shoot` says if it was back on the button
+ * @fires drawend {DrawEvent} the thumb let go, `shoot` is false when it let go on the cancel button
  */
 export class BowButton extends CustomElement {
     static sheet = sheet;
@@ -25,14 +25,12 @@ export class BowButton extends CustomElement {
     @property({ type: Boolean, reflect: true }) active: boolean = false;
     @property({ type: Boolean, reflect: true }) disabled: boolean = false;
 
-    /** The thumb left the button and is back on it. */
+    /** Letting go now shoots (the thumb is not on the cancel button). */
     shoot = false;
 
     private pointer: number | null = null;
     private lastX = 0;
     private lastY = 0;
-    /** The thumb has been off the button since it went down. */
-    private left = false;
 
     connectedCallback() {
         super.connectedCallback();
@@ -65,9 +63,15 @@ export class BowButton extends CustomElement {
 
     private check(x: number, y: number) {
         const on = this.onButton(x, y);
-        if (!on) this.left = true;
-        this.shoot = this.left && on;
-        this.toggleAttribute("shooting", this.shoot);
+        this.shoot = !on;
+        this.toggleAttribute("over", on);
+    }
+
+    /** Snap the button to the right edge, same height. */
+    private moveAside() {
+        const box = this.getBoundingClientRect();
+        const margin = 16;
+        this.style.translate = `${window.innerWidth - margin - box.right}px 0`;
     }
 
     private handledown = (event: PointerEvent) => {
@@ -78,8 +82,8 @@ export class BowButton extends CustomElement {
         this.setPointerCapture(event.pointerId);
         this.lastX = event.clientX;
         this.lastY = event.clientY;
-        this.shoot = false;
-        this.left = false;
+        this.moveAside();
+        this.shoot = true;
         this.active = true;
         this.fire("drawstart", 0, 0);
     }
@@ -108,7 +112,8 @@ export class BowButton extends CustomElement {
     private finish() {
         this.pointer = null;
         this.active = false;
-        this.removeAttribute("shooting");
+        this.style.translate = "";
+        this.removeAttribute("over");
         this.fire("drawend", 0, 0);
         this.shoot = false;
     }
@@ -120,10 +125,13 @@ export class BowButton extends CustomElement {
     render() {
         return html`
             <div class="button" part="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
+                <svg class="bow" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M6 3c5 3 5 15 0 18" />
                     <path d="M6 3v18" class="cord" />
                     <path d="M3 12h16m-3-3 3 3-3 3" />
+                </svg>
+                <svg class="cancel" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" />
                 </svg>
             </div>
             <slot></slot>

@@ -22,7 +22,7 @@ type Looker = { x: number; y: number; startX: number; startY: number; at: number
 
 /**
  * What the player asks for, from any device. Touch: the joystick on the left moves, dragging anywhere else
- * looks, holding the bow button draws (by time) and aims, sliding back onto it and letting go shoots, a tap picks up. Desktop: click to lock the mouse and look, WASD or
+ * looks, holding the bow button draws (by time) and aims, letting go shoots (or cancels on the moved button), a tap picks up. Desktop: click to lock the mouse and look, WASD or
  * the arrows to walk, hold space to draw, click to pick up, E pulls an arrow out of myself.
  */
 export class Controls {
@@ -38,7 +38,7 @@ export class Controls {
     free = false;
     /** Space is down. */
     space = false;
-    /** A thumb is on the bow button, and it's back on the button to shoot. */
+    /** A thumb is on the bow button, and letting go now shoots. */
     thumb = false;
     shoot = false;
     /** Taps since the last `taps()`, in CSS pixels on the page. */
@@ -172,7 +172,7 @@ export class Controls {
         this.lookers.delete(event.pointerId);
     }
 
-    /** The bow button: held, back on it to shoot, and the same thumb turning the view. */
+    /** The bow button: held, letting go shoots unless on cancel, and the same thumb turning the view. */
     private handledraw = (event: Event) => {
         const { dx, dy, shoot } = (event as CustomEvent<DrawEvent>).detail;
         this.thumb = event.type !== "drawend";
