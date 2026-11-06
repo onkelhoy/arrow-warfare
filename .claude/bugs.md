@@ -61,3 +61,7 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - Rounds: between rounds the phase goes play → locked → countdown; check nobody is left behind on the lobby.
 - Friendly fire off is judged on each victim's phone; a teammate's arrow still sticks in the ground behind you.
 - Twitches use `Math.random`, so a corpse twitches differently on each phone (only looks).
+
+### Guest has to click ready twice
+- **What:** as a guest in the menu/lobby, ready needs two clicks to register. Not investigated yet (menu logic comes after the redesign).
+- **Workaround:** click twice.
