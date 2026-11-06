@@ -1,7 +1,7 @@
 import { fly, heading, launch, powerOf, STEP, type Shot, type Vec } from "@arrow-warfare/archery";
 import type { Pose } from "@arrow-warfare/net";
 import type { Renderer, Vec3 } from "@arrow-warfare/render";
-import { Bodies, Rig } from "@arrow-warfare/rig";
+import { Bodies, Rig, type Blow } from "@arrow-warfare/rig";
 import type { Field } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
 
@@ -9,9 +9,6 @@ import type { Arrows } from "./arrows";
 import type { Blood } from "./blood";
 import type { HitRecord, Replay } from "./replay";
 
-/** How far a body tips over when it dies, and how fast (as in `others`). */
-const FALL = Math.PI / 2 * .94;
-const FALL_SPEED = 3.2;
 /** A flight shorter than this (ms) has no flyby. */
 const FLYBY_LEAST = 380;
 
@@ -69,8 +66,8 @@ const side = (d: Vec): Vec => {
  */
 export class Film {
     private bodies: Bodies;
-    private rigs = new Map<string, { rig: Rig; tip: number }>();
-    private ends = new Map<string, HitRecord>();
+    private rigs = new Map<string, Rig>();
+    private ends = new Map<string, HitRecord & { blow: Blow | null }>();
     private shots: Shot_[] = [];
     private cues: Cue[] = [];
     private index = 0;
@@ -101,7 +98,15 @@ export class Film {
         this.rigs.clear();
         // when and where each body went down
         this.ends.clear();
-        for (const other of replay.hits.values()) if (other.lethal && !this.ends.has(other.victim)) this.ends.set(other.victim, other);
+        for (const other of replay.hits.values())
+        {
+            if (!other.lethal || this.ends.has(other.victim)) continue;
+            // what threw them: the arrow's way as it went in, and its power
+            const by = replay.shots.get(other.arrow);
+            const flown = by ? this.path(by, other.time) : [];
+            const blow = flown.length ? { part: other.part, direction: flown[flown.length - 1].direction, power: powerOf(by!.speed) } : null;
+            this.ends.set(other.victim, { ...other, blow });
+        }
 
         const strike = hit.time;
         const path = shot ? this.path(shot, strike) : [];
@@ -159,12 +164,16 @@ export class Film {
         // the strike: from the side, the arrow going in and the body going down, slowest at the hit
         const eye = ground(add(add(add(at, across, 1.55), direction, -.45), [0, .22, 0]), .25);
         this.shots.push({
-            name: "strike", real: 2.4, from: Math.max(start, strike - 60), to: strike + 1500, ease: u => u ** 1.8,
+            name: "strike", real: 2.8, from: Math.max(start, strike - 60), to: strike + 2000, ease: u => u ** 1.8,
             camera: (_, u) => {
                 // a slow turn around the hit
                 const turn = u * .4, c = Math.cos(turn), s = Math.sin(turn);
                 const ox = eye[0] - at[0], oz = eye[2] - at[2];
-                return { eye: [at[0] + ox * c - oz * s, eye[1] + u * .25, at[2] + ox * s + oz * c], look: at };
+                // looking where the body is thrown, from where it was hit
+                const body = this.rigs.get(victim);
+                const lying: Vec = body?.doll ? [body.where.x, body.where.y, body.where.z] : at;
+                const look = mix(at, lying, .8);
+                return { eye: [look[0] + ox * c - oz * s, eye[1] + u * .25, look[2] + ox * s + oz * c], look };
             },
         });
         const strength = shot ? powerOf(shot.speed) : .6;
@@ -177,7 +186,7 @@ export class Film {
         // the drops of every hit in the film, as it happens
         for (const other of replay.hits.values())
         {
-            if (other.time <= this.shots[0].from || other.time > strike + 1500) continue;
+            if (other.time <= this.shots[0].from || other.time > strike + 2000) continue;
             this.cues.push({ time: other.time, play: () => this.spray(other, shot && other.arrow === shot.id ? strength : .5) });
         }
         this.cues.sort((a, b) => a.time - b.time);
@@ -225,7 +234,7 @@ export class Film {
         this.pose(step / 1000);
         const { eye, look } = shot.camera(this.time, u);
         aim(this.world.camera, eye, look);
-        this.world.arrows.drawAt(this.time, this.world.replay.shots.values(), this.world.replay.hits, id => this.rigs.get(id)?.rig ?? null, eye);
+        this.world.arrows.drawAt(this.time, this.world.replay.shots.values(), this.world.replay.hits, id => this.rigs.get(id) ?? null, eye);
     }
 
     destroy() {
@@ -243,32 +252,35 @@ export class Film {
             const look = this.world.lookOf(id);
             let pose = replay.at(id, time) ?? this.world.fallback(id);
             if (!pose || !look) continue;
-            let entry = this.rigs.get(id);
             const end = this.ends.get(id);
             const dead = !!end && end.time <= time;
-            if (!entry)
+            let rig = this.rigs.get(id);
+            const fresh = !rig;
+            if (!rig)
             {
-                entry = { rig: new Rig((x, z) => this.world.field.height(x, z)), tip: dead ? FALL : 0 };
-                this.rigs.set(id, entry);
+                rig = new Rig((x, z) => this.world.field.height(x, z));
+                this.rigs.set(id, rig);
             }
-            if (dead)
-            {
-                entry.tip = Math.min(FALL, entry.tip + dt * FALL_SPEED * (.3 + entry.tip));
-                // they lie where they were hit
-                pose = { ...pose, x: end.place.x, z: end.place.z, yaw: end.place.yaw, draw: 0 };
-            }
-            entry.rig.update(Math.max(dt, 1e-4), {
+            // they're thrown from where they were hit
+            if (dead) pose = { ...pose, x: end.place.x, z: end.place.z, yaw: end.place.yaw, draw: 0 };
+            rig.update(Math.max(dt, 1e-4), {
                 x: pose.x, y: this.world.field.height(pose.x, pose.z), z: pose.z, yaw: pose.yaw, pitch: pose.pitch,
                 draw: dead ? 0 : pose.draw, left: pose.left, stage: pose.stage, wounds: pose.wounds, resting: pose.resting,
-                dead, tip: entry.tip,
+                dead, blow: end?.blow ?? null,
             });
-            shown.push({ rig: entry.rig, look });
+            // dead before the film: already lying where they fell
+            if (fresh && dead && rig.doll)
+            {
+                rig.doll.runTo((time - end.time) / 1000);
+                rig.update(1e-4, { x: pose.x, y: 0, z: pose.z, yaw: pose.yaw, pitch: 0, draw: 0, left: pose.left, stage: 0, wounds: pose.wounds, resting: pose.resting, dead });
+            }
+            shown.push({ rig, look });
         }
         this.bodies.draw(shown);
     }
 
     private spray(hit: HitRecord, strength: number) {
-        const rig = this.rigs.get(hit.victim)?.rig;
+        const rig = this.rigs.get(hit.victim);
         const direction = rig ? rig.fromPart(hit.part, hit.direction, 0) : [0, 0, -1] as Vec;
         this.world.blood.spray(hit.at, direction, strength);
     }
