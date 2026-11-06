@@ -288,12 +288,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         afterFilm(victim, killer);
     };
 
+    /** The last kill cam is only for the one it killed and the winner (or the winning team). */
+    const seesFinal = () => {
+        if (finalDeath === me) return true;
+        if (!winner) return false;
+        return winner.kind === "player" ? winner.id === me : state.players.find(player => player.id === me)?.team === winner.id;
+    };
+
     /** After a kill cam: the final one if it's still to come, the end, or watching the killer. */
     const afterFilm = (victim: string, killer: string) => {
         if (over)
         {
             const last = finalDeath ? replay.deaths.get(finalDeath) : null;
-            if (!finalShown && last)
+            if (!finalShown && last && seesFinal())
             {
                 finalShown = true;
                 return startFilm(last.id, last.by, last.arrow);
@@ -600,11 +607,11 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             draw.cancel();
             winner = won ?? null;
             finalDeath = typeof last === "string" ? last : null;
-            // everyone sees the last kill: those in a kill cam see it once theirs is over
+            // the last kill, for its victim and the winner: those in a kill cam see it once theirs is over
             if ((view === "film" && film.victim === finalDeath) || (view === "spirit" && finalDeath === me)) finalShown = true;
             if (view === "film" || view === "spirit" || queued) return;
             const death = finalDeath ? replay.deaths.get(finalDeath) : null;
-            if (!death) return finale();
+            if (!death || !seesFinal()) return finale();
             finalShown = true;
             startFilm(death.id, death.by, death.arrow);
         }),

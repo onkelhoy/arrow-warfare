@@ -222,7 +222,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 5. ✅ **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
 6. ✅ **Polish** (F16, quality, glb if wanted).
 7. ✅ **World design** (F17): softer, crisper colours after cowboy, lighter shadows, drawn sun and moon, clouds, the missing arm, dropped arrows. The arrow bag moved to later.
-8. **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
+8. ✅ **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
 
 ---
 
@@ -274,6 +274,15 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - The play view: the round inside a codeblock with time, seed, rules, bots, injure me and a new round button.
 - Tested headless: hits on rig parts (wounds and kills), wounds on me, pull out, the demo controls, three browsers through the real app. Not on a real phone, and hopping and the walk weren't watched over the network.
 - My own body isn't drawn in first person, and arrows in my head, torso or arms aren't shown (they'd be at my eyes).
+
+## Notes from milestone 8 (for the owner to review)
+- **Bow button:** let go back on the button to shoot (after the thumb has left it), anywhere else lets the bow down. No strip, no string line. Default spot 80% across, 72% down; saved spots stay, Reset in the layout moves it.
+- **Eyes:** crossed out x eyes on the dead.
+- **Ragdoll** (`foundations/ragdoll`, cowboy's verlet in 3D): dead bodies are thrown by the arrow's way and power (about 0.8 m for a weak shot, 4 m at full), land on the meadow sinking in a little, and sleep in about 2 s. Fixed 1/120 s steps from a clean standing pose where they died, so every phone and the kill cam get the same fall (checked: same to 5 decimals across frame rates).
+- **Kill cam:** no more standing T pose: alive until the arrow is in, then thrown in slow motion; the strike shot is 0.5 s longer and looks where the body lands.
+- **Last kill cam:** only for its victim and the winner (or winning team). Everyone else goes straight to the end.
+- Corpses still aren't hit by arrows (as before). Tuning knobs: push in `rig/src/limp.ts`, grip, bounce and sink in `ragdoll/src/ragdoll.ts`.
+- Nothing tested on a phone here.
 
 ## Notes from milestone 6 (for the owner to review)
 - **Bow button, new:** hold to draw (by time, like space). The same thumb aims every way. Let go in the strip at the right edge (shown while drawing, lights up when the thumb is in it) to shoot, anywhere else lets the bow down. The strip is 12% of the screen width (60 to 130 px).
