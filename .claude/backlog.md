@@ -222,6 +222,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 5. ✅ **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
 6. ✅ **Polish** (F16, quality, glb if wanted).
 7. ✅ **World design** (F17): softer, crisper colours after cowboy, lighter shadows, drawn sun and moon, clouds, the missing arm, dropped arrows. The arrow bag moved to later.
+8. **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
 
 ---
 
