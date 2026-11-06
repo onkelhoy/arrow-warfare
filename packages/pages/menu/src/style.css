@@ -57,3 +57,22 @@
     max-inline-size: 22rem;
     color: var(--aw-text-soft);
 }
+
+/* a phone on its side: the title beside the board, both in one screen */
+@media (orientation: landscape) and (max-height: 560px) {
+    .aw-menu {
+        grid-auto-flow: column;
+        align-items: center;
+        gap: 6vw;
+        padding: 12px max(24px, env(safe-area-inset-right)) 12px max(24px, env(safe-area-inset-left));
+    }
+
+    .aw-menu h1 {
+        font-size: clamp(2rem, 13vh, 4rem);
+        max-inline-size: 30vw;
+    }
+}
+
+.aw-menu-status:empty {
+    display: none;
+}

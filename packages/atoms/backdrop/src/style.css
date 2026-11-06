@@ -187,7 +187,6 @@ slot {
     inset-inline-start: 0;
     inline-size: clamp(90px, 16vmax, 240px);
     animation: drift linear infinite;
-    filter: drop-shadow(0 4px 0 rgb(0 0 0 / 8%));
 }
 
 .cloud svg {

@@ -15,11 +15,9 @@ pap-button {
     color: var(--aw-text, inherit);
     --btn-background: transparent;
     --btn-hover: color-mix(in oklch, var(--aw-parchment, #f6e7c1), transparent 40%);
-    box-shadow: 0 3px 0 var(--aw-ink, transparent);
 }
 
 pap-button[variant="clear"] {
     border-color: transparent;
-    box-shadow: none;
     text-decoration: underline;
 }

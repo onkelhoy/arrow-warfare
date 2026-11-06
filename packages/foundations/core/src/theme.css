@@ -1,6 +1,6 @@
 /*
- * The game's look outside the 3D: cartoon medieval. Parchment, wood, iron and banner red, thick ink
- * outlines and a hard drop shadow. Follows light and dark through `light-dark()`, so `color-scheme`
+ * The game's look outside the 3D: flat cartoon medieval. Plain wood with a few grain lines, banner red,
+ * cream fields and one ink outline, no shadows. Follows light and dark through `light-dark()`, so `color-scheme`
  * (the codeblock's theme toggle, or `data-theme`) flips it.
  */
 :root {
@@ -15,9 +15,9 @@
     --aw-parchment-edge: light-dark(#d9b97c, #24190f);
 
     /* wood plaques (buttons) */
-    --aw-wood: light-dark(#a5683a, #7a4a26);
-    --aw-wood-light: light-dark(#c98a52, #9a6236);
-    --aw-wood-dark: light-dark(#6e4022, #4a2a14);
+    --aw-wood: light-dark(#b97a45, #6e4426);
+    --aw-wood-light: light-dark(#cf9258, #845432);
+    --aw-wood-dark: light-dark(#8e5a30, #4f2f19);
     --aw-wood-text: #fff1d2;
 
     /* metal and cloth */
@@ -28,9 +28,16 @@
     --aw-banner-dark: light-dark(#8a1f19, #6a1712);
     --aw-leaf: light-dark(#4f8f3a, #3c6e2c);
 
+    /* cream fields to write in, on the wood */
+    --aw-field: light-dark(#fbf0d6, #e9d8b4);
+    --aw-field-text: #3a2614;
+
     --aw-outline: 3px solid var(--aw-ink);
-    --aw-drop: 0 4px 0 var(--aw-ink);
     --aw-radius: 14px;
+    --aw-control: 48px;
+
+    /* wood grain: short dark strokes and a few light ones, tiled; works on any wood colour */
+    --aw-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='110' fill='none' stroke-linecap='round'%3E%3Cg stroke='%23000' stroke-opacity='.13' stroke-width='1.6'%3E%3Cpath d='M14 14h24M120 22h12M176 9h22M58 46h30M150 58h16M24 84h18M98 96h26M190 88h14'/%3E%3C/g%3E%3Cg stroke='%23fff' stroke-opacity='.1' stroke-width='1.4'%3E%3Cpath d='M72 26h10M196 40h10M134 80h12'/%3E%3C/g%3E%3C/svg%3E");
 
     --aw-font: ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", system-ui, sans-serif;
     --aw-font-title: "Luminari", "Papyrus", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
@@ -47,151 +54,159 @@
     font-weight: 700;
     letter-spacing: .02em;
     color: var(--aw-gold);
-    -webkit-text-stroke: 2px var(--aw-ink);
+    -webkit-text-stroke: 3px var(--aw-ink);
     paint-order: stroke fill;
-    text-shadow: 0 4px 0 var(--aw-ink), 0 8px 18px rgb(0 0 0 / 30%);
 }
 
-/* a parchment sheet with a darker burnt edge */
+/*
+ * A wooden board: plain wood, a few grain lines, one ink outline. Inside it the text is cream and the
+ * inner wells (lists, chat) are a darker wood.
+ */
 .aw-panel {
+    --aw-text: var(--aw-wood-text);
+    --aw-text-soft: light-dark(#f3dcb2, #d9c29a);
+    --aw-parchment: var(--aw-wood-dark);
+    --aw-parchment-light: var(--aw-wood-dark);
+    --aw-parchment-edge: color-mix(in oklch, var(--aw-wood-dark), black 25%);
     position: relative;
     box-sizing: border-box;
-    padding: 20px 22px;
+    padding: 18px 20px;
     border: var(--aw-outline);
     border-radius: var(--aw-radius);
-    background:
-        radial-gradient(ellipse at 50% 40%, var(--aw-parchment-light), var(--aw-parchment) 65%, var(--aw-parchment-edge));
-    box-shadow: var(--aw-drop), inset 0 0 0 3px color-mix(in oklch, var(--aw-parchment-edge), transparent 40%), 0 10px 30px rgb(0 0 0 / 25%);
+    background: var(--aw-grain), var(--aw-wood);
     color: var(--aw-text);
     font-family: var(--aw-font);
 }
 
-/* a red pennant ribbon for small headings */
+/* a red pennant for small headings */
 .aw-ribbon {
     display: inline-block;
     margin: 0;
-    padding: 4px 22px;
+    padding: 4px 26px;
     font-family: var(--aw-font-title);
     font-size: 1.1rem;
     color: #fff1d2;
     background: var(--aw-banner);
-    border: var(--aw-outline);
-    border-radius: 4px;
-    box-shadow: 0 3px 0 var(--aw-ink);
     clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 50%, 100% 100%, 0 100%, 10px 50%);
-    padding-inline: 26px;
 }
 
-/* papit's button as a wooden plaque, pressed in when held */
+/* papit's button: a flat painted board, it dips a little when pressed */
 pap-button {
-    --btn-background: var(--aw-wood);
+    --btn-background: var(--aw-wood-light);
     --btn-border: var(--aw-ink);
-    --btn-hover: var(--aw-wood-light);
+    --btn-hover: color-mix(in oklch, var(--aw-wood-light), white 10%);
     --btn-active: var(--aw-wood-dark);
     --btn-text: var(--aw-wood-text);
-    min-block-size: 44px;
-    padding-inline: 18px;
+    min-block-size: var(--aw-control);
+    padding-inline: 20px;
     border: var(--aw-outline);
-    border-radius: 10px;
+    border-radius: 12px;
     font-family: var(--aw-font-title);
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    letter-spacing: .02em;
     color: var(--aw-wood-text);
-    text-shadow: 0 2px 0 var(--aw-wood-dark);
-    background-image: repeating-linear-gradient(176deg, rgb(255 255 255 / 0%) 0 9px, rgb(0 0 0 / 7%) 9px 11px);
-    box-shadow: inset 0 2px 0 rgb(255 255 255 / 25%), inset 0 -3px 0 var(--aw-wood-dark), var(--aw-drop);
-    transition: transform .08s, box-shadow .08s;
+    background-image: var(--aw-grain);
+    transition: translate .08s, scale .08s, background-color .12s;
+}
+
+pap-button:hover {
+    translate: 0 -1px;
 }
 
 pap-button:active {
-    transform: translateY(3px);
-    box-shadow: inset 0 2px 0 rgb(255 255 255 / 15%), 0 1px 0 var(--aw-ink);
+    translate: 0 2px;
+    scale: .98;
 }
 
 pap-button[color="primary"] {
     --btn-background: var(--aw-banner);
-    --btn-hover: color-mix(in oklch, var(--aw-banner), white 12%);
+    --btn-hover: color-mix(in oklch, var(--aw-banner), white 10%);
     --btn-active: var(--aw-banner-dark);
-    text-shadow: 0 2px 0 var(--aw-banner-dark);
-    box-shadow: inset 0 2px 0 rgb(255 255 255 / 25%), inset 0 -3px 0 var(--aw-banner-dark), var(--aw-drop);
 }
 
 pap-button[variant="outline"] {
-    --btn-background: var(--aw-parchment);
-    --btn-hover: var(--aw-parchment-light);
-    --btn-active: var(--aw-parchment-edge);
-    color: var(--aw-text);
-    text-shadow: none;
+    --btn-background: var(--aw-field);
+    --btn-hover: color-mix(in oklch, var(--aw-field), white 30%);
+    --btn-active: color-mix(in oklch, var(--aw-field), black 10%);
+    color: var(--aw-field-text);
     background-image: none;
-    box-shadow: inset 0 -3px 0 var(--aw-parchment-edge), var(--aw-drop);
 }
 
 pap-button[variant="clear"] {
     --btn-background: transparent;
-    --btn-hover: color-mix(in oklch, var(--aw-parchment), transparent 40%);
-    --btn-active: var(--aw-parchment-edge);
-    color: var(--aw-text);
-    text-shadow: none;
-    background-image: none;
-}
-
-pap-button[variant="clear"] {
+    --btn-hover: rgb(0 0 0 / 10%);
+    --btn-active: rgb(0 0 0 / 18%);
     color: inherit;
     border-color: transparent;
-    box-shadow: none;
+    background-image: none;
     text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+pap-button[size="small"] {
+    min-block-size: 38px;
+    font-size: 1rem;
 }
 
 pap-button[disabled] {
-    filter: grayscale(.6) brightness(.85);
+    filter: grayscale(.6) brightness(.9);
     cursor: default;
+    translate: none;
+    scale: none;
 }
 
-/* papit's input as a carved slot in the parchment */
+/* papit's input: a cream field, as tall as a button */
 pap-input {
-    --text: var(--aw-text);
-    --background-dark: var(--aw-parchment-light);
+    --text: var(--aw-field-text);
+    --background-dark: var(--aw-field);
     font-family: var(--aw-font);
 }
 
 pap-input::part(wrapper) {
+    box-sizing: border-box;
+    min-block-size: var(--aw-control);
+    padding-inline: 12px;
     border: var(--aw-outline);
-    border-radius: 10px;
-    background: var(--aw-parchment-light);
-    box-shadow: inset 0 3px 0 color-mix(in oklch, var(--aw-parchment-edge), transparent 30%);
+    border-radius: 12px;
+    background: var(--aw-field);
 }
 
 pap-input::part(input) {
-    color: var(--aw-text);
-    font-size: 1rem;
+    color: var(--aw-field-text);
+    font-size: 1.05rem;
 }
 
-/* papit's dialog as a parchment scroll */
+/* papit's dialog: a wooden board too */
 pap-dialog::part(dialog) {
     border: var(--aw-outline);
     border-radius: var(--aw-radius);
-    background: radial-gradient(ellipse at 50% 30%, var(--aw-parchment-light), var(--aw-parchment) 70%, var(--aw-parchment-edge));
-    box-shadow: 0 6px 0 var(--aw-ink), 0 20px 50px rgb(0 0 0 / 40%);
-    color: var(--aw-text);
+    background: var(--aw-grain), var(--aw-wood);
+    color: var(--aw-wood-text);
     font-family: var(--aw-font);
+}
+
+pap-dialog {
+    --aw-text: var(--aw-wood-text);
 }
 
 pap-dialog::part(header) {
     font-family: var(--aw-font-title);
     font-size: 1.3rem;
-    color: var(--aw-text);
-    border-block-end: 3px dashed color-mix(in oklch, var(--aw-parchment-edge), var(--aw-ink) 20%);
+    color: var(--aw-wood-text);
+    border-block-end: 3px dashed color-mix(in oklch, var(--aw-wood-dark), black 20%);
 }
 
-/* plain form bits inside panels */
+/* plain form bits on the wood */
 .aw-panel select,
 pap-dialog select {
     font: inherit;
-    padding: 6px 10px;
+    min-block-size: var(--aw-control);
+    padding: 6px 12px;
     border: var(--aw-outline);
-    border-radius: 10px;
-    background: var(--aw-parchment-light);
-    color: var(--aw-text);
+    border-radius: 12px;
+    background: var(--aw-field);
+    color: var(--aw-field-text);
 }
 
 .aw-panel input[type="range"],

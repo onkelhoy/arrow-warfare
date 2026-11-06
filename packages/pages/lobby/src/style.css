@@ -140,7 +140,6 @@
     border-inline-start: 10px solid var(--colour);
     border-radius: 10px;
     background: var(--aw-parchment-light);
-    box-shadow: 0 3px 0 var(--aw-ink);
     display: grid;
     gap: 6px;
 }
@@ -182,8 +181,6 @@
     background: repeating-linear-gradient(0deg, #b9824f 0 9px, #a8723f 9px 11px);
     border: 3px solid #6e4524;
     color: #fff6e0;
-    text-shadow: 0 1px 0 #4a2c14;
-    box-shadow: 0 3px 0 #4a2c14;
 }
 
 .aw-sign p {
@@ -231,7 +228,6 @@
     border-radius: 6px;
     background: #fff6e0;
     color: #4a2c14;
-    text-shadow: none;
     cursor: pointer;
 }
 
@@ -263,7 +259,6 @@
     color: var(--aw-gold);
     -webkit-text-stroke: 6px var(--aw-ink);
     paint-order: stroke fill;
-    text-shadow: 0 10px 0 var(--aw-ink);
     z-index: 60;
 }
 
@@ -289,6 +284,88 @@
     color: #fff1d2;
     -webkit-text-stroke: 3px var(--aw-ink);
     paint-order: stroke fill;
-    text-shadow: 0 4px 0 var(--aw-ink);
     z-index: 61;
+}
+
+/*
+ * A phone on its side (short and wide): the header is one slim row, the tabs and the chat sit side by
+ * side and each scrolls by itself, so the whole lobby fits on one screen.
+ */
+@media (orientation: landscape) and (max-height: 560px) {
+    .aw-lobby {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 8px;
+        max-inline-size: none;
+        block-size: 100dvh;
+        min-block-size: 0;
+        padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    }
+
+    .aw-lobby-head {
+        grid-column: 1 / -1;
+        flex-wrap: nowrap;
+        padding: 6px 12px;
+    }
+
+    .aw-lobby-head > div:first-child {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex: 1;
+        min-inline-size: 0;
+    }
+
+    .aw-lobby-buttons {
+        flex-wrap: nowrap;
+        flex: none;
+    }
+
+    .aw-lobby-name {
+        flex: none;
+        max-inline-size: 40%;
+    }
+
+    .aw-lobby-name {
+        font-size: 1.4rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .aw-lobby-phase {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .aw-lobby-tabs,
+    .aw-lobby-chat {
+        min-block-size: 0;
+        overflow-y: auto;
+        padding: 8px 12px;
+    }
+
+    .aw-lobby-chat {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .aw-lobby-chat > .aw-chat {
+        flex: 1;
+    }
+
+    .aw-lobby-chat {
+        overflow: hidden;
+    }
+
+    .aw-lobby-chat .aw-chat {
+        min-block-size: 0;
+    }
+
+    .aw-lobby-chat .aw-chat-lines {
+        min-block-size: 0;
+        max-block-size: none;
+    }
 }

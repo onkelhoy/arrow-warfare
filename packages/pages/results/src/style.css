@@ -87,3 +87,20 @@
     display: flex;
     gap: 12px;
 }
+
+/* a phone on its side: smaller title and rows, so the table and the buttons fit */
+@media (orientation: landscape) and (max-height: 560px) {
+    .aw-results {
+        gap: 6px;
+        padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+    }
+
+    .aw-results h1 {
+        font-size: clamp(1.6rem, 10vh, 2.6rem);
+    }
+
+    .aw-results th,
+    .aw-results td {
+        padding: 3px 10px;
+    }
+}

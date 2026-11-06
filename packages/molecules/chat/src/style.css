@@ -47,7 +47,6 @@
     border: var(--aw-outline);
     border-radius: 0 10px 10px 10px;
     background: var(--aw-parchment-light);
-    box-shadow: inset 0 3px 0 color-mix(in oklch, var(--aw-parchment-edge), transparent 30%);
     overflow-wrap: anywhere;
 }
 
@@ -59,4 +58,8 @@
 
 .aw-chat-form pap-input {
     flex: 1;
+}
+
+.aw-chat-form pap-button {
+    min-block-size: var(--aw-control, 48px);
 }
