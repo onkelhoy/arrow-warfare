@@ -51,7 +51,8 @@
     "@arrow-warfare/sound": "*",
     "@papit/signals": "*",
     "@arrow-warfare/rig": "*",
-    "@arrow-warfare/chat": "*"
+    "@arrow-warfare/chat": "*",
+    "@arrow-warfare/fanfare": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

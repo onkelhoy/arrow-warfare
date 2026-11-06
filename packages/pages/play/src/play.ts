@@ -1,4 +1,6 @@
 import "@papit/button";
+import "@arrow-warfare/fanfare";
+import type { Fanfare } from "@arrow-warfare/fanfare";
 import { mountChat } from "@arrow-warfare/chat";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
@@ -66,13 +68,6 @@ const SHOW_WINNER = 3200;
 const FINAL_SHOW = 15_000;
 /** Seconds the winners take to walk up beside the shooter. */
 const WALK_UP = 1.6;
-/** A medieval horn with a little banner hanging from it, in the winner's colour. */
-const HORN = `<svg class="aw-play-horn" viewBox="0 0 120 220" aria-hidden="true">
-    <path class="banner" d="M38 92 L78 86 L80 150 L60 138 L42 156 Z"/>
-    <path class="body" d="M58 214 C54 170 44 120 30 70 C22 44 14 26 4 14 L40 2 C42 22 46 46 52 76 C62 124 68 170 66 214 Z"/>
-    <path class="ring" d="M28 62 L50 56 M38 112 L56 108 M48 170 L64 168"/>
-    <ellipse class="bell" cx="22" cy="8" rx="20" ry="7" transform="rotate(-18 22 8)"/>
-</svg>`;
 /** Seconds of the spirit leaving my body. */
 const SPIRIT = 1.5;
 /** The most arrows a dead player drops. */
@@ -343,9 +338,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     winnerSign.className = "aw-play-winner";
     winnerSign.hidden = true;
     play.append(winnerSign);
-    const horns = document.createElement("div");
-    horns.className = "aw-play-horns";
-    horns.innerHTML = HORN + HORN;
+    // herald trumpets in the winner's colour, swinging in from the sides with a kazoo toot
+    const horns = document.createElement("aw-fanfare") as Fanfare;
+    horns.setAttribute("stay", "");
     play.append(horns);
 
     /** The round is over and its last kill cam shown: who won. */
@@ -381,7 +376,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         winnerSign.textContent = t("hud.wins", { name: winnerName() });
         const team = winner.kind === "team" ? state.teams.find(other => other.id === winner!.id) : null;
         winnerSign.style.setProperty("--colour", COLOURS[team ? team.colour : player(leader) ? wears(state, player(leader)!) : 0].hex);
-        horns.style.setProperty("--colour", winnerSign.style.getPropertyValue("--colour"));
+        horns.style.setProperty("--banner", winnerSign.style.getPropertyValue("--colour"));
         setView("circle");
     };
 
@@ -475,8 +470,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             {
                 circle.shown = true;
                 winnerSign.hidden = false;
-                horns.classList.add("up");
-                sound("fanfare");
+                const { mute, volumes } = settings();
+                horns.volume = mute ? 0 : volumes.everything * volumes.sounds;
+                void horns.play();
             }
             const top = onScreen([cx, cy + 2.05, cz]);
             if (top) winnerSign.style.transform = `translate(${top[0].toFixed(1)}px, ${top[1].toFixed(1)}px) translate(-50%, -100%)`;

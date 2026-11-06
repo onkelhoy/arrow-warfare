@@ -57,7 +57,7 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - Real phones, the public signal server (only a local one was used), and networks that need TURN (only STUN is set up).
 
 ## To check on phones (milestone 5)
-- Sounds are synthesised stand-ins: footsteps, grunt and fanfare may sound thin. Replace the wavs.
+- Sounds are synthesised stand-ins: footsteps and grunt may sound thin. Replace the wavs. (The win fanfare is now real kazoo audio in `aw-fanfare`.)
 - Rounds: between rounds the phase goes play → locked → countdown; check nobody is left behind on the lobby.
 - Friendly fire off is judged on each victim's phone; a teammate's arrow still sticks in the ground behind you.
 - Twitches use `Math.random`, so a corpse twitches differently on each phone (only looks).
