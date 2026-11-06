@@ -1,11 +1,11 @@
 # Plan: medieval cartoon menu redesign
 
 ## Where we are
-Plan confirmed. Next: task 2.
+Plan confirmed. Next: task 3.
 
 ## Tasks
 1. [x] Theme tokens in `foundations/core`: medieval cartoon palette from game colours, light + dark.
-2. [ ] Painted backdrop component: sky gradient, sun/moon, drifting clouds, layered mountains, castle silhouette, light parallax/haze. Reusable as a painted backdrop in the game too.
+2. [x] Painted backdrop component: sky gradient, sun/moon, drifting clouds, layered mountains, castle silhouette, light parallax/haze. Reusable as a painted backdrop in the game too.
 3. [ ] Medieval controls: wooden plaque buttons, parchment panels, inputs; restyle atoms/molecules (bow-button, chat, invite-dialog, share-link, corner).
 4. [ ] Restyle pages menu, lobby, results onto the backdrop.
 5. [ ] `aw-fanfare` atom: CSS-only SVG trumpets with flags rotating in from the sides, bob/squash while playing, random kazoo of 3.

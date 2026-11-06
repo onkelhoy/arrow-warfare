@@ -1,0 +1,226 @@
+:host {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    isolation: isolate;
+    inline-size: 100%;
+    block-size: 100%;
+    --ink: #2b1d12;
+}
+
+slot {
+    display: contents;
+}
+
+.sky {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: linear-gradient(var(--zenith), var(--horizon) 62%);
+}
+
+/* the times of day: the sky colours are the game's palettes, the land fades into them */
+.sky[data-sky="noon"] {
+    --zenith: #2f8fe0;
+    --horizon: #c4e8f6;
+    --ring: #d8f0ff;
+    --disc: #fff6c8;
+    --cloud: #ffffff;
+    --far: #8fb1d6;
+    --near: #6f93b8;
+    --snow: #f5fbff;
+    --hill-back: #7fae5a;
+    --castle-hill: #6ea04a;
+    --forest: #3f7a3a;
+    --hill: #5c9a3e;
+    --stone: #d9cdb4;
+    --stone-dark: #b9aa8c;
+    --roof: #c8372d;
+    --roof-dark: #962720;
+    --window: #3a2c22;
+    --road: #d9c08a;
+    --stars: 0;
+    --bite: 0;
+}
+
+.sky[data-sky="dawn"] {
+    --zenith: #6cc0ec;
+    --horizon: #fde9c4;
+    --ring: #ffe2a8;
+    --disc: #fff8dc;
+    --cloud: #fff1e2;
+    --far: #b6b4cf;
+    --near: #9592b6;
+    --snow: #fff4ea;
+    --hill-back: #93ad62;
+    --castle-hill: #85a356;
+    --forest: #4d7a42;
+    --hill: #6f9a48;
+    --stone: #e8d4b8;
+    --stone-dark: #c4a98c;
+    --roof: #cf4a35;
+    --roof-dark: #9c3426;
+    --window: #4a3324;
+    --road: #e2c495;
+    --stars: 0;
+    --bite: 0;
+}
+
+.sky[data-sky="sunset"] {
+    --zenith: #352a70;
+    --horizon: #fdb45c;
+    --ring: #ff9a5c;
+    --disc: #ffe0a0;
+    --cloud: #ffa9a8;
+    --far: #a5739a;
+    --near: #7d5583;
+    --snow: #ffd2c4;
+    --hill-back: #7b7a4a;
+    --castle-hill: #6e6c40;
+    --forest: #3d4a34;
+    --hill: #5a6338;
+    --stone: #d8b49a;
+    --stone-dark: #a98670;
+    --roof: #b8342c;
+    --roof-dark: #7d221d;
+    --window: #ffc860;
+    --road: #c99a72;
+    --stars: .35;
+    --bite: 0;
+}
+
+.sky[data-sky="night"] {
+    --zenith: #0b1030;
+    --horizon: #33407a;
+    --ring: #4a5aa8;
+    --disc: #f3f0db;
+    --cloud: #34407a;
+    --far: #2e3870;
+    --near: #232b5a;
+    --snow: #8d98c8;
+    --hill-back: #1f2d44;
+    --castle-hill: #1b283c;
+    --forest: #121c2c;
+    --hill: #182638;
+    --stone: #5a5f80;
+    --stone-dark: #444a68;
+    --roof: #6a2a3a;
+    --roof-dark: #4a1c2a;
+    --window: #ffd166;
+    --road: #3a4060;
+    --stars: 1;
+    --bite: 1;
+}
+
+.paint {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+}
+
+.far { fill: var(--far); }
+.near { fill: var(--near); }
+.snow { fill: var(--snow); }
+.near-snow { opacity: .9; }
+.hill-back { fill: var(--hill-back); }
+.castle-hill { fill: var(--castle-hill); }
+.forest { fill: var(--forest); }
+.hill { fill: var(--hill); stroke: var(--ink); stroke-width: 3; stroke-opacity: .35; }
+.road { fill: var(--road); }
+
+/* the castle in cartoon ink */
+.castle :is(.stone, .stone-dark, .roof, .roof-dark, .gate, .banner, .pennant) {
+    stroke: var(--ink);
+    stroke-width: 3;
+    stroke-linejoin: round;
+}
+.castle .stone-dark, .castle .roof-dark { stroke: none; }
+.stone { fill: var(--stone); }
+.stone-dark { fill: var(--stone-dark); }
+.roof { fill: var(--roof); }
+.roof-dark { fill: var(--roof-dark); }
+.window { fill: var(--window); }
+.gate { fill: #3a2616; }
+.portcullis, .bricks { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; fill: none; }
+.bricks { stroke-opacity: .25; }
+.pole { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.pennant { fill: var(--roof); }
+.banner { fill: #f2c14e; }
+.crest { fill: var(--roof); }
+
+.flag {
+    animation: wave 1.6s ease-in-out infinite alternate;
+}
+.flag.flip { animation-delay: -.8s; }
+.flag.big { animation-duration: 2.2s; }
+
+@keyframes wave {
+    from { transform: skewY(-6deg) scaleX(.92); }
+    to { transform: skewY(5deg) scaleX(1.04); }
+}
+
+/* the sun, or a crescent moon at night */
+.disc { fill: var(--disc); }
+.bite { fill: var(--zenith); opacity: var(--bite); }
+.stars circle {
+    fill: #fffbe8;
+    opacity: var(--stars);
+    animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+    from { fill-opacity: 1; }
+    to { fill-opacity: .3; }
+}
+
+/* puffy clouds drifting slowly across */
+.clouds {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.cloud {
+    position: absolute;
+    inset-inline-start: 0;
+    inline-size: clamp(90px, 16vmax, 240px);
+    animation: drift linear infinite;
+    filter: drop-shadow(0 4px 0 rgb(0 0 0 / 8%));
+}
+
+.cloud svg {
+    display: block;
+    inline-size: 100%;
+}
+
+.cloud path {
+    fill: var(--cloud);
+    stroke: var(--ink);
+    stroke-width: 3;
+    stroke-opacity: .25;
+}
+
+.c0 { top: 3%; animation-duration: 95s; animation-delay: -20s; }
+.c1 { top: 12%; animation-duration: 130s; animation-delay: -90s; scale: .7; }
+.c2 { top: 20%; animation-duration: 110s; animation-delay: -55s; scale: .55; opacity: .9; }
+.c3 { top: 7%; animation-duration: 150s; animation-delay: -125s; scale: .85; }
+.c4 { top: 24%; animation-duration: 120s; animation-delay: -5s; scale: .45; opacity: .85; }
+
+@keyframes drift {
+    from { transform: translateX(-110%); }
+    to { transform: translateX(calc(100cqi + 10%)); }
+}
+
+.sky { container-type: inline-size; }
+
+:host([still]) :is(.cloud, .flag, .stars circle) {
+    animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :is(.cloud, .flag, .stars circle) {
+        animation-play-state: paused;
+    }
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backdrop | experiment</title>
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css" />
+
+    <script defer type="module" src="main.js"></script>
+</head>
+
+<body>
+    <h1>Backdrop | experiment</h1>
+    <section>
+        <h2>Follows the clock</h2>
+        <pap-codeblock display="both" color="canvas">
+            <aw-backdrop style="block-size: 26rem; border-radius: 12px"></aw-backdrop>
+        </pap-codeblock>
+    </section>
+    <section>
+        <h2>Dawn</h2>
+        <pap-codeblock display="both" color="canvas">
+            <aw-backdrop sky="dawn" style="block-size: 26rem; border-radius: 12px"></aw-backdrop>
+        </pap-codeblock>
+    </section>
+    <section>
+        <h2>Noon</h2>
+        <pap-codeblock display="both" color="canvas">
+            <aw-backdrop sky="noon" style="block-size: 26rem; border-radius: 12px"></aw-backdrop>
+        </pap-codeblock>
+    </section>
+    <section>
+        <h2>Sunset</h2>
+        <pap-codeblock display="both" color="canvas">
+            <aw-backdrop sky="sunset" style="block-size: 26rem; border-radius: 12px"></aw-backdrop>
+        </pap-codeblock>
+    </section>
+    <section>
+        <h2>Night</h2>
+        <pap-codeblock display="both" color="canvas">
+            <aw-backdrop sky="night" style="block-size: 26rem; border-radius: 12px"></aw-backdrop>
+        </pap-codeblock>
+    </section>
+    <section>
+        <h2>Behind a menu</h2>
+        <p>Content goes inside, the painting stays behind it. Flip the theme toggle for the dark panel.</p>
+        <pap-codeblock display="both" color="canvas">
+            <aw-backdrop sky="noon" style="block-size: 30rem; border-radius: 12px; display: grid; place-items: center">
+                <div class="aw-panel" style="display: grid; gap: 12px; justify-items: center">
+                    <h3 class="aw-title" style="font-size: 2.4rem">Arrow Warfare</h3>
+                    <pap-button color="primary">Host a game</pap-button>
+                </div>
+            </aw-backdrop>
+        </pap-codeblock>
+    </section>
+</body>
+
+</html>
