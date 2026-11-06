@@ -1,6 +1,6 @@
 {
   "name": "@arrow-warfare/fanfare",
-  "description": "a short silly fanfare celebration",
+  "description": "A short silly fanfare: herald trumpets swing in from the sides and toot a kazoo victory",
   "keywords": [
     "papit",
     "web-component",
@@ -71,7 +71,10 @@
     "typescript": "5.9.3",
     "@papit/theme": "*",
     "@papit/translator": "*",
-    "@papit/codeblock": "*"
+    "@papit/codeblock": "*",
+    "@papit/button": "*",
+    "@arrow-warfare/core": "*",
+    "@arrow-warfare/backdrop": "*"
   },
   "browserslist": [
     "defaults",

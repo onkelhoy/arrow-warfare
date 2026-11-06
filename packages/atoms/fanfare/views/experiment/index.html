@@ -18,10 +18,23 @@
 <body>
     <h1>Fanfare | experiment</h1>
     <section>
-        <h2>Example</h2>
-        <pap-codeblock>
-            <aw-fanfare></aw-fanfare>
+        <h2>Over the castle</h2>
+        <p>Press play: the trumpets swing in from the sides, toot one of three kazoo phrases, droop and leave.</p>
+        <pap-codeblock display="both" color="canvas">
+            <aw-backdrop sky="noon" style="block-size: 24rem; border-radius: 12px">
+                <aw-fanfare id="one"></aw-fanfare>
+            </aw-backdrop>
         </pap-codeblock>
+        <p><pap-button data-play="one" color="primary">Play</pap-button></p>
+    </section>
+    <section>
+        <h2>Staying up, a team's banner</h2>
+        <pap-codeblock display="both" color="checker">
+            <div class="aw-panel" style="position: relative; block-size: 18rem; overflow: hidden">
+                <aw-fanfare id="two" stay style="--banner: #3d7be2"></aw-fanfare>
+            </div>
+        </pap-codeblock>
+        <p><pap-button data-play="two" color="primary">Play</pap-button> <pap-button data-lower="two" variant="outline">Lower</pap-button></p>
     </section>
 </body>
 

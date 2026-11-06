@@ -1,14 +1,14 @@
 // core
-import { translator } from '@papit/translator';
 import "@papit/codeblock";
+import "@papit/button";
+import "@arrow-warfare/backdrop";
+import { useTheme } from "@arrow-warfare/core";
 
 // component
-import '@arrow-warfare/fanfare';
+import "@arrow-warfare/fanfare";
 
-window.onload = () => {
-    console.log('[demo]: window loaded');
-
-    translator.add({ id: "en", url: "/en.json" });
-    translator.change("en");
-}
-
+useTheme();
+for (const button of document.querySelectorAll("[data-play]"))
+    button.addEventListener("click", () => document.getElementById(button.dataset.play).play());
+for (const button of document.querySelectorAll("[data-lower]"))
+    button.addEventListener("click", () => document.getElementById(button.dataset.lower).lower());
