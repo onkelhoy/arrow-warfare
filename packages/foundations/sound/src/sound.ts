@@ -21,6 +21,7 @@ export class Sound {
     private buffers = new Map<string, Promise<(AudioBuffer | null)[]>>();
     private muted = false;
     private dipped = false;
+    private hushed = false;
     private wanted: PlaylistName | null = null;
 
     /** `songs` is where `songs.json` and the songs are, asked for with `fetch`. */
@@ -134,15 +135,28 @@ export class Sound {
         const { context, music } = this;
         if (!context || !music) return;
 
-        const target = this.volumes.music * (value ? MUSIC_DIP : 1);
         music.gain.cancelScheduledValues(context.currentTime);
-        music.gain.setTargetAtTime(target, context.currentTime, .12);
+        music.gain.setTargetAtTime(this.musicLevel(), context.currentTime, .12);
+    }
+
+    /** Fades the music to silence (over about `seconds`) and keeps it there, for the fanfare; `false` brings it back. */
+    hush(value: boolean, seconds = 1.2) {
+        this.hushed = value;
+        const { context, music } = this;
+        if (!context || !music) return;
+
+        music.gain.cancelScheduledValues(context.currentTime);
+        music.gain.setTargetAtTime(this.musicLevel(), context.currentTime, seconds / 4);
+    }
+
+    private musicLevel() {
+        return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1);
     }
 
     private apply() {
         if (this.master) this.master.gain.value = this.muted ? 0 : this.volumes.everything;
         if (this.sounds) this.sounds.gain.value = this.volumes.sounds;
-        if (this.music) this.music.gain.value = this.volumes.music * (this.dipped ? MUSIC_DIP : 1);
+        if (this.music) this.music.gain.value = this.musicLevel();
     }
 
     private decodeAll(name: string) {

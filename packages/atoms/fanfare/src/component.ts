@@ -59,6 +59,10 @@ export class Fanfare extends CustomElement {
     private sounds = new Map<string, Promise<string | null>>();
     private timers: number[] = [];
     private audio: HTMLAudioElement | null = null;
+    private source: AudioBufferSourceNode | null = null;
+    private buffers = new Map<string, Promise<AudioBuffer | null>>();
+    /** An unlocked Web Audio output to play through. Phones (iOS) often refuse an `<audio>` started outside a tap. */
+    output: { context: AudioContext; destination: AudioNode } | null = null;
 
     connectedCallback() {
         super.connectedCallback();
@@ -104,16 +108,34 @@ export class Fanfare extends CustomElement {
         this.timers.length = 0;
         this.audio?.pause();
         this.audio = null;
+        try { this.source?.stop(); } catch { /* not started */ }
+        this.source = null;
     }
 
     private wait(ms: number) {
         return new Promise<void>(resolve => this.timers.push(window.setTimeout(resolve, ms)));
     }
 
+    private async tootThrough({ context, destination }: { context: AudioContext; destination: AudioNode }, file: string, url: string) {
+        if (!this.buffers.has(file)) this.buffers.set(file, fetch(url).then(r => r.arrayBuffer()).then(data => context.decodeAudioData(data)).catch(() => null));
+        const buffer = await this.buffers.get(file);
+        if (!buffer) return 2200;
+        if (context.state === "suspended") await context.resume().catch(() => {});
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        const gain = context.createGain();
+        gain.gain.value = Math.max(0, Math.min(1, this.volume));
+        source.connect(gain).connect(destination);
+        source.start();
+        this.source = source;
+        return Math.max(800, buffer.duration * 1000);
+    }
+
     /** Plays it, gives how long it lasts in ms (a guess when it can't play). */
     private async toot(file: string) {
         const url = await this.load(file);
         if (!url || this.volume <= 0) return 2200;
+        if (this.output) return this.tootThrough(this.output, file, url);
         const audio = new Audio(url);
         audio.volume = Math.max(0, Math.min(1, this.volume));
         this.audio = audio;

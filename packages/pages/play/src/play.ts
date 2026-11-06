@@ -477,8 +477,12 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 circle.shown = true;
                 winnerSign.hidden = false;
                 const { mute, volumes } = settings();
-                horns.volume = mute ? 0 : volumes.everything * volumes.sounds;
-                void horns.play();
+                const output = options.sound?.output;
+                // through the game's Web Audio (already unlocked, so phones play it), the music faded out first
+                horns.output = output ?? null;
+                horns.volume = output ? 1 : mute ? 0 : volumes.everything * volumes.sounds;
+                options.sound?.hush(true);
+                window.setTimeout(() => void horns.play(), output ? 900 : 0);
             }
             const top = onScreen([cx, cy + 2.05, cz]);
             if (top) winnerSign.style.transform = `translate(${top[0].toFixed(1)}px, ${top[1].toFixed(1)}px) translate(-50%, -100%)`;
@@ -940,6 +944,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             winnerSign.remove();
             deadChat.remove();
             horns.remove();
+            options.sound?.hush(false);
             blood.destroy();
             firstPerson.destroy();
             hud.destroy();
