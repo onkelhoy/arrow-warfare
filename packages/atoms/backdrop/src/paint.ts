@@ -155,7 +155,7 @@ export function paint(seed = 7) {
     const far = ridge(random, 640, 260, 5);
     const near = ridge(random, 700, 400, 7);
     const stars = Array.from({ length: 70 }, () => `<circle cx="${r(random() * W)}" cy="${r(random() * 460)}" r="${r(1 + random() * 2.2)}" style="animation-delay: -${r(random() * 4)}s"/>`).join("");
-    return `<svg class="paint" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    const sky = `<svg class="paint" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <defs>
             <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stop-color="var(--horizon)" stop-opacity="0"/>
@@ -175,6 +175,8 @@ export function paint(seed = 7) {
             </mask>
             <circle class="disc" cx="1230" cy="210" r="62" mask="url(#crescent)"/>
         </g>
+    </svg>`;
+    const land = `<svg class="paint" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <path class="far" d="${far.d}"/>
         <path class="snow" d="${snow(far.peaks, far.base, random)}"/>
         <rect x="0" y="380" width="1600" height="300" fill="url(#haze)"/>
@@ -186,4 +188,5 @@ export function paint(seed = 7) {
         <path class="forest" d="${forest(random, 790)}"/>
         <path class="hill" d="${hills(random, 860, 50, 4)}"/>
     </svg>`;
+    return { sky, land };
 }

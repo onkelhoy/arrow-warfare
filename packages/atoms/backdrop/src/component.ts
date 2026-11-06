@@ -34,8 +34,9 @@ export class Backdrop extends CustomElement {
         const clouds = [0, 1, 2, 3, 4].map(i => `<div class="cloud c${i}">${CLOUD}</div>`).join("");
         return html`
             <div class="sky" part="sky" data-sky="${sky}">
+                ${unsafeHTML(this.painting.sky)}
                 <div class="clouds">${unsafeHTML(clouds)}</div>
-                ${unsafeHTML(this.painting)}
+                ${unsafeHTML(this.painting.land)}
             </div>
             <slot></slot>
         `;
