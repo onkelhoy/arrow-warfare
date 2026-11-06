@@ -143,7 +143,7 @@ export function head(dead = false): MeshData {
     for (const x of [-.08, .08])
     {
         // a dead one has crossed out eyes
-        if (dead) for (const roll of [Math.PI / 4, -Math.PI / 4]) builder.box("#1b1b22", { at: [x, .28, -.215], roll, pitch: .35, scale: [.075, .016, .02] });
+        if (dead) for (const roll of [Math.PI / 4, -Math.PI / 4]) builder.box("#1b1b22", { at: [x, .28, -.222], roll, pitch: -.3, scale: [.085, .022, .03] });
         else builder.ball("#1b1b22", { at: [x, .28, -.21], scale: .035 }, 0);
     }
     return builder.cylinder("#6b4a2e", { at: [0, .38, 0], scale: [.36, .1, .36] }, 7, .5, .3).build();

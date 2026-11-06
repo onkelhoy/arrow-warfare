@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="style.css" />
 
     <script defer type="module" src="main.ts"></script>
+    <script defer type="module" src="killcam.ts"></script>
 </head>
 
 <body>
@@ -76,6 +77,23 @@
                 </form>
             </div>
         </pap-codeblock>
+    </section>
+    <section>
+        <h2>Kill cam</h2>
+        <p>Two players, the shooter aims at the other's head and the arrow goes in exactly there. Set the distance and the power, shoot, and the whole kill cam plays. Click the picture to skip.</p>
+        <div class="demo">
+            <div class="demo-stage killcam-stage"><canvas class="killcam-canvas" style="inline-size: 100%; block-size: 100%; display: block"></canvas></div>
+            <form class="demo-controls killcam-controls">
+                <label>Distance <input name="distance" type="range" min="4" max="70" step="1" value="20"> <output name="distance-value">20 m</output></label>
+                <label>Power <input name="power" type="range" min="0.2" max="1" step="0.05" value="0.9"> <output name="power-value">0.9</output></label>
+                <label>Hit <select name="part">
+                    <option value="head" selected>head</option>
+                    <option value="torso">torso</option>
+                </select></label>
+                <button type="submit">Shoot</button>
+                <output class="killcam-state"></output>
+            </form>
+        </div>
     </section>
 </body>
 
