@@ -488,24 +488,3 @@
 .aw-play-dead .aw-chat-tabs {
     display: none;
 }
-
-/* where letting go of the bow button shoots, shown while it's held */
-.aw-play-strip {
-    position: absolute;
-    z-index: 1;
-    inset: 0 0 0 auto;
-    pointer-events: none;
-    opacity: 0;
-    background: linear-gradient(to right, transparent, rgb(255 214 120 / 28%));
-    border-inline-start: 2px dashed rgb(255 255 255 / 35%);
-    transition: opacity 150ms, background 120ms;
-}
-
-.aw-play-strip.on {
-    opacity: 1;
-}
-
-.aw-play-strip.hot {
-    background: linear-gradient(to right, rgb(255 214 120 / 20%), rgb(255 214 120 / 60%));
-    border-inline-start-color: rgb(255 214 120 / 90%);
-}

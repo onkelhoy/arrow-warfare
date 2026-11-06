@@ -7,34 +7,32 @@ import type { DrawEvent } from "./types";
 
 /**
  * The bow button. Hold a thumb on it and the bow draws by time (the game decides how fast). The same
- * thumb aims freely, every direction. Let go in the shoot strip at the right edge of the screen (`edge`
- * pixels wide) and it shoots, let go anywhere else and the bow comes down.
+ * thumb aims freely, every direction. Slide off it to aim, come back onto it and let go to shoot. Let go
+ * anywhere else and the bow comes down.
  *
  * @element aw-bow-button
  *
- * @property {number} edge pixels from the right edge of the window where letting go shoots
  * @property {boolean} active a thumb is on it (reflected)
  * @property {boolean} disabled can't draw now, shown dimmed (reflected). It still tells about the thumb
  *
  * @fires drawstart {DrawEvent} the thumb went down on it
  * @fires drawmove {DrawEvent} the thumb moved
- * @fires drawend {DrawEvent} the thumb let go, `shoot` says if it was in the strip
+ * @fires drawend {DrawEvent} the thumb let go, `shoot` says if it was back on the button
  */
 export class BowButton extends CustomElement {
     static sheet = sheet;
 
-    @property({ type: Number }) edge: number = 90;
     @property({ type: Boolean, reflect: true }) active: boolean = false;
     @property({ type: Boolean, reflect: true }) disabled: boolean = false;
 
-    /** The thumb is in the shoot strip. */
+    /** The thumb left the button and is back on it. */
     shoot = false;
 
     private pointer: number | null = null;
-    private startX = 0;
-    private startY = 0;
     private lastX = 0;
     private lastY = 0;
+    /** The thumb has been off the button since it went down. */
+    private left = false;
 
     connectedCallback() {
         super.connectedCallback();
@@ -58,8 +56,18 @@ export class BowButton extends CustomElement {
 
     private handlemenu = (event: Event) => event.preventDefault();
 
-    private inStrip(x: number) {
-        return x >= window.innerWidth - this.edge;
+    /** On the button, a little bigger than it looks so the thumb finds it blind. */
+    private onButton(x: number, y: number) {
+        const box = this.getBoundingClientRect();
+        const r = box.width / 2;
+        return Math.hypot(x - (box.left + r), y - (box.top + box.height / 2)) <= r * 1.25;
+    }
+
+    private check(x: number, y: number) {
+        const on = this.onButton(x, y);
+        if (!on) this.left = true;
+        this.shoot = this.left && on;
+        this.toggleAttribute("shooting", this.shoot);
     }
 
     private handledown = (event: PointerEvent) => {
@@ -68,11 +76,11 @@ export class BowButton extends CustomElement {
         event.stopPropagation();
         this.pointer = event.pointerId;
         this.setPointerCapture(event.pointerId);
-        this.startX = this.lastX = event.clientX;
-        this.startY = this.lastY = event.clientY;
+        this.lastX = event.clientX;
+        this.lastY = event.clientY;
         this.shoot = false;
+        this.left = false;
         this.active = true;
-        this.show(0, 0);
         this.fire("drawstart", 0, 0);
     }
 
@@ -81,14 +89,13 @@ export class BowButton extends CustomElement {
         const dx = event.clientX - this.lastX, dy = event.clientY - this.lastY;
         this.lastX = event.clientX;
         this.lastY = event.clientY;
-        this.shoot = this.inStrip(event.clientX);
-        this.show(event.clientX - this.startX, event.clientY - this.startY);
+        this.check(event.clientX, event.clientY);
         this.fire("drawmove", dx, dy);
     }
 
     private handleup = (event: PointerEvent) => {
         if (event.pointerId !== this.pointer) return;
-        this.shoot = this.inStrip(event.clientX);
+        this.check(event.clientX, event.clientY);
         this.finish();
     }
 
@@ -101,7 +108,7 @@ export class BowButton extends CustomElement {
     private finish() {
         this.pointer = null;
         this.active = false;
-        this.show(0, 0);
+        this.removeAttribute("shooting");
         this.fire("drawend", 0, 0);
         this.shoot = false;
     }
@@ -110,17 +117,8 @@ export class BowButton extends CustomElement {
         this.dispatchEvent(new CustomEvent<DrawEvent>(type, { detail: { dx, dy, shoot: this.shoot }, bubbles: true, composed: true }));
     }
 
-    /** The string from the button to the thumb. */
-    private show(x: number, y: number) {
-        const length = Math.hypot(x, y);
-        this.style.setProperty("--string-length", `${length}px`);
-        this.style.setProperty("--string-angle", `${Math.atan2(y, x) - Math.PI / 2}rad`);
-        this.toggleAttribute("shooting", this.shoot);
-    }
-
     render() {
         return html`
-            <div class="string" part="string"></div>
             <div class="button" part="button">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M6 3c5 3 5 15 0 18" />

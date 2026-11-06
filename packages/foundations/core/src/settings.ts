@@ -37,7 +37,7 @@ export type Hand = "right" | "left";
 export type BowPlace = { x: number; y: number; size: number };
 
 /** Near the top, a bit right of the middle. */
-export const BOW_PLACE: BowPlace = { x: .62, y: .17, size: 76 };
+export const BOW_PLACE: BowPlace = { x: .8, y: .72, size: 76 };
 export const BOW_SIZE = { min: 48, max: 140 };
 
 export const SENSITIVITY = { min: .3, max: 3 };

@@ -703,7 +703,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     let kills = 0;
     let recorded = 0;
     let wanted = false;
-    /** This draw started from the bow button (it shoots only in the strip). */
+    /** This draw started from the bow button (it shoots only when let go back on the button). */
     let byThumb = false;
     let creak = 0;
     let feet = 0;
@@ -742,7 +742,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (draw.phase === "drawing")
         {
             draw.hold(dt);
-            // a thumb lets go: shoots only in the strip at the right edge
+            // a thumb lets go: shoots only back on the button
             if (!want)
             {
                 if (byThumb && !controls.shoot) draw.cancel();

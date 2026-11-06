@@ -47,24 +47,7 @@ svg {
     opacity: .35;
 }
 
-/* a faint string from the button down to the thumb */
-.string {
-    position: absolute;
-    inset: 50% auto auto 50%;
-    inline-size: 2px;
-    block-size: var(--string-length, 0px);
-    margin-inline-start: -1px;
-    transform-origin: top center;
-    rotate: var(--string-angle, 0rad);
-    background: rgb(255 255 255 / 55%);
-    pointer-events: none;
-    opacity: 0;
-}
-
-:host([active]) .string {
-    opacity: 1;
-}
-
-:host([shooting]) .string {
-    background: rgb(255 214 120 / 90%);
+:host([shooting]) .button {
+    border-color: rgb(255 214 120 / 95%);
+    box-shadow: 0 0 14px rgb(255 214 120 / 60%);
 }
