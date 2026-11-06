@@ -1,0 +1,157 @@
+/*
+ * The game's look outside the 3D: cartoon medieval. Parchment, wood, iron and banner red, thick ink
+ * outlines and a hard drop shadow. Follows light and dark through `light-dark()`, so `color-scheme`
+ * (the codeblock's theme toggle, or `data-theme`) flips it.
+ */
+:root {
+    /* ink: outlines and text */
+    --aw-ink: light-dark(#2b1d12, #120b06);
+    --aw-text: light-dark(#3a2614, #f3e3c3);
+    --aw-text-soft: light-dark(#6b4f33, #c9b48e);
+
+    /* parchment panels */
+    --aw-parchment: light-dark(#f6e7c1, #3b2c1e);
+    --aw-parchment-light: light-dark(#fff4d6, #4a3826);
+    --aw-parchment-edge: light-dark(#d9b97c, #24190f);
+
+    /* wood plaques (buttons) */
+    --aw-wood: light-dark(#a5683a, #7a4a26);
+    --aw-wood-light: light-dark(#c98a52, #9a6236);
+    --aw-wood-dark: light-dark(#6e4022, #4a2a14);
+    --aw-wood-text: #fff1d2;
+
+    /* metal and cloth */
+    --aw-iron: light-dark(#6d6f75, #4a4c52);
+    --aw-gold: light-dark(#f2c14e, #e0a93a);
+    --aw-gold-dark: light-dark(#b07d1c, #8a5f12);
+    --aw-banner: light-dark(#c8372d, #a52a22);
+    --aw-banner-dark: light-dark(#8a1f19, #6a1712);
+    --aw-leaf: light-dark(#4f8f3a, #3c6e2c);
+
+    --aw-outline: 3px solid var(--aw-ink);
+    --aw-drop: 0 4px 0 var(--aw-ink);
+    --aw-radius: 14px;
+
+    --aw-font: ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    --aw-font-title: "Luminari", "Papyrus", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+
+    /* papit's own tokens, so its parts sit in the look */
+    --primary: var(--aw-wood);
+    --focus-color: var(--aw-gold);
+}
+
+/* a big storybook title, gold with an ink edge */
+.aw-title {
+    margin: 0;
+    font-family: var(--aw-font-title);
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--aw-gold);
+    -webkit-text-stroke: 2px var(--aw-ink);
+    paint-order: stroke fill;
+    text-shadow: 0 4px 0 var(--aw-ink), 0 8px 18px rgb(0 0 0 / 30%);
+}
+
+/* a parchment sheet with a darker burnt edge */
+.aw-panel {
+    position: relative;
+    box-sizing: border-box;
+    padding: 20px 22px;
+    border: var(--aw-outline);
+    border-radius: var(--aw-radius);
+    background:
+        radial-gradient(ellipse at 50% 40%, var(--aw-parchment-light), var(--aw-parchment) 65%, var(--aw-parchment-edge));
+    box-shadow: var(--aw-drop), inset 0 0 0 3px color-mix(in oklch, var(--aw-parchment-edge), transparent 40%), 0 10px 30px rgb(0 0 0 / 25%);
+    color: var(--aw-text);
+    font-family: var(--aw-font);
+}
+
+/* a red pennant ribbon for small headings */
+.aw-ribbon {
+    display: inline-block;
+    margin: 0;
+    padding: 4px 22px;
+    font-family: var(--aw-font-title);
+    font-size: 1.1rem;
+    color: #fff1d2;
+    background: var(--aw-banner);
+    border: var(--aw-outline);
+    border-radius: 4px;
+    box-shadow: 0 3px 0 var(--aw-ink);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 50%, 100% 100%, 0 100%, 10px 50%);
+    padding-inline: 26px;
+}
+
+/* papit's button as a wooden plaque, pressed in when held */
+pap-button {
+    --btn-background: var(--aw-wood);
+    --btn-border: var(--aw-ink);
+    --btn-hover: var(--aw-wood-light);
+    --btn-active: var(--aw-wood-dark);
+    --btn-text: var(--aw-wood-text);
+    min-block-size: 44px;
+    padding-inline: 18px;
+    border: var(--aw-outline);
+    border-radius: 10px;
+    font-family: var(--aw-font-title);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--aw-wood-text);
+    text-shadow: 0 2px 0 var(--aw-wood-dark);
+    background-image: repeating-linear-gradient(176deg, rgb(255 255 255 / 0%) 0 9px, rgb(0 0 0 / 7%) 9px 11px);
+    box-shadow: inset 0 2px 0 rgb(255 255 255 / 25%), inset 0 -3px 0 var(--aw-wood-dark), var(--aw-drop);
+    transition: transform .08s, box-shadow .08s;
+}
+
+pap-button:active {
+    transform: translateY(3px);
+    box-shadow: inset 0 2px 0 rgb(255 255 255 / 15%), 0 1px 0 var(--aw-ink);
+}
+
+pap-button[color="primary"] {
+    --btn-background: var(--aw-banner);
+    --btn-hover: color-mix(in oklch, var(--aw-banner), white 12%);
+    --btn-active: var(--aw-banner-dark);
+    text-shadow: 0 2px 0 var(--aw-banner-dark);
+    box-shadow: inset 0 2px 0 rgb(255 255 255 / 25%), inset 0 -3px 0 var(--aw-banner-dark), var(--aw-drop);
+}
+
+pap-button[variant="outline"],
+pap-button[variant="clear"] {
+    --btn-background: transparent;
+    --btn-hover: color-mix(in oklch, var(--aw-parchment), transparent 40%);
+    --btn-active: var(--aw-parchment-edge);
+    color: var(--aw-text);
+    text-shadow: none;
+    background-image: none;
+}
+
+pap-button[variant="clear"] {
+    border-color: transparent;
+    box-shadow: none;
+    text-decoration: underline;
+}
+
+pap-button[disabled] {
+    filter: grayscale(.6) brightness(.85);
+    cursor: default;
+}
+
+/* papit's input as a carved slot in the parchment */
+pap-input {
+    --text: var(--aw-text);
+    --background-dark: var(--aw-parchment-light);
+    font-family: var(--aw-font);
+}
+
+pap-input::part(wrapper) {
+    border: var(--aw-outline);
+    border-radius: 10px;
+    background: var(--aw-parchment-light);
+    box-shadow: inset 0 3px 0 color-mix(in oklch, var(--aw-parchment-edge), transparent 30%);
+}
+
+pap-input::part(input) {
+    color: var(--aw-text);
+    font-size: 1rem;
+}

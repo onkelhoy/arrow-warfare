@@ -1,3 +1,4 @@
+import themeSheet from "./theme.css" with { type: "css" };
 import { translator, useTranslator } from "@papit/translator";
 
 /** All the game's own words, from `asset/translations/` in core. */
@@ -20,4 +21,9 @@ export const escape = (text: string) => text.replace(/[&<>"']/g, char => `&#${ch
 /** A package's stylesheet onto the page, once. */
 export function adopt(sheet: CSSStyleSheet) {
     if (!document.adoptedStyleSheets.includes(sheet)) document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+}
+
+/** The medieval look (tokens, `.aw-panel`, `.aw-title`, `.aw-ribbon`, buttons and inputs) onto the page, once. */
+export function useTheme() {
+    adopt(themeSheet);
 }

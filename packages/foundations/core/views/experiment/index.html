@@ -18,6 +18,25 @@
 <body>
     <h1>Core | experiment</h1>
     <section>
+        <h2>Theme</h2>
+        <p>The medieval look. Flip the codeblock's theme toggle for dark.</p>
+        <pap-codeblock display="both" color="checker">
+            <div class="aw-panel" style="display: grid; gap: 14px; justify-items: start; max-inline-size: 26rem">
+                <h3 class="aw-title" style="font-size: 2.4rem">Arrow Warfare</h3>
+                <p class="aw-ribbon">The Lobby</p>
+                <p style="margin: 0">Parchment panel with ink text.</p>
+                <pap-input placeholder="Your name"></pap-input>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                    <pap-button color="primary">Host</pap-button>
+                    <pap-button>Ready</pap-button>
+                    <pap-button variant="outline">Back</pap-button>
+                    <pap-button variant="clear" size="small">Host my own</pap-button>
+                    <pap-button disabled>Waiting</pap-button>
+                </div>
+            </div>
+        </pap-codeblock>
+    </section>
+    <section>
         <h2>Words</h2>
         <p id="title"></p>
     </section>
