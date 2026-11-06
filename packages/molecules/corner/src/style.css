@@ -6,9 +6,20 @@
     display: flex;
     gap: 4px;
     padding: 2px;
+    border: var(--aw-outline);
     border-radius: 999px;
-    background: rgb(255 255 255 / .7);
-    backdrop-filter: blur(4px);
+    background: var(--aw-wood);
+    background-image: repeating-linear-gradient(176deg, rgb(255 255 255 / 0%) 0 9px, rgb(0 0 0 / 8%) 9px 11px);
+    box-shadow: var(--aw-drop);
+}
+
+.aw-corner > pap-button[variant] {
+    min-block-size: 40px;
+    padding-inline: 8px;
+    border: 0;
+    box-shadow: none;
+    color: var(--aw-wood-text);
+    text-decoration: none;
 }
 
 .aw-corner-row {
@@ -17,4 +28,6 @@
     align-items: center;
     gap: 12px;
     margin-block: 10px;
+    font-family: var(--aw-font);
+    color: var(--aw-text);
 }

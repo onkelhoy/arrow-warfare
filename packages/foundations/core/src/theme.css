@@ -155,3 +155,36 @@ pap-input::part(input) {
     color: var(--aw-text);
     font-size: 1rem;
 }
+
+/* papit's dialog as a parchment scroll */
+pap-dialog::part(dialog) {
+    border: var(--aw-outline);
+    border-radius: var(--aw-radius);
+    background: radial-gradient(ellipse at 50% 30%, var(--aw-parchment-light), var(--aw-parchment) 70%, var(--aw-parchment-edge));
+    box-shadow: 0 6px 0 var(--aw-ink), 0 20px 50px rgb(0 0 0 / 40%);
+    color: var(--aw-text);
+    font-family: var(--aw-font);
+}
+
+pap-dialog::part(header) {
+    font-family: var(--aw-font-title);
+    font-size: 1.3rem;
+    color: var(--aw-text);
+    border-block-end: 3px dashed color-mix(in oklch, var(--aw-parchment-edge), var(--aw-ink) 20%);
+}
+
+/* plain form bits inside panels */
+.aw-panel select,
+pap-dialog select {
+    font: inherit;
+    padding: 6px 10px;
+    border: var(--aw-outline);
+    border-radius: 10px;
+    background: var(--aw-parchment-light);
+    color: var(--aw-text);
+}
+
+.aw-panel input[type="range"],
+pap-dialog input[type="range"] {
+    accent-color: var(--aw-banner);
+}

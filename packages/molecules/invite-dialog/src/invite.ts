@@ -1,7 +1,7 @@
 import "@papit/dialog";
 import "@arrow-warfare/qr-code";
 import "@arrow-warfare/share-link";
-import { adopt, t } from "@arrow-warfare/core";
+import { adopt, useTheme, t } from "@arrow-warfare/core";
 
 import sheet from "./style.css" with { type: "css" };
 
@@ -9,6 +9,7 @@ type Dialog = HTMLElement & { showModal(): void; close(): void; open: boolean };
 
 /** The QR code, the link and a share button. `mountInvite` puts it in a dialog, `inviteBlock` in a panel. */
 export function inviteBlock() {
+    useTheme();
     adopt(sheet);
     const block = document.createElement("div");
     block.className = "aw-invite";

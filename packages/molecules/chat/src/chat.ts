@@ -1,6 +1,6 @@
 import "@papit/button";
 import "@papit/input";
-import { adopt, CHAT_LENGTH, COLOURS, escape, t, type ChatLine } from "@arrow-warfare/core";
+import { adopt, useTheme, CHAT_LENGTH, COLOURS, escape, t, type ChatLine } from "@arrow-warfare/core";
 
 import sheet from "./style.css" with { type: "css" };
 
@@ -14,6 +14,7 @@ const KEEP = 100;
  * `onSend(text, team)` is called with what was written, the lines come back through `add`.
  */
 export function mountChat(root: HTMLElement, onSend: (text: string, team: boolean) => void, labels: { all?: string } = {}) {
+    useTheme();
     adopt(sheet);
     const chat = document.createElement("section");
     chat.className = "aw-chat";

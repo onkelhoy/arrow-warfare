@@ -3,6 +3,8 @@
     flex-direction: column;
     gap: 6px;
     min-block-size: 0;
+    font-family: var(--aw-font);
+    color: var(--aw-text);
 }
 
 .aw-chat-tabs {
@@ -10,23 +12,28 @@
     gap: 4px;
 }
 
+/* tabs as little pennants */
 .aw-chat-tabs button {
     font: inherit;
-    border: 0;
-    border-radius: 999px;
-    padding: 4px 12px;
-    background: rgb(0 0 0 / .08);
+    font-family: var(--aw-font-title);
+    font-weight: 700;
+    border: var(--aw-outline);
+    border-block-end-width: 0;
+    border-radius: 10px 10px 0 0;
+    padding: 4px 14px;
+    background: var(--aw-parchment-edge);
+    color: var(--aw-text);
     cursor: pointer;
 }
 
 .aw-chat-tabs button[aria-selected=true] {
-    background: #2f4a1f;
-    color: white;
+    background: var(--aw-banner);
+    color: #fff1d2;
 }
 
 .aw-chat-tabs button.unread::after {
     content: " •";
-    color: #e2553d;
+    color: var(--aw-gold);
 }
 
 .aw-chat-lines {
@@ -35,10 +42,12 @@
     max-block-size: 14rem;
     overflow-y: auto;
     margin: 0;
-    padding: 8px;
+    padding: 8px 10px;
     list-style: none;
-    border-radius: 8px;
-    background: rgb(255 255 255 / .6);
+    border: var(--aw-outline);
+    border-radius: 0 10px 10px 10px;
+    background: var(--aw-parchment-light);
+    box-shadow: inset 0 3px 0 color-mix(in oklch, var(--aw-parchment-edge), transparent 30%);
     overflow-wrap: anywhere;
 }
 

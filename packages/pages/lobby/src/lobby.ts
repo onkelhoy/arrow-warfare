@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type Damage, type GameState, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
+import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type Damage, type GameState, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -39,6 +39,7 @@ export const playerLabel = (state: GameState, player: Player) =>
  * chat. It only draws what it's given in `update`, the decisions are the host's, through `actions`.
  */
 export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions) {
+    useTheme();
     adopt(sheet);
     const lobby = document.createElement("main");
     lobby.className = "aw-lobby";

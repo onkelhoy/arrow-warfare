@@ -3,7 +3,7 @@ import "@papit/dialog";
 import "@papit/icon";
 import "@papit/input";
 import { effect } from "@papit/signals";
-import { adopt, canFullscreen, cleanName, NAME_LENGTH, QUALITIES, SENSITIVITY, settings, t, toggleFullscreen, updateSettings, type Quality, type Volumes } from "@arrow-warfare/core";
+import { adopt, useTheme, canFullscreen, cleanName, NAME_LENGTH, QUALITIES, SENSITIVITY, settings, t, toggleFullscreen, updateSettings, type Quality, type Volumes } from "@arrow-warfare/core";
 import type { Sound } from "@arrow-warfare/sound";
 import { mountTouchLayout } from "@arrow-warfare/touch-layout";
 
@@ -18,6 +18,7 @@ const VOLUMES: (keyof Volumes)[] = ["everything", "music", "sounds"];
 /** The buttons that are always in the top right, and the settings dialog they open. */
 export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
     registerIcons();
+    useTheme();
     adopt(sheet);
 
     const corner = document.createElement("div");

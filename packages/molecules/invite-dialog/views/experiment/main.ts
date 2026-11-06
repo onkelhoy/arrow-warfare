@@ -1,8 +1,11 @@
+import "@papit/codeblock";
 import "@papit/button";
-import { loadText } from "@arrow-warfare/core";
+import { loadText, useTheme } from "@arrow-warfare/core";
 import { inviteBlock, mountInvite } from "@arrow-warfare/invite-dialog";
 
 await loadText();
+useTheme();
+
 const dialog = mountInvite();
 dialog.link("https://onkelhoy.github.io/arrow-warfare/?by=henry#example");
 const block = inviteBlock();

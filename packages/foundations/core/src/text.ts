@@ -23,6 +23,8 @@ export function adopt(sheet: CSSStyleSheet) {
     if (!document.adoptedStyleSheets.includes(sheet)) document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
 }
 
+export { themeSheet };
+
 /** The medieval look (tokens, `.aw-panel`, `.aw-title`, `.aw-ribbon`, buttons and inputs) onto the page, once. */
 export function useTheme() {
     adopt(themeSheet);

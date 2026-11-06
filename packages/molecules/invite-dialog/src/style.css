@@ -7,6 +7,11 @@
 
 .aw-invite aw-qr-code {
     inline-size: min(100%, 12rem);
+    padding: 6px;
+    border: var(--aw-outline);
+    border-radius: 10px;
+    background: #fff8e6;
+    box-shadow: var(--aw-drop);
 }
 
 .aw-invite > div {
@@ -16,7 +21,7 @@
 
 .aw-invite-link {
     font-size: .75rem;
-    opacity: .6;
+    color: var(--aw-text-soft);
     overflow-wrap: anywhere;
     max-block-size: 3.2em;
     overflow: hidden;

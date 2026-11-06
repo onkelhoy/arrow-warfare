@@ -5,3 +5,21 @@
 :host([hidden]) {
     display: none;
 }
+
+/* the game's wooden plaque look, tokens from core's theme (inherited), plain papit without it */
+pap-button {
+    border: var(--aw-outline, 2px solid currentColor);
+    border-radius: 10px;
+    font-family: var(--aw-font-title, inherit);
+    font-weight: 700;
+    color: var(--aw-text, inherit);
+    --btn-background: transparent;
+    --btn-hover: color-mix(in oklch, var(--aw-parchment, #f6e7c1), transparent 40%);
+    box-shadow: 0 3px 0 var(--aw-ink, transparent);
+}
+
+pap-button[variant="clear"] {
+    border-color: transparent;
+    box-shadow: none;
+    text-decoration: underline;
+}

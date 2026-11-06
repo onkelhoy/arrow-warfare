@@ -1,6 +1,6 @@
 import "@papit/button";
 import "@papit/input";
-import { adopt, cleanName, escape, NAME_LENGTH, settings, t, updateSettings } from "@arrow-warfare/core";
+import { adopt, useTheme, cleanName, escape, NAME_LENGTH, settings, t, updateSettings } from "@arrow-warfare/core";
 
 import sheet from "./style.css" with { type: "css" };
 
@@ -15,6 +15,7 @@ export type MenuOptions = {
 
 /** Your name, saved, then host a game, or join the one the link is for. */
 export function mountMenu(root: HTMLElement, { by, onHost, onJoin }: MenuOptions) {
+    useTheme();
     adopt(sheet);
     const menu = document.createElement("main");
     menu.className = "aw-menu";

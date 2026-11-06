@@ -1,5 +1,5 @@
 import "@papit/button";
-import { adopt, COLOURS, escape, t, teamName, wears, type GameState } from "@arrow-warfare/core";
+import { adopt, useTheme, COLOURS, escape, t, teamName, wears, type GameState } from "@arrow-warfare/core";
 
 import sheet from "./style.css" with { type: "css" };
 
@@ -18,6 +18,7 @@ const seconds = (ms: number) => {
 
 /** The end of a round: who won, or a draw, and a row of stats per player. The host goes on from here. */
 export function mountResults(root: HTMLElement, { state, me, host, onBack, onRematch }: ResultsOptions) {
+    useTheme();
     adopt(sheet);
     const results = state.results!;
     const player = (id: string) => state.players.find(other => other.id === id);
