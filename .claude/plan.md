@@ -1,7 +1,7 @@
 # Plan: ragdoll deaths
 
 ## Where we are
-Task 1 done. Next: task 2.
+Tasks 1, 2 done. Next: task 3.
 
 ## Tasks
 1. **Eyes.** Two eyes on the head (`rig` + `bodies`), crossed "x" eyes when dead. Also in the kill cam.
