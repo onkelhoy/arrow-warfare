@@ -130,9 +130,12 @@ export class Field {
         return this.noise(x / 11 - 70, z / 11 + 40);
     }
 
-    /** Ground height: gentle hills, rising into the forest. */
+    /** Ground height: rolling hills to hide behind and shoot down from, rising into the forest. */
     height(x: number, z: number) {
-        const hills = this.noise(x / 22, z / 22) * 1.4 + this.noise(x / 8 + 31, z / 8 - 17) * .35;
+        // big slow swells, smaller humps on them, a little roughness; never steeper than about 1 in 3
+        const hills = this.noise(x / 30 - 9, z / 30 + 4) * 4.6
+            + this.noise(x / 13 + 7, z / 13 - 3) * 1.6
+            + this.noise(x / 6 + 31, z / 6 - 17) * .3;
         const out = Math.hypot(x, z) - (this.radius - 4);
         return hills + (out > 0 ? (out / 14) ** 2 * 3 : 0);
     }
