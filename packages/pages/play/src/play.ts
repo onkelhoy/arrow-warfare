@@ -71,7 +71,7 @@ const WALK_UP = 1.6;
 /** Seconds of the spirit leaving my body. */
 const SPIRIT = 1.5;
 /** The most arrows a dead player drops. */
-const MAX_DROP = 20;
+const MAX_DROP = 10;
 
 /** `point` and `direction` are in the hit part's own space, `at` is where in the world. */
 type Hit = { arrow: string; victim: string; zone: Zone; part: string; point: Vec; direction: Vec; place: BodyPlace; at: Vec; distance: number; time: number };
@@ -578,9 +578,11 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (deadPanel.hidden) deadToggle.classList.add("unread");
         }),
 
-        net.on("drop", ({ x, z, count }, sender) => {
+        net.on("drop", ({ x, z, count, time, dx, dz, power }, sender) => {
             if (!player(sender) || ![x, z, count].every(Number.isFinite)) return;
-            arrows.drop(sender, x, z, Math.max(0, Math.min(MAX_DROP, Math.floor(count))), net.shared());
+            const blow = [dx, dz, power].every(Number.isFinite) ? { dx, dz, power: Math.max(0, Math.min(1, power)) } : undefined;
+            const from = Number.isFinite(time) ? time : net.shared();
+            for (const shot of arrows.drop(sender, x, z, Math.max(0, Math.min(MAX_DROP, Math.floor(count))), from, blow)) replay.shot(shot);
         }),
 
                 net.on("pick", ({ arrow: id }, sender) => {
@@ -676,7 +678,11 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         wounds.hits++;
         // my unshot arrows fall where I die, for anyone to pick up
         const left = Number.isFinite(quiver) ? quiver : state.rules.arrows;
-        if (left > 0) broadcast("drop", { x: walker.x, z: walker.z, count: Math.min(left, MAX_DROP) });
+        // they burst out the way the arrow threw me
+        const killer = arrows.all.get(hit.arrow);
+        const way = killer ? heading(killer) : [0, 0, 0];
+        const time = Number.isFinite(hit.time) ? hit.time : net.shared();
+        if (left > 0) broadcast("drop", { x: walker.x, z: walker.z, count: Math.min(left, MAX_DROP), time, dx: way[0], dz: way[2], power: killer ? powerOf(killer.shot.speed) : 0 });
         quiver = 0;
         walker.alive = false;
         draw.cancel();

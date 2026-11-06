@@ -71,7 +71,7 @@ export function mountKillCam(stage: HTMLElement, sound?: Sound) {
         return null;
     }
 
-    function shoot(distance: number, power: number, part: "head" | "torso" = "head") {
+    function shoot(distance: number, power: number, part: "head" | "torso" = "head", quiver = 6, mode: "film" | "watch" = "film") {
         film?.skip();
         film?.destroy();
         arrows.destroy();
@@ -138,6 +138,8 @@ export function mountKillCam(stage: HTMLElement, sound?: Sound) {
             place: { x: vx, y: field.height(vx, vz), z: vz, yaw: Math.PI }, at: best.tip, time: strike, lethal: true,
         });
         replay.death({ id: VICTIM, by: SHOOTER, arrow: id, time: strike });
+    // the victim's unshot arrows burst out along the throw
+    for (const spilled of arrows.drop(VICTIM, vx, vz, quiver, strike, { dx: best.direction[0], dz: best.direction[2], power })) replay.shot(spilled);
 
         film = new Film({
             renderer, field, camera, replay, arrows, blood,
@@ -145,7 +147,8 @@ export function mountKillCam(stage: HTMLElement, sound?: Sound) {
             fallback: () => null,
             sound: (name, _at, volume, rate) => sfx?.play(name, { volume, rate }),
         });
-        status = film.start(VICTIM, SHOOTER, id) ? `${(best.at / 1000).toFixed(2)} s in the air, ${film.length.toFixed(1)} s of film` : "Nothing to show.";
+        film.hold = true;
+        status = film.start(VICTIM, SHOOTER, id, mode) ? `${(best.at / 1000).toFixed(2)} s in the air, ${film.length.toFixed(1)} s of film` : "Nothing to show.";
         return status;
     }
 

@@ -83,8 +83,14 @@ export class Film {
         this.bodies = new Bodies(world.renderer);
     }
 
-    /** Ready to play the death of `victim`. False when there's nothing to show. */
-    start(victim: string, killer: string, arrowId: string): boolean {
+    /** Keep the bodies drawn once it's over (a view that stays on the last frame). */
+    hold = false;
+
+    /**
+     * Ready to play the death of `victim`. False when there's nothing to show. `watch` is no kill cam:
+     * a bystander close to the victim, in real time, from a while before the shot to after the fall.
+     */
+    start(victim: string, killer: string, arrowId: string, mode: "film" | "watch" = "film"): boolean {
         const { replay } = this.world;
         const hit = replay.hits.get(arrowId);
         const shot = replay.shots.get(arrowId);
@@ -122,7 +128,23 @@ export class Film {
         };
         let start = strike - 300;
 
-        if (shot && shooter && path.length > 1)
+        if (mode === "watch")
+        {
+            // standing off to the side of them, a little towards the shooter, seeing it as it happens
+            const from = (shot ? shot.time : strike) - 1500;
+            const eye = ground(add(add(add(at, across, 2.2), direction, -.4), [0, .1, 0]), .7);
+            this.shots.push({
+                name: "strike", real: (strike + 3500 - from) / 1000, from, to: strike + 3500,
+                camera: () => {
+                    const body = this.rigs.get(victim);
+                    const lying: Vec = body?.doll ? [body.where.x, body.where.y, body.where.z] : add(at, [0, -.3, 0]);
+                    return { eye, look: mix(at, lying, .6) };
+                },
+            });
+            start = from;
+            if (shot) this.cues.push({ time: shot.time, play: () => this.world.sound("twang", [shot.x, shot.y, shot.z], .6, 1) });
+        }
+        else if (shot && shooter && path.length > 1)
         {
             const flight = strike - shot.time;
             const yaw = shooter.yaw;
@@ -162,6 +184,18 @@ export class Film {
         }
 
         // the strike: from the side, the arrow going in and the body going down, slowest at the hit
+        if (mode === "film") this.pushStrike(victim, at, start, strike, across, direction, ground);
+        const strength = shot ? powerOf(shot.speed) : .6;
+        this.cues.push({ time: strike, play: () => {
+            const rate = mode === "film" ? .75 : 1;
+            this.world.sound("body", at, 1, rate);
+            this.world.sound("kill", undefined, .6 + .4 * strength, rate);
+            this.world.sound("grunt", at, .9, rate + .05);
+        } });
+        return this.finishStart(strike, shot, strength);
+    }
+
+    private pushStrike(victim: string, at: Vec, start: number, strike: number, across: Vec, direction: Vec, ground: (p: Vec, above?: number) => Vec) {
         const eye = ground(add(add(add(at, across, 1.55), direction, -.45), [0, .22, 0]), .25);
         this.shots.push({
             name: "strike", real: 2.8, from: Math.max(start, strike - 60), to: strike + 2000, ease: u => u ** 1.8,
@@ -176,13 +210,10 @@ export class Film {
                 return { eye: [look[0] + ox * c - oz * s, eye[1] + u * .25, look[2] + ox * s + oz * c], look };
             },
         });
-        const strength = shot ? powerOf(shot.speed) : .6;
-        this.cues.push({ time: strike, play: () => {
-            this.world.sound("body", at, 1, .7);
-            this.world.sound("kill", undefined, .6 + .4 * strength, .75);
-            this.world.sound("grunt", at, .9, .8);
-        } });
+    }
 
+    private finishStart(strike: number, shot: Shot | undefined, strength: number) {
+        const { replay } = this.world;
         // the drops of every hit in the film, as it happens
         for (const other of replay.hits.values())
         {
@@ -206,7 +237,7 @@ export class Film {
 
     skip() {
         this.done = true;
-        this.bodies.draw([]);
+        if (!this.hold) this.bodies.draw([]);
     }
 
     /** One frame of real `dt` seconds. */

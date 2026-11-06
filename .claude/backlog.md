@@ -282,7 +282,8 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - **Kill cam:** no more standing T pose: alive until the arrow is in, then thrown in slow motion; the strike shot is 0.5 s longer and looks where the body lands.
 - **Last kill cam:** only for its victim and the winner (or winning team). Everyone else goes straight to the end.
 - Corpses still aren't hit by arrows (as before). Tuning knobs: push in `rig/src/limp.ts`, grip, bounce and sink in `ragdoll/src/ragdoll.ts`.
-- **Kill cam lab:** in the play page's view (`npm start` in `packages/pages/play`, the last section): distance and power sliders, head or torso, Shoot plays the whole kill cam. `mountKillCam(stage, sound)` from `@arrow-warfare/play`.
+- **Kill cam lab:** in the play page's view (`npm start` in `packages/pages/play`, the last section): distance and power sliders, head or torso, arrows left (0 to 10), kill cam or a bystander close by in real time. The body stays at the end. `mountKillCam(stage, sound)` from `@arrow-warfare/play`.
+- **Spilled arrows:** a dead player's unshot arrows (at most 10) burst out along the throw, fly, land and can be picked up once down. They hurt nobody, and the kill cam shows them too.
 - Nothing tested on a phone here.
 
 ## Notes from milestone 6 (for the owner to review)

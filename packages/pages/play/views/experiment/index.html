@@ -80,12 +80,17 @@
     </section>
     <section>
         <h2>Kill cam</h2>
-        <p>Two players, the shooter aims at the other's head and the arrow goes in exactly there. Set the distance and the power, shoot, and the whole kill cam plays. Click the picture to skip.</p>
+        <p>Two players, the shooter aims at the other's head and the arrow goes in exactly there. Set the distance, the power and the arrows the victim still has, shoot, and the whole kill cam plays, or watch it as someone standing close by. Click the picture to skip.</p>
         <div class="demo">
             <div class="demo-stage killcam-stage"><canvas class="killcam-canvas" style="inline-size: 100%; block-size: 100%; display: block"></canvas></div>
             <form class="demo-controls killcam-controls">
                 <label>Distance <input name="distance" type="range" min="4" max="70" step="1" value="20"> <output name="distance-value">20 m</output></label>
                 <label>Power <input name="power" type="range" min="0.2" max="1" step="0.05" value="0.9"> <output name="power-value">0.9</output></label>
+                <label>Arrows left <input name="quiver" type="range" min="0" max="10" step="1" value="6"> <output name="quiver-value">6</output></label>
+                <label>View <select name="mode">
+                    <option value="film" selected>kill cam (the victim's)</option>
+                    <option value="watch">bystander, real time</option>
+                </select></label>
                 <label>Hit <select name="part">
                     <option value="head" selected>head</option>
                     <option value="torso">torso</option>

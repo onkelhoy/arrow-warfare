@@ -66,25 +66,32 @@ export class Arrows {
     }
 
     /**
-     * A dead player's unshot arrows, fallen in the grass around where they died. The same on every phone:
-     * the spread comes from their id, the ids are `<player>:drop<n>`. Anyone can pick them up.
+     * A dead player's unshot arrows bursting out of them, flung the way the body was thrown (`dx`, `dz`,
+     * `power` of the blow), landing in the grass around. The same on every phone: the spread comes from
+     * their id, the ids are `<player>:drop<n>`, and they fly from `time`. They hurt nobody, and once down
+     * anyone can pick them up. Returns their shots, for the replay.
      */
-    drop(by: string, x: number, z: number, count: number, time: number) {
+    drop(by: string, x: number, z: number, count: number, time: number, blow: { dx: number; dz: number; power: number } = { dx: 0, dz: 0, power: 0 }) {
         const random = seeded([...by].reduce((hash, c) => hash * 31 + c.charCodeAt(0) | 0, 7) ^ Math.round(x * 100) ^ Math.round(z * 100) << 8);
+        const flat = Math.hypot(blow.dx, blow.dz);
+        const fx = flat ? blow.dx / flat : 0, fz = flat ? blow.dz / flat : 0;
+        const shots: Shot[] = [];
         for (let i = 0; i < count; i++)
         {
             const id = `${by}:drop${i}`;
             if (this.all.has(id)) continue;
-            const angle = random() * Math.PI * 2, distance = .35 + random() * .6;
-            const ax = x + Math.cos(angle) * distance, az = z + Math.sin(angle) * distance;
-            // lying flat, any which way, the tip a touch into the grass
-            const facing = random() * Math.PI * 2;
-            const dx = Math.cos(facing), dz = Math.sin(facing);
-            const arrow = launch({ id, by, time, x: ax, y: this.field.height(ax, az) + .02, z: az, dx, dy: -.04, dz, speed: 1 });
-            arrow.rest = { in: "ground" };
-            this.all.set(id, arrow);
+            // out of the quiver on the back, along the throw, fanning out and up
+            const angle = random() * Math.PI * 2, spread = .6 + random() * 1.4;
+            const push = flat ? 1.5 + blow.power * 4 + random() * 2 : 0;
+            const vx = fx * push + Math.cos(angle) * spread, vz = fz * push + Math.sin(angle) * spread;
+            const vy = 2 + random() * 2.5 + blow.power;
+            const speed = Math.hypot(vx, vy, vz);
+            const shot: Shot = { id, by, time, x, y: this.field.height(x, z) + .7, z, dx: vx / speed, dy: vy / speed, dz: vz / speed, speed };
+            this.all.set(id, launch(shot));
             this.colours.set(id, this.colourOf(by));
+            shots.push(shot);
         }
+        return shots;
     }
 
     /** It went into a player's `part`, as they said, `point` and `direction` in the part's space. */
@@ -116,7 +123,10 @@ export class Arrows {
         for (const arrow of this.all.values())
         {
             if (arrow.rest || arrow.gone) continue;
+            // spilled ones hurt nobody
+            const spilled = arrow.shot.id.includes(":drop");
             fly(arrow, now, this.field, (from, to) => {
+                if (spilled) return false;
                 for (const body of judge)
                 {
                     if (body.id === arrow.shot.by && arrow.at - arrow.shot.time < OWN_GRACE) continue;
