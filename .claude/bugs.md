@@ -65,3 +65,6 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 ### Guest has to click ready twice
 - **What:** as a guest in the menu/lobby, ready needs two clicks to register. Not investigated yet (menu logic comes after the redesign).
 - **Workaround:** click twice.
+
+## pap-tabs: tall panel squeezes the tab list away (papit, reported)
+`pap-tabs` is a flex column and its `tablist` has `overflow-x: auto`, so its min height is 0. In a short box (lobby on a phone) a tall panel like Rules shrinks the tabs to nothing and there's no way back. Workaround: `.aw-lobby-tabs::part(tablist) { flex: none; }` in the lobby style. Fix belongs in papit (`flex: none` on the tablist).

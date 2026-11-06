@@ -44,6 +44,11 @@
     padding: 10px 14px;
 }
 
+/* papit's tablist scrolls sideways, so a tall panel can squeeze it to nothing: keep it its size */
+.aw-lobby-tabs::part(tablist) {
+    flex: none;
+}
+
 .aw-lobby-tabs pap-tab {
     font-family: var(--aw-font-title);
     font-weight: 700;
