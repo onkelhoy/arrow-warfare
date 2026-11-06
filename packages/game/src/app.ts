@@ -60,6 +60,16 @@ export async function startApp(root: HTMLElement = document.body) {
             by: invite ? invite.by : null,
             onHost: () => play(null),
             onJoin: () => invite && play(invite),
+            onScan: text => {
+                // only our own links, opened here instead of in the browser
+                let url: URL;
+                try { url = new URL(text, location.href); }
+                catch { return false; }
+                if (url.origin !== location.origin || !parseInvite(url.search, url.hash)) return false;
+                history.replaceState(null, "", url.href);
+                menu();
+                return true;
+            },
         }));
         page.status(note);
         sound.playlist("lobby");

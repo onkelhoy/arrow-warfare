@@ -45,7 +45,13 @@
       "hostOwn": "Starta ett eget spel i stället",
       "needName": "Ge dig själv ett namn först.",
       "needsPassword": "Spelet har ett lösenord.",
-      "wrongPassword": "Lösenordet stämde inte, försök igen."
+      "wrongPassword": "Lösenordet stämde inte, försök igen.",
+      "scan": "Skanna en QR-kod för att gå med",
+      "scanStop": "Avbryt",
+      "scanHint": "Rikta kameran mot inbjudans QR-kod.",
+      "scanWrong": "Det där är ingen Arrow Warfare-inbjudan.",
+      "cameraDenied": "Ingen åtkomst till kameran, tillåt den i inställningarna.",
+      "cameraMissing": "Kameran kunde inte starta."
     },
     "play": {
       "title": "3, 2, 1... kör!",

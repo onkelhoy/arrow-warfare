@@ -1,0 +1,62 @@
+{
+  "name": "@arrow-warfare/qr-scanner",
+  "description": "Reads QR codes with the camera, from papchat.",
+  "keywords": [
+    "papit",
+    "typescript",
+    "qr-scanner"
+  ],
+  "version": "0.0.1",
+  "scripts": {
+    "build": "npx @papit/build -- --error --ancestors",
+    "watch": "tsc -w",
+    "start": "npx @papit/server --info --live"
+  },
+  "main": "./lib/bundle.js",
+  "types": "./lib/bundle.d.ts",
+  "type": "module",
+  "files": [
+    "asset/",
+    "lib/"
+  ],
+  "exports": {
+    ".": {
+      "import": "./lib/bundle.js",
+      "types": "./lib/bundle.d.ts"
+    }
+  },
+  "author": "henry",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/onkelhoy/arrow-warfare/tree/main/packages/atoms/qr-scanner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onkelhoy/arrow-warfare.git",
+    "directory": "packages/atoms/qr-scanner"
+  },
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@papit/web-component": "^0.0.14"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@papit/theme": "*",
+    "@papit/codeblock": "*",
+    "@arrow-warfare/core": "*"
+  },
+  "papit": {
+    "publish": false,
+    "type": "web-component",
+    "main": "qr-scanner",
+    "htmlprefix": "aw",
+    "components": {
+      "qr-scanner": {
+        "className": "QrScanner",
+        "htmlprefix": "aw"
+      }
+    }
+  }
+}

@@ -42,7 +42,8 @@
     "@papit/button": "^0.1.10",
     "@papit/input": "^0.0.10",
     "@arrow-warfare/core": "*",
-    "@arrow-warfare/backdrop": "*"
+    "@arrow-warfare/backdrop": "*",
+    "@arrow-warfare/qr-scanner": "*"
   },
   "devDependencies": {
     "typescript": "5.9.3",

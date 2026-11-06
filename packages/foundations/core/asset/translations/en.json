@@ -45,7 +45,13 @@
       "hostOwn": "Host my own game instead",
       "needName": "Give yourself a name first.",
       "needsPassword": "This game has a password.",
-      "wrongPassword": "That password didn't work, try again."
+      "wrongPassword": "That password didn't work, try again.",
+      "scan": "Scan a QR code to join",
+      "scanStop": "Cancel",
+      "scanHint": "Point the camera at the invite's QR code.",
+      "scanWrong": "That's not an Arrow Warfare invite.",
+      "cameraDenied": "No access to the camera, allow it in settings.",
+      "cameraMissing": "The camera couldn't start."
     },
     "play": {
       "title": "3, 2, 1... go!",
