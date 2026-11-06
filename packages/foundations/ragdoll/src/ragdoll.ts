@@ -82,8 +82,10 @@ export class Ragdoll<Name extends string = string> {
     /** Runs the fixed steps `dt` seconds hold. */
     update(dt: number) {
         if (this.resting || !(dt > 0)) return;
-        this.left += Math.min(dt, .25);
-        while (this.left >= STEP && !this.resting)
+        // a long frame (a hiccup, a tab coming back) catches up over the next frames: no time is lost,
+        // so every phone runs the same steps
+        this.left += dt;
+        for (let i = 0; i < 40 && this.left >= STEP && !this.resting; i++)
         {
             this.left -= STEP;
             this.step();

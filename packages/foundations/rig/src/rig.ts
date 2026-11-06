@@ -137,12 +137,10 @@ export class Rig {
     where = { x: 0, y: 0, z: 0, yaw: 0, tip: 0 };
     /** The dead body, once limp. */
     doll: Ragdoll<LimpPoint> | null = null;
-    private posed = false;
 
     update(dt: number, input: RigInput) {
         if (input.dead) return this.limp(dt, input);
         this.doll = null;
-        this.posed = true;
         this.clock += dt;
         const { x, y, z, yaw } = input;
         this.where = { x, y, z, yaw, tip: 0 };
@@ -248,8 +246,15 @@ export class Rig {
     private limp(dt: number, input: RigInput) {
         if (!this.doll)
         {
-            // never posed (a body first seen dead): stand it up once to have a pose to fall from
-            if (!this.posed) this.update(1e-4, { ...input, dead: false, blow: null, draw: 0 });
+            // the same pose to fall from on every phone: standing still where they died, bow down. Only
+            // the sitting (from the wounds) is kept, the walk and the draw are each phone's own
+            const sitting = input.resting || legsHurt(input.wounds) >= 2;
+            this.last = null;
+            this.steps = [];
+            this.low = sitting ? 1 : 0;
+            this.raise = 0;
+            this.lift = 0;
+            this.update(1e-4, { ...input, pitch: 0, stage: 0, dead: false, blow: null, draw: 0 });
             const w = (p: ArrayLike<number>): Vec => this.world([p[0], p[1], p[2]]);
             const [left, right] = this.arms, [leftLeg, rightLeg] = this.legs;
             this.doll = limp({

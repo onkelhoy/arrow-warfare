@@ -153,11 +153,6 @@ export class Others {
                 other.walked += pose.speed * dt;
                 if (Math.floor(other.walked / STEP) > before) this.onStep([place.x, this.field.height(place.x, place.z), place.z]);
             }
-            // the moment they die: stood where they say they were hit, then thrown from there
-            if (other.corpse && !other.rig.doll) other.rig.update(1e-4, {
-                x: place.x, y: this.field.height(place.x, place.z), z: place.z, yaw: place.yaw,
-                pitch: pose.pitch, draw: 0, left: pose.left, stage: pose.stage, wounds: pose.wounds | other.wounds, resting: pose.resting, dead: false,
-            });
             other.rig.update(dt, {
                 x: place.x, y: this.field.height(place.x, place.z), z: place.z, yaw: place.yaw,
                 pitch: pose.pitch, draw: other.corpse ? 0 : pose.draw, left: pose.left, stage: pose.stage,
