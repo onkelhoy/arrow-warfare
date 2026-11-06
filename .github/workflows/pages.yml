@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -20,6 +20,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.versions.outputs.tag }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +40,12 @@ jobs:
           CI: true
         run: npm run pages
 
+      - name: Version page
+        id: versions
+        run: |
+          git fetch --unshallow --tags
+          node bin/version-log.mjs docs
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
@@ -50,3 +59,10 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # only what went live gets a version
+      - name: Tag the release
+        if: needs.build.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/${{ github.repository }}/git/refs" -f ref="refs/tags/${{ needs.build.outputs.tag }}" -f sha="${{ github.sha }}"
