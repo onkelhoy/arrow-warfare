@@ -67,3 +67,8 @@ svg {
     border-color: rgb(255 90 90 / 95%);
     box-shadow: 0 0 14px rgb(255 90 90 / 60%);
 }
+
+:host([looking]:not([active])) .button {
+    opacity: .3;
+    transition: opacity 250ms, scale 120ms;
+}

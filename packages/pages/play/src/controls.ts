@@ -148,6 +148,12 @@ export class Controls {
         }
         try { this.surface.setPointerCapture(event.pointerId); } catch { /* a pointer already gone */ }
         this.lookers.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, at: performance.now(), moved: 0 });
+        this.fadeBow();
+    }
+
+    /** The bow button fades back while a thumb is looking round, so it hides less of the view. */
+    private fadeBow() {
+        this.bow.toggleAttribute("looking", this.lookers.size > 0);
     }
 
     private handlemove = (event: PointerEvent) => {
@@ -163,6 +169,7 @@ export class Controls {
     private handleup = (event: PointerEvent) => {
         const last = this.lookers.get(event.pointerId);
         this.lookers.delete(event.pointerId);
+        this.fadeBow();
         if (!last || last.moved > TAP_MOVE || performance.now() - last.at > TAP_TIME) return;
         const box = this.surface.getBoundingClientRect();
         this.tapped.push([event.clientX - box.left, event.clientY - box.top]);
@@ -170,6 +177,7 @@ export class Controls {
 
     private handlecancel = (event: PointerEvent) => {
         this.lookers.delete(event.pointerId);
+        this.fadeBow();
     }
 
     /** The bow button: held, letting go shoots unless on cancel, and the same thumb turning the view. */
