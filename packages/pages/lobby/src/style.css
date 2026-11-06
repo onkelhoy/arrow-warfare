@@ -46,7 +46,7 @@
 
 /* papit's tablist scrolls sideways, so a tall panel can squeeze it to nothing: keep it its size */
 .aw-lobby-tabs::part(tablist) {
-    flex: none;
+    flex-shrink: 0 !important;
 }
 
 .aw-lobby-tabs pap-tab {
