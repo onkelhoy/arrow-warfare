@@ -81,6 +81,8 @@ export class Rig {
     readonly capsules: Capsule[];
     /** Whether the bow is drawn this frame, and how far. */
     armed = true;
+    /** Dead this frame: crossed out eyes. */
+    dead = false;
     draw = 0;
     /** Bow side: 1 holds it in the left hand (right handed), -1 in the right. */
     side = 1;
@@ -162,6 +164,7 @@ export class Rig {
         const hopping = !input.dead && !sitting && legs === 1;
         const ease = (from: number, to: number, rate: number) => from + (to - from) * (1 - Math.exp(-dt * rate));
         this.low = ease(this.low, sitting ? 1 : 0, 5);
+        this.dead = input.dead;
         this.armed = !input.dead && !input.unarmed;
         this.draw = this.armed ? input.draw : 0;
         this.raise = ease(this.raise, this.draw > .02 ? 1 : 0, 8);
