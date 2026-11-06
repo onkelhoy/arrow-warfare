@@ -1,3 +1,5 @@
+import "@papit/codeblock";
+import { useTheme } from "@arrow-warfare/core";
 import "@papit/button";
 import { Sound, type PlaylistName } from "@arrow-warfare/sound";
 
@@ -14,3 +16,5 @@ for (const button of document.querySelectorAll<HTMLElement>("[data-list]"))
 document.querySelector("#next")!.addEventListener("click", () => sound.next());
 document.querySelector("#dip")!.addEventListener("click", () => sound.dip(dipped = !dipped));
 document.querySelector<HTMLInputElement>("#music")!.addEventListener("input", event => sound.setVolume("music", Number((event.target as HTMLInputElement).value)));
+
+useTheme();

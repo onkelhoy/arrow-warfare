@@ -283,6 +283,17 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - Not done: host migration, the `.glb` loader, real phone tests (the owner's).
 - Nothing tested here, the owner tests live.
 
+## Medieval menu redesign (done, for the owner to review)
+- [x] Theme tokens in core (`useTheme()`, `src/theme.css`): parchment, wood, iron, banner red, ink outlines; light and dark through `light-dark()`. Restyles `pap-button`, `pap-input`, `pap-dialog`, selects and ranges; `.aw-panel`, `.aw-title`, `.aw-ribbon`.
+- [x] `atoms/backdrop` (`aw-backdrop`): painted SVG sky by time of day (game palettes), sun or crescent moon, stars, drifting clouds, snowy mountains, castle with waving flags, forest and hills. Behind menu, lobby and results.
+- [x] Controls themed: chat, corner, invite, share-link. Bow button left as it was.
+- [x] `atoms/fanfare` (`aw-fanfare`): herald trumpets with banners swing in from the sides, bob and puff, toot one of the 3 kazoo files at random, droop, leave. In the winner circle of `play`, the banner in the winner's colour. Old horns and the synthesised fanfare sfx are gone.
+- [x] In the game: the same backdrop in 3D (`world/src/backdrop.ts`), hills, two mountain rings and a castle peeking over the forest; the play camera reaches 320 m. World view has "the backdrop, from the middle".
+- [x] Hillier meadow (bigger swells and humps in `Field.height`).
+- [x] Views of UI packages in `pap-codeblock`s with the theme toggle.
+- Titles use Luminari (macOS), then Papyrus/Palatino/Georgia: no web font, Android gets a serif fallback.
+- The fanfare audio loads through `fetch` (`/audio/...`), so the static build's base path works. Not yet heard on a real phone.
+
 ## Open questions
 - Torso hit: dead at once, or two torso hits? (milestone 4: dead at once)
 - ~~Can the dead drop their quiver?~~ Yes, milestone 7.

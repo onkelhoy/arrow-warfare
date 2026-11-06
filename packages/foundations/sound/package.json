@@ -42,7 +42,9 @@
   "devDependencies": {
     "typescript": "5.9.3",
     "@papit/theme": "*",
-    "@papit/button": "*"
+    "@papit/button": "*",
+    "@papit/codeblock": "*",
+    "@arrow-warfare/core": "*"
   },
   "papit": {
     "publish": false,

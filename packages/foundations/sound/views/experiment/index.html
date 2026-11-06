@@ -20,6 +20,8 @@
     <section>
         <h2>Playlists</h2>
         <p>Songs and lists come from <code>asset/audio/songs.json</code> in the root, run a build of <code>packages/game</code> once so they're copied in.</p>
+        <pap-codeblock display="both" color="checker">
+        <div class="aw-panel">
         <p class="row">
             <pap-button data-list="lobby">Lobby playlist</pap-button>
             <pap-button data-list="game">Game playlist</pap-button>
@@ -28,6 +30,8 @@
             <pap-button id="dip">Dip music</pap-button>
         </p>
         <label>Music <input id="music" type="range" min="0" max="1" step=".01" value=".6"></label>
+        </div>
+        </pap-codeblock>
     </section>
 </body>
 
