@@ -19,6 +19,10 @@ import { Controls } from "./controls";
 import { FirstPerson } from "./firstperson";
 import { Hud, nameTag } from "./hud";
 import { Others } from "./others";
+
+/** Up-down field of view (radians), and the widest screen it holds for before the height is cut. */
+const FOV = 1.1;
+const WIDE = 1.6;
 import { Replay } from "./replay";
 import { Walker } from "./walker";
 import sheet from "./style.css" with { type: "css" };
@@ -109,10 +113,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         layer.setting.width = Math.max(1, Math.round(play.clientWidth * density()));
         layer.setting.height = Math.max(1, Math.round(play.clientHeight * density()));
         layer.resize();
+        // wide phones: keep the sideways view as at 16:10 and show less height, else the edges stretch and people look fat
+        const aspect = play.clientWidth / Math.max(1, play.clientHeight);
+        camera.fov = aspect > WIDE ? 2 * Math.atan(Math.tan(FOV / 2) * WIDE / aspect) : FOV;
         controls.placeBow(settings().bow, play.clientWidth);
     };
     // far enough for the painted mountains round the field (`BACKDROP_REACH` past the edge)
-    const camera = new Camera({ fov: 1.1, near: .05, far: 320 });
+    const camera = new Camera({ fov: FOV, near: .05, far: 320 });
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
 
