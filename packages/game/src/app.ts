@@ -9,6 +9,7 @@ import { mountPlay } from "@arrow-warfare/play";
 import { mountResults } from "@arrow-warfare/results";
 import { Sound } from "@arrow-warfare/sound";
 
+import { mountDebug } from "./debug";
 import { Session, type End, type Trying } from "./session";
 
 type Screen = { remove(): void };
@@ -51,6 +52,8 @@ export async function startApp(root: HTMLElement = document.body) {
     // a reload of the host's tab opens the same game again, so the link already sent still works
     const last = remembered();
     let rehost = last?.role === "host" ? last.code : "";
+    let active: Session | null = null;
+    mountDebug(lobby, () => active);
 
     let current: Screen | null = null;
     const show = <T extends Screen>(next: T) => {
@@ -223,6 +226,7 @@ export async function startApp(root: HTMLElement = document.body) {
             },
         });
         let shownLink = "";
+        active = session;
 
         // a new name in the settings reaches the host
         let first = true;
