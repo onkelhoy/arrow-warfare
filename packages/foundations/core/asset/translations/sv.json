@@ -140,6 +140,7 @@
       "host": "värd",
       "you": "(du)",
       "weak": "svag anslutning",
+      "relayed": "via värden",
       "force": "Tvinga redo",
       "kick": "Sparka ut"
     },

@@ -26,6 +26,8 @@ export class Room {
     /** On the host: each guest's ping as they last measured it. */
     private pings = new Map<string, number>();
     private fast: Fast[] = [];
+    /** When a pose last went through the host to each peer, so a relayed one goes at a lower rate. */
+    private relayedFast = new Map<string, number>();
     private channel: Channel;
 
     constructor(readonly network: Network, readonly hostId: string) {
@@ -72,6 +74,16 @@ export class Room {
             this.rtt = Math.round(rtt);
         });
 
+        // a guest with no direct link to another goes through the host, who has links to all
+        this.on("relay", ({ to, type, payload }, sender) => {
+            if (!this.isHost || typeof to !== "string" || typeof type !== "string" || to === sender) return;
+            this.send(to, "relayed", { from: sender, type, payload });
+        });
+        this.on("relayed", ({ from, type, payload }, sender) => {
+            if (sender !== this.hostId || typeof from !== "string" || typeof type !== "string" || type === "relay" || type === "relayed") return;
+            for (const handler of this.handlers.get(type) ?? []) handler(payload ?? {}, from);
+        });
+
         if (this.isHost) this.rtt = 0;
         else
         {
@@ -79,6 +91,11 @@ export class Room {
             this.timer = setInterval(ping, PING_EVERY);
             ping();
         }
+    }
+
+    /** The ones of `peers` I have no direct link to (not me, not the host). */
+    gaps(peers: string[]) {
+        return peers.filter(peer => peer !== this.me && peer !== this.hostId && !this.network.linked.has(peer));
     }
 
     /** On the host: a guest's ping as they last measured it. */
@@ -119,13 +136,15 @@ export class Room {
     }
 
     /** Reliable, to one peer. A message to ourselves goes straight to the handlers. */
-    send(to: string, type: string, payload: unknown = {}) {
+    send(to: string, type: string, payload: unknown = {}): boolean {
         if (to === this.me)
         {
             for (const handler of this.handlers.get(type) ?? []) handler(structuredClone(payload ?? {}), to);
             return true;
         }
         if (this.network.closed) return false;
+        if (!this.isHost && to !== this.hostId && !this.network.linked.has(to))
+            return this.send(this.hostId, "relay", { to, type, payload });
         try
         {
             this.network.send(to, type, payload);
@@ -155,6 +174,13 @@ export class Room {
         {
             if (peer === this.me) continue;
             if (open.includes(peer) && this.channel.send(peer, data)) continue;
+            if (!this.isHost && peer !== this.hostId && !this.network.linked.has(peer))
+            {
+                // through the host: 10 a second is plenty, the rest is dropped as a lossy channel would
+                const now = performance.now();
+                if (now - (this.relayedFast.get(peer) ?? 0) < 100) continue;
+                this.relayedFast.set(peer, now);
+            }
             fallback ??= btoa(String.fromCharCode(...new Uint8Array(data)));
             this.send(peer, "fast", { bytes: fallback });
         }

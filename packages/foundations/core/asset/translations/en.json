@@ -140,6 +140,7 @@
       "host": "host",
       "you": "(you)",
       "weak": "weak connection",
+      "relayed": "via the host",
       "force": "Force ready",
       "kick": "Kick"
     },

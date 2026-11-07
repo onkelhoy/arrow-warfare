@@ -25,6 +25,8 @@ export type SessionEvents = {
 
 /** ms between the host's looks at the pings, a changed one goes out with the state. */
 const PING_PUBLISH = 3000;
+/** ms between a guest's looks at which players it has no direct link to. */
+const GAPS_EVERY = 3000;
 /** How many name ideas a team can have. */
 const IDEAS = 8;
 
@@ -183,6 +185,15 @@ export class Session {
             const line: ChatLine = { from: sender, name: found.name, colour: wears(this.state!, found), text: clean, team: toTeam };
             const to = this.state!.players.filter(other => !toTeam || other.team === found.team).map(other => other.id);
             room.sendAll(to, "said", line);
+        });
+
+        room.on("gaps", ({ missing }, sender) => {
+            const found = player(sender);
+            if (!found || !Array.isArray(missing)) return;
+            const ids = missing.filter((id): id is string => typeof id === "string" && !!player(id)).sort();
+            if (ids.join() === (found.gaps ?? []).join()) return;
+            found.gaps = ids;
+            this.publish();
         });
 
         room.on("idea", ({ team: teamId, text: idea }, sender) => {
@@ -542,6 +553,18 @@ export class Session {
         });
 
         room.send(host, "hello", { name: this.name(), token: this.token });
+
+        // which players I can't reach directly, the host shows it and passes things on
+        let told = "";
+        const gaps = setInterval(() => {
+            if (room.closed || this.room !== room) return clearInterval(gaps);
+            const players = this.state?.players.map(player => player.id) ?? [];
+            const missing = room.gaps(players).sort();
+            if (missing.join() === told) return;
+            told = missing.join();
+            room.send(room.hostId, "gaps", { missing });
+        }, GAPS_EVERY);
+        this.timers.push(gaps);
     }
 
     /** The host is gone from here: maybe a short drop on either side, or a reload, so find it again for a while. */

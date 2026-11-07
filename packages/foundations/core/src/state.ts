@@ -13,6 +13,8 @@ export type Player = {
     team: string | null;
     /** ms there and back to the host, -1 before it's known. */
     ping: number;
+    /** Players they have no direct link to: what goes between them goes through the host. */
+    gaps?: string[];
 };
 
 export type Idea = { id: string; by: string; text: string; votes: string[] };

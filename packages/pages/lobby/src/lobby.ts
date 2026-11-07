@@ -192,7 +192,10 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         if (!state) return "";
         return state.players.map(player => {
             const weak = player.ping > WEAK_PING;
-            const ping = player.id === state!.host ? t("players.host") : player.ping < 0 ? "…" : `${player.ping} ms`;
+            const mine = state!.players.find(other => other.id === me);
+            // no direct link between us (or, for the host, between them and someone): it goes through the host
+            const relayed = player.id !== me && (mine?.gaps?.includes(player.id) || player.gaps?.includes(me) || (host && !!player.gaps?.length));
+            const ping = (player.id === state!.host ? t("players.host") : player.ping < 0 ? "…" : `${player.ping} ms`) + (relayed ? ` · ${t("players.relayed")}` : "");
             return `<li>
                 <span class="aw-player">${playerLabel(state!, player)}${player.id === me ? ` <span class="aw-dim">${t("players.you")}</span>` : ""}</span>
                 <span class="aw-ready">${player.ready ? "✓" : ""}</span>
