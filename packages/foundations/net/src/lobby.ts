@@ -1,5 +1,7 @@
 import { signal } from "@papit/signals";
-import { Client, ParentBootstrap, type Network } from "@papit/webrtc";
+import { Client, type Network } from "@papit/webrtc";
+
+import { Carried } from "./carried";
 
 /** A network as `GET /networks` and `network.invite()` give it. */
 export type Info = NonNullable<ReturnType<Network["invite"]>>;
@@ -50,7 +52,13 @@ export class Lobby {
     private setStatus: (status: LobbyStatus) => void;
     private closed = false;
     private merging = false;
+    /** Out of the lobby on purpose (a locked game doesn't need it), `start` brings us back. */
+    private parked = false;
+    private starting: Promise<Network> | null = null;
     private timer: ReturnType<typeof setInterval> | undefined;
+    /** The games made or joined through us, carried again by each new lobby. */
+    private carried = new Set<Carried>();
+    private watchers: ((network: Network) => void)[] = [];
 
     constructor(private options: LobbyOptions) {
         [this.status, this.setStatus] = signal<LobbyStatus>("connecting");
@@ -62,24 +70,77 @@ export class Lobby {
         return this.network?.info?.id ?? null;
     }
 
-    /** Resolves once we're in a lobby. `prefer` is the one an invite names, tried first when it's listed. */
-    async start(prefer?: string) {
+    /** True while we're in a lobby that's open. */
+    get ready() {
+        return !!this.network && !this.network.closed;
+    }
+
+    /** True when our lobby node keeps the socket to the signal server, others find the lobby through it. */
+    get anchored() {
+        return !!this.network?.anchored;
+    }
+
+    /** Called with each lobby we get into, the first one and every one after a loss or a park. */
+    onNetwork(watch: (network: Network) => void) {
+        this.watchers.push(watch);
+        if (this.ready) watch(this.network!);
+        return () => { this.watchers = this.watchers.filter(other => other !== watch); };
+    }
+
+    /**
+     * Resolves once we're in a lobby. `prefer` is the one an invite names, tried first when it's listed.
+     * Already in one: that one. Already on the way: the same wait.
+     */
+    start(prefer?: string): Promise<Network> {
+        this.parked = false;
+        if (this.ready) return Promise.resolve(this.network!);
+        this.starting ??= this.run(prefer).finally(() => { this.starting = null; });
+        return this.starting;
+    }
+
+    /** Leaves the lobby with a goodbye, games made through it play on. `start` comes back. */
+    park() {
+        if (this.closed || this.parked) return;
+        this.parked = true;
+        clearInterval(this.timer);
+        const network = this.network;
+        this.network = null;
+        this.setStatus("connecting");
+        network?.leave();
+        console.info("lobby: left, the game doesn't need it now");
+    }
+
+    /** Back from the background: a lobby that died while we were frozen is found again. */
+    check() {
+        if (this.closed || this.parked || this.starting) return;
+        if (!this.ready) void this.start().catch(() => undefined);
+        else void this.keepListed();
+    }
+
+    private async run(prefer?: string) {
         let delay = this.options.retryMin ?? 3000;
-        while (!this.closed)
+        while (!this.closed && !this.parked)
         {
             try
             {
                 const network = await this.enter(prefer);
+                if (this.closed || this.parked)
+                {
+                    network.leave();
+                    break;
+                }
                 this.network = network;
                 this.setStatus("ready");
                 network.addEventListener("close", () => this.lost(network));
                 clearInterval(this.timer);
                 this.timer = setInterval(() => void this.mergeCheck(), this.options.rescan ?? 20_000);
+                for (const game of [...this.carried]) game.carry(network);
+                for (const watch of [...this.watchers]) watch(network);
                 return network;
             }
             catch (error)
             {
-                if (this.closed) break;
+                if (this.closed || this.parked) break;
                 console.warn("lobby: trying again", error);
                 this.setStatus("failed");
                 await wait(delay);
@@ -89,14 +150,41 @@ export class Lobby {
         throw new Error("closed");
     }
 
-    /** A network carried by the lobby, made here. The same `id` again makes an invite to it work again. */
+    /**
+     * A network carried by the lobby, made here. The same `id` again makes an invite to it work again. It
+     * outlives the lobby: a lost lobby, or a park, only stops newcomers until we're in a lobby again.
+     */
     create(draft: Parameters<Client["create"]>[0], setup: Omit<NonNullable<Parameters<Client["create"]>[1]>, "bootstrap"> = {}, id: string = crypto.randomUUID()) {
-        return this.client.create(draft, { ...setup, bootstrap: new ParentBootstrap(this.need(), id) });
+        return this.track(new Carried(this.need(), id), bootstrap => this.client.create(draft, { ...setup, bootstrap }));
     }
 
-    /** A network carried by the lobby, joined by its invite. */
+    /** A network carried by the lobby, joined by its invite. It outlives the lobby too. */
     join(invite: Info, request: Parameters<Client["join"]>[1] = {}, setup: Omit<NonNullable<Parameters<Client["join"]>[2]>, "bootstrap"> = {}) {
-        return this.client.join(invite, request, { ...setup, bootstrap: new ParentBootstrap(this.need(), invite.id) });
+        return this.track(new Carried(this.need(), invite.id), bootstrap => this.client.join(invite, request, { ...setup, bootstrap }));
+    }
+
+    /** True when newcomers can reach this network through a lobby now. */
+    carries(network: Network) {
+        return [...this.carried].some(game => game.id === network.info?.id && game.carried);
+    }
+
+    private async track(bootstrap: Carried, make: (bootstrap: Carried) => Promise<Network>) {
+        this.carried.add(bootstrap);
+        try
+        {
+            const network = await make(bootstrap);
+            network.addEventListener("close", () => {
+                bootstrap.close();
+                this.carried.delete(bootstrap);
+            });
+            return network;
+        }
+        catch (error)
+        {
+            bootstrap.close();
+            this.carried.delete(bootstrap);
+            throw error;
+        }
     }
 
     /** Is our lobby still listed? If not, become its anchor now, so an invite naming it still works. */
@@ -228,9 +316,10 @@ export class Lobby {
 
     /** The lobby closed under us, so find or make one again. */
     private lost(network: Network) {
-        if (this.closed || this.network !== network) return;
+        if (this.closed || this.parked || this.network !== network) return;
         this.network = null;
         this.setStatus("connecting");
-        void this.start();
+        console.info("lobby: lost, finding it again");
+        void this.start().catch(() => undefined);
     }
 }
