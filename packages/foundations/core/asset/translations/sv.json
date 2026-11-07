@@ -168,21 +168,26 @@
       "results": "Rundan är slut"
     },
     "status": {
-      "joining": "Går med i spelet...",
-      "waitingHost": "Väntar på svar från {name}, de kanske fortfarande skickar länken...",
-      "reconnecting": "Tappade anslutningen, kommer tillbaka...",
       "waitingRound": "Du är tillbaka! Du är med när rundan är slut.",
       "friend": "värden",
       "waking": "Väcker servern, en gratis server behöver en stund...",
       "failed": "Problem att ansluta. Försöker igen...",
-      "connecting": "Ansluter..."
+      "connecting": "Ansluter...",
+      "trying": "Försöker nå {name}... (försök {tries}, upp till {left} till)",
+      "tryingUnknown": "Lobbyn känner inte till spelet än, {name} kanske håller på att komma tillbaka... (försök {tries})",
+      "tryingFailed": "Hittade spelet, kunde inte ansluta än. Försöker igen... (försök {tries})",
+      "tryingAgain": "Tappade {name}, kommer tillbaka... (försök {tries}, upp till {left} till)",
+      "stop": "Sluta försöka",
+      "minutes": "{count} min",
+      "seconds": "{count} s"
     },
     "end": {
       "hostLeft": "Värden lämnade, så spelet är slut.",
       "kicked": "Värden tog bort dig från spelet.",
       "locked": "Spelet är låst eller fullt. Be värden låsa upp.",
       "full": "Spelet är fullt.",
-      "gone": "Ingen svarade på länken. Spelet kan vara slut, be om en ny länk."
+      "gone": "Ingen svarade på länken. Spelet kan vara slut, be om en ny länk.",
+      "notFound": "Spelet finns inte längre. Be om en ny länk."
     },
     "hud": {
       "arrow": "pil",

@@ -37,4 +37,6 @@ export const HOST_WAIT = 120_000;
 /** ms between a guest's tries. */
 export const JOIN_GAP = 3000;
 /** ms a dropped player keeps their place (name, colour, team) to come back to, and a guest keeps trying. */
-export const RECONNECT = 25_000;
+export const RECONNECT = 120_000;
+/** ms the lobby has to know nothing of a code before a guest gives up on it. A host getting their lobby back re-registers in seconds. */
+export const UNKNOWN_FOR = 30_000;

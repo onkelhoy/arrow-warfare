@@ -4,12 +4,12 @@ import { loadText, roundWins, useTheme, saveSettings, settings, t, teamName, typ
 import { mountCorner } from "@arrow-warfare/corner";
 import { mountLobby } from "@arrow-warfare/lobby";
 import { mountMenu } from "@arrow-warfare/menu";
-import { ANCHORS, APP, BEACON, HANDSHAKE_TIMEOUT, httpUrl, Lobby, LOBBY_NAME, parseInvite, RESCAN, RTC, signalUrl, withoutInvite } from "@arrow-warfare/net";
+import { ANCHORS, APP, BEACON, HANDSHAKE_TIMEOUT, httpUrl, Lobby, LOBBY_NAME, parseInvite, Registry, remembered, RESCAN, RTC, signalUrl, withoutInvite } from "@arrow-warfare/net";
 import { mountPlay } from "@arrow-warfare/play";
 import { mountResults } from "@arrow-warfare/results";
 import { Sound } from "@arrow-warfare/sound";
 
-import { Session, type End } from "./session";
+import { Session, type End, type Trying } from "./session";
 
 type Screen = { remove(): void };
 type Playing = Screen & { update(state: GameState): void };
@@ -46,6 +46,11 @@ export async function startApp(root: HTMLElement = document.body) {
         handshakeTimeout: HANDSHAKE_TIMEOUT,
         rescan: RESCAN,
     });
+    // who hosts which game, kept in the lobby itself
+    const registry = new Registry(lobby, "games");
+    // a reload of the host's tab opens the same game again, so the link already sent still works
+    const last = remembered();
+    let rehost = last?.role === "host" ? last.code : "";
 
     let current: Screen | null = null;
     const show = <T extends Screen>(next: T) => {
@@ -55,7 +60,7 @@ export async function startApp(root: HTMLElement = document.body) {
     };
 
     const menu = (note = "") => {
-        const invite = parseInvite(location.search, location.hash);
+        const invite = parseInvite(location.search);
         const page = show(mountMenu(screen, {
             by: invite ? invite.by : null,
             onHost: () => play(null),
@@ -65,7 +70,7 @@ export async function startApp(root: HTMLElement = document.body) {
                 let url: URL;
                 try { url = new URL(text, location.href); }
                 catch { return false; }
-                if (url.origin !== location.origin || !parseInvite(url.search, url.hash)) return false;
+                if (url.origin !== location.origin || !parseInvite(url.search)) return false;
                 history.replaceState(null, "", url.href);
                 menu();
                 return true;
@@ -96,13 +101,30 @@ export async function startApp(root: HTMLElement = document.body) {
         note.className = "aw-note";
         note.hidden = true;
         screen.append(note);
-        const say = (words: string) => {
-            note.textContent = words;
+        const noteText = document.createElement("span");
+        const noteStop = document.createElement("button");
+        noteStop.type = "button";
+        noteStop.className = "aw-note-stop";
+        noteStop.textContent = t("status.stop");
+        noteStop.addEventListener("click", () => session.stop());
+        note.append(noteText, noteStop);
+        const say = (words: string, stoppable = false) => {
+            noteText.textContent = words;
+            noteStop.hidden = !stoppable;
             note.hidden = !words;
         };
-        let reconnecting = false;
+        /** Words for a try that's going on, "" when none is. */
+        let tryingText = "";
+        const host = invite?.by || t("status.friend");
+        const left = (ms: number) => ms >= 60_000 ? t("status.minutes", { count: String(Math.ceil(ms / 60_000)) }) : t("status.seconds", { count: String(Math.ceil(ms / 1000)) });
+        const words = ({ tries, left: ms, heard }: Trying, again: boolean) => {
+            const values = { name: host, tries: String(tries), left: left(ms) };
+            if (heard === "unknown") return t("status.tryingUnknown", values);
+            if (heard === "failed") return t("status.tryingFailed", values);
+            return t(again ? "status.tryingAgain" : "status.trying", values);
+        };
 
-        const session: Session = new Session(lobby, () => settings().name, {
+        const session: Session = new Session(lobby, registry, () => settings().name, {
             state(state) {
                 if (page && pageMe !== session.me)
                 {
@@ -115,7 +137,8 @@ export async function startApp(root: HTMLElement = document.body) {
                     page = null;
                 }
                 const inGame = state.players.some(player => player.id === session.me);
-                say(reconnecting ? t("status.reconnecting") : state.phase === "play" && !inGame ? t("status.waitingRound") : "");
+                if (tryingText) say(tryingText, true);
+                else say(state.phase === "play" && !inGame ? t("status.waitingRound") : "");
                 if (!page)
                 {
                     pageMe = session.me;
@@ -179,12 +202,17 @@ export async function startApp(root: HTMLElement = document.body) {
                 shownLink = link;
                 page?.invite.link(link);
             },
-            status: words => entry.status?.(words ? t(`status.${words}`, { name: invite?.by || t("status.friend") }) : ""),
-            password: wrong => entry.askPassword(wrong),
-            reconnecting(trying) {
-                reconnecting = trying;
-                say(trying ? t("status.reconnecting") : "");
+            trying(trying, again) {
+                tryingText = trying ? words(trying, again) : "";
+                if (page)
+                {
+                    say(tryingText, !!trying);
+                    return;
+                }
+                entry.status(tryingText);
+                entry.stopper(trying ? () => session.stop() : null);
             },
+            password: wrong => entry.askPassword(wrong),
             end(reason: End) {
                 stopName();
                 note.remove();
@@ -212,7 +240,9 @@ export async function startApp(root: HTMLElement = document.body) {
             else if (status === "connecting") entry.status(t("status.connecting"));
         });
 
-        const started = invite ? session.join(invite) : session.host();
+        const code = rehost;
+        rehost = "";
+        const started = invite ? session.join(invite) : session.host(code || undefined);
         started.catch(error => {
             console.error(error);
             session.end("gone");

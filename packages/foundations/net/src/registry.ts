@@ -5,7 +5,7 @@ import type { Lobby } from "./lobby";
 /** ms between a publisher's writes. The owner of a key changes as peers come and go, so it's written again and again. */
 export const PUBLISH_EVERY = 5000;
 /** ms a record lives at its owner without being written again. */
-const EXPIRE = 20_000;
+const EXPIRE = 60_000;
 /** ms a `find` waits for the owner's answer. */
 const ANSWER = 4000;
 

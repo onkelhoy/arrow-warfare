@@ -1,19 +1,23 @@
 import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
-import { HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, RECONNECT, Room, ROOM_MEDIA, type Invite, type Lobby } from "@arrow-warfare/net";
+import { forget, gameId, HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, newCode, RECONNECT, remember, Room, ROOM_MEDIA, touch, UNKNOWN_FOR, type Info, type Invite, type Lobby, type Registry } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
 /** Why a game ended for us. */
-export type End = "left" | "hostLeft" | "kicked" | "locked" | "gone" | "full";
+export type End = "left" | "hostLeft" | "kicked" | "locked" | "gone" | "full" | "notFound";
+
+/** A try that's still going: how many so far, ms until we give up, and what the last one said. */
+export type Trying = { tries: number; left: number; heard: "silent" | "unknown" | "failed" };
+
+/** What the lobby keeps for a game: who hosts it and how to get in. */
+type GameRecord = { host: string; invite: Info };
 
 export type SessionEvents = {
     state(state: GameState): void;
     chat(line: ChatLine): void;
     /** The invite link changed (host only). */
     link(link: string): void;
-    /** Words while joining, empty when there's nothing to say. */
-    status(words: "joining" | "waitingHost" | ""): void;
-    /** A guest lost the host and is trying to get back, or is back. */
-    reconnecting(trying: boolean): void;
+    /** A guest trying to reach the host, first or after a drop; null when it's done (in, or given up). */
+    trying(trying: Trying | null, again: boolean): void;
     /** The host wants a password, `wrong` when the last one didn't work. Resolves with the next try. */
     password(wrong: boolean): Promise<string>;
     end(reason: End): void;
@@ -23,23 +27,6 @@ export type SessionEvents = {
 const PING_PUBLISH = 3000;
 /** How many name ideas a team can have. */
 const IDEAS = 8;
-
-/** One per game and tab, so a reload or a new connection is known as me. */
-function rejoinToken(host: string) {
-    const key = `arrow-warfare.rejoin.${host}`;
-    try
-    {
-        const saved = sessionStorage.getItem(key);
-        if (saved) return saved;
-        const token = crypto.randomUUID();
-        sessionStorage.setItem(key, token);
-        return token;
-    }
-    catch
-    {
-        return crypto.randomUUID();
-    }
-}
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 const text = (value: unknown, length: number) => typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, length) : "";
@@ -63,10 +50,12 @@ export class Session {
     private tokens = new Map<string, string>();
     private dropped = new Map<string, { player: Player; timer: ReturnType<typeof setTimeout> }>();
     private kickedTokens = new Set<string>();
-    /** A guest's: proves to the host it's me again after a drop or a reload. */
+    /** Proves to the host it's me again after a drop or a reload (a guest's), or that the game is mine (the host's). */
     private token = "";
+    code = "";
+    private stopPublish: (() => void) | null = null;
 
-    constructor(private lobby: Lobby, private name: () => string, private events: SessionEvents) { }
+    constructor(private lobby: Lobby, private registry: Registry, private name: () => string, private events: SessionEvents) { }
 
     get me() {
         return this.room?.me ?? "";
@@ -78,13 +67,17 @@ export class Session {
 
     // ------------------------------------------------------------------ hosting
 
-    async host() {
+    /** A new game, or the one this tab hosted before a reload (`code`), so the link already sent still works. */
+    async host(code = newCode()) {
+        this.code = code;
+        this.token = remember(code, "host").token;
         await this.lobby.start();
-        const id = crypto.randomUUID();
         // everyone gets in, the hello is answered with a reason when they can't play (locked, full,
         // kicked, password): a join refused in `accept` timed out on the guest instead of failing
-        const network = await this.lobby.create({ name: "game", topology: "mesh", media: ROOM_MEDIA }, {}, id);
+        const network = await this.lobby.create({ name: "game", topology: "mesh", media: ROOM_MEDIA }, {}, gameId(code));
+        if (this.ended) return void network.leave();
         const room = this.room = new Room(network, network.me);
+        network.addEventListener("close", () => this.end("gone"));
         this.state = {
             host: room.me,
             name: "",
@@ -103,28 +96,39 @@ export class Session {
         this.hostHandlers(room);
         this.common(room);
         room.send(room.me, "hello", { name: this.name() });
+        // the lobby knows the game by its code, as long as a lobby carries it
+        this.stopPublish = this.registry.publish(code, this.token, (): GameRecord | null => {
+            const invite = room.closed || !this.lobby.carries(room.network) ? null : room.network.invite();
+            return invite ? { host: room.me, invite } : null;
+        });
         this.link();
         this.timers.push(setInterval(() => this.watch(), HOST_CHECK));
         this.timers.push(setInterval(() => this.publishPings(), PING_PUBLISH));
+        document.addEventListener("visibilitychange", this.returned);
     }
 
-    /** The link names the lobby by id, and that changes when the lobby merges, so it's made again then. */
+    /** The link is the code and my name, a new name is a new link. */
     private link() {
-        const room = this.room;
-        const invite = room?.network.invite();
-        const lobby = this.lobby.id;
-        if (!room || !invite || !lobby) return;
-        const link = inviteLink(location.href, { lobby, invite, host: room.me, by: this.name() });
+        const link = inviteLink(location.href, { code: this.code, by: this.name() });
         if (link === this.shownLink) return;
         this.shownLink = link;
         this.events.link(link);
     }
 
+    /** The host keeps a lobby: it's how newcomers and the dropped find the game. */
     private watch() {
         if (this.room?.closed) return;
-        void this.lobby.keepListed();
+        this.lobby.check();
         this.link();
+        touch();
     }
+
+    /** Back from another app (sending the link): the lobby may have died while the tab was frozen. */
+    private returned = () => {
+        if (document.visibilityState !== "visible" || this.ended) return;
+        this.lobby.check();
+        this.registry.republish();
+    };
 
     private hostHandlers(room: Room) {
         const player = (id: string) => this.state?.players.find(player => player.id === id);
@@ -433,84 +437,124 @@ export class Session {
     // ------------------------------------------------------------------ joining
 
     /**
-     * The guest's way in: the link they were sent. A host who just sent it is often still in their messages
-     * app with the tab frozen, so a link nobody answers is tried again for `HOST_WAIT` before it's given up.
+     * The guest's way in: the code in the link. The lobby is asked who hosts it. A host who just sent the
+     * link is often still in their messages app with the tab frozen, so silence is tried for `HOST_WAIT`.
+     * A lobby that knows nothing of the code for `UNKNOWN_FOR` means the game is gone.
      */
-    async join({ lobby, invite, host }: Invite) {
-        this.events.status("joining");
-        this.token = rejoinToken(host);
-        await this.lobby.start(lobby);
-        const network = await this.connect(invite, HOST_WAIT, () => this.events.status("waitingHost"));
-        if (network === "rejected") return this.end("locked");
-        if (!network) return this.end("gone");
-        this.enter(network, invite, host);
+    async join({ code }: Invite) {
+        this.code = code;
+        this.token = remember(code, "guest").token;
+        const found = await this.connect(HOST_WAIT, false);
+        if (found === "stopped") return;
+        if (found === "rejected") return this.end("locked");
+        if (found === "unknown") return this.end("notFound");
+        if (!found) return this.end("gone");
+        this.enter(found.network, found.host);
     }
 
-    /** Tries the invite until it works or `patience` ms have gone. */
-    private async connect(invite: Invite["invite"], patience: number, waiting: () => void): Promise<Network | "rejected" | null> {
+    /** Stops trying: back to the menu. */
+    stop() {
+        this.end("left");
+    }
+
+    /** Finds the game in the lobby and joins it, until it works, `patience` ms go by, or `stop`. */
+    private async connect(patience: number, again: boolean): Promise<{ network: Network; host: string } | "rejected" | "unknown" | "stopped" | null> {
         const until = Date.now() + patience;
-        while (!this.ended)
+        let tries = 0;
+        let unknownSince = 0;
+        let heard: Trying["heard"] = "silent";
+        const say = () => this.events.trying({ tries, left: Math.max(0, until - Date.now()), heard }, again);
+        say();
+        while (!this.ended && Date.now() < until)
         {
-            try
+            tries++;
+            say();
+            // a parked or lost lobby is found again first, it can take a while on a sleeping server
+            const lobby = await Promise.race([this.lobby.start().then(() => true, () => false), wait(Math.max(0, until - Date.now())).then(() => false)]);
+            if (this.ended) break;
+            if (!lobby) continue;
+
+            const found = await this.registry.find<GameRecord>(this.code);
+            if (this.ended) break;
+            if (found === "unknown")
             {
-                const network = await this.lobby.join(invite, { profile: { name: this.name() } });
-                if (this.ended) network.leave();
-                else return network;
+                unknownSince ||= Date.now();
+                heard = "unknown";
+                if (Date.now() - unknownSince >= UNKNOWN_FOR) return "unknown";
             }
-            catch (error)
+            else if (found === "silent") heard = "silent";
+            else
             {
-                console.warn("could not join", error);
-                // the entry said no: locked, full or kicked
-                if (/^rejected$/i.test(String((error as Error)?.message ?? error))) return "rejected";
-                if (Date.now() >= until) return null;
-                waiting();
-                await wait(JOIN_GAP);
+                unknownSince = 0;
+                try
+                {
+                    const network = await this.lobby.join(found.record.invite, { profile: { name: this.name() } });
+                    if (this.ended)
+                    {
+                        network.leave();
+                        break;
+                    }
+                    this.events.trying(null, again);
+                    return { network, host: found.record.host };
+                }
+                catch (error)
+                {
+                    console.warn("could not join", error);
+                    // the entry said no: locked, full or kicked
+                    if (/^rejected$/i.test(String((error as Error)?.message ?? error))) return "rejected";
+                    heard = "failed";
+                }
             }
+            say();
+            await wait(JOIN_GAP);
         }
-        return null;
+        this.events.trying(null, again);
+        return this.ended ? "stopped" : null;
     }
 
-    private enter(network: Network, invite: Invite["invite"], host: string) {
+    private enter(network: Network, host: string) {
         const room = this.room = new Room(network, host);
         this.common(room);
+        touch();
 
         room.on("state", (state: GameState, sender) => {
-            if (sender !== host) return;
+            if (sender !== room.hostId) return;
             this.state = state;
-            this.events.status("");
             this.events.state(structuredClone(state));
+            touch();
+            // a locked game has who it needs: the lobby is only for finding games, so leave it, unless
+            // it needs me to keep its socket. Getting back after a drop finds a lobby again.
+            if (state.phase !== "open" && this.lobby.ready && !this.lobby.anchored) this.lobby.park();
         });
         room.on("denied", async ({ reason, wrong }, sender) => {
-            if (sender !== host) return;
+            if (sender !== room.hostId) return;
             if (reason === "password")
             {
                 const password = await this.events.password(wrong === true);
-                room.send(host, "hello", { name: this.name(), password, token: this.token });
+                room.send(room.hostId, "hello", { name: this.name(), password, token: this.token });
                 return;
             }
             this.end(reason === "full" ? "full" : reason === "kicked" ? "kicked" : "locked");
         });
-        room.on("kicked", (_, sender) => sender === host && this.end("kicked"));
+        room.on("kicked", (_, sender) => sender === room.hostId && this.end("kicked"));
         room.onLink((peer, open) => {
-            if (!open && peer === host && this.room === room) void this.reconnect(invite, host);
+            if (!open && peer === room.hostId && this.room === room) void this.reconnect();
         });
 
         room.send(host, "hello", { name: this.name(), token: this.token });
     }
 
-    /** The host is gone from here: maybe a short drop on either side, so try to get back for a while. */
-    private async reconnect(invite: Invite["invite"], host: string) {
+    /** The host is gone from here: maybe a short drop on either side, or a reload, so find it again for a while. */
+    private async reconnect() {
         if (this.ended) return;
         const old = this.room;
         this.room = null;
         old?.leave();
         window.removeEventListener("pagehide", this.bye);
-        this.events.reconnecting(true);
-        const network = await this.connect(invite, RECONNECT, () => undefined);
-        if (this.ended) return;
-        if (!network || network === "rejected") return this.end("hostLeft");
-        this.events.reconnecting(false);
-        this.enter(network, invite, host);
+        const found = await this.connect(RECONNECT, true);
+        if (this.ended || found === "stopped") return;
+        if (!found || found === "rejected" || found === "unknown") return this.end("hostLeft");
+        this.enter(found.network, found.host);
     }
 
     // ------------------------------------------------------------------ everyone
@@ -553,8 +597,12 @@ export class Session {
         this.ended = true;
         for (const timer of this.timers) clearInterval(timer);
         clearTimeout(this.goTimer);
+        this.stopPublish?.();
+        document.removeEventListener("visibilitychange", this.returned);
         window.removeEventListener("pagehide", this.bye);
         this.room?.leave();
+        // a game that's over isn't gone back to on a reload; a dropped one is
+        if (reason !== "gone" && reason !== "hostLeft") forget();
         this.events.end(reason);
     }
 }

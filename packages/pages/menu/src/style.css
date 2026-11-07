@@ -87,3 +87,8 @@
 
     aw-qr-scanner { inline-size: min(100%, 320px); }
 }
+
+/* stop trying a join */
+.aw-menu pap-button[data-do=giveUp][hidden] {
+    display: none;
+}

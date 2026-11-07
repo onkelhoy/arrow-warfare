@@ -168,21 +168,26 @@
       "results": "Round over"
     },
     "status": {
-      "joining": "Joining the game...",
-      "waitingHost": "Waiting for {name} to answer, they may still be sending the link...",
-      "reconnecting": "Connection lost, getting back in...",
       "waitingRound": "You're back! You join when this round ends.",
       "friend": "the host",
       "waking": "Waking up the server, a free one needs a moment...",
       "failed": "Trouble connecting. Trying again...",
-      "connecting": "Connecting..."
+      "connecting": "Connecting...",
+      "trying": "Trying to reach {name}... (try {tries}, up to {left} more)",
+      "tryingUnknown": "The lobby doesn't know this game yet, {name} may be getting back to it... (try {tries})",
+      "tryingFailed": "Found the game, couldn't connect yet. Trying again... (try {tries})",
+      "tryingAgain": "Lost {name}, getting back in... (try {tries}, up to {left} more)",
+      "stop": "Stop trying",
+      "minutes": "{count} min",
+      "seconds": "{count} s"
     },
     "end": {
       "hostLeft": "The host left, so the game is over.",
       "kicked": "The host removed you from the game.",
       "locked": "That game is locked or full. Ask the host to unlock it.",
       "full": "That game is full.",
-      "gone": "Nobody answered that link. The game may be over, ask for a new link."
+      "gone": "Nobody answered that link. The game may be over, ask for a new link.",
+      "notFound": "That game isn't around any more. Ask for a new link."
     },
     "hud": {
       "arrow": "arrow",

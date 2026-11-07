@@ -39,6 +39,7 @@ export function mountMenu(root: HTMLElement, { by, onHost, onJoin, onScan }: Men
             <pap-button data-do="stop" variant="clear" size="small">${t("menu.scanStop")}</pap-button>
         </div>
         <p class="aw-menu-status" role="status"></p>
+        <pap-button data-do="giveUp" variant="clear" size="small" hidden>${t("status.stop")}</pap-button>
         </div>
     `;
     root.append(menu);
@@ -52,6 +53,9 @@ export function mountMenu(root: HTMLElement, { by, onHost, onJoin, onScan }: Men
     name.value = settings().name;
 
     let waiting: ((value: string) => void) | null = null;
+    const giveUp = find("[data-do=giveUp]");
+    let onStop: (() => void) | null = null;
+    giveUp.addEventListener("click", () => onStop?.());
 
     const named = () => {
         const value = cleanName(name.value ?? "");
@@ -119,6 +123,11 @@ export function mountMenu(root: HTMLElement, { by, onHost, onJoin, onScan }: Men
         element: menu,
         status(text: string) {
             status.textContent = text;
+        },
+        /** A Stop button under the status while a join is being tried, null hides it. */
+        stopper(stop: (() => void) | null) {
+            onStop = stop;
+            giveUp.hidden = !stop;
         },
         /** Lets the menu be used again, after a link that didn't work. */
         free() {
