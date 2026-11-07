@@ -473,6 +473,7 @@ export class Session {
         const until = Date.now() + patience;
         let tries = 0;
         let unknownSince = 0;
+        let lobbyId: string | null = null;
         let heard: Trying["heard"] = "silent";
         const say = () => this.events.trying({ tries, left: Math.max(0, until - Date.now()), heard }, again);
         say();
@@ -487,6 +488,10 @@ export class Session {
 
             const found = await this.registry.find<GameRecord>(this.code);
             if (this.ended) break;
+            console.info(`game: try ${tries}, the lobby says ${typeof found === "string" ? found : `host ${found.record.host.slice(0, 6)}`}`);
+            // a lobby that changed (new, merged) may not have heard from the host yet: count from now
+            if (this.lobby.id !== lobbyId) unknownSince = 0;
+            lobbyId = this.lobby.id;
             if (found === "unknown")
             {
                 unknownSince ||= Date.now();

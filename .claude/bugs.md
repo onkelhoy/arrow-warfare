@@ -39,6 +39,10 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - **What:** a new package comes with `tests/`, playwright dev dependencies, `private: false`, `publish: true`, React peer deps and a `views/.../main.js`. Ours have none of that.
 - **Workaround:** trimmed by hand after creating (see the four new packages of milestone 3).
 
+### Chord merge can leave a node outside the ring (reported to the owner)
+- **What:** after `network.merge`, `handleUnify` (`chord/index.ts`) looks up its place through the bridge once. If that lookup fails or answers itself, the node stays its own successor while linked to the others, and nobody retries. Keys sent from it are delivered to itself, so the registry said "unknown" for good. Seen when the host reloaded and two guests each made a lobby at once.
+- **Workaround:** a lobby alone in its ring joins the lower one by a plain join instead of merging. After a merge, a node still its own successor while linked leaves and joins again (`Lobby.move`).
+
 ## Ours
 
 ### Synthetic pointer events break `setPointerCapture`
@@ -54,7 +58,7 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 - **Workaround:** none, planned in F4.
 
 ### Not yet tested
-- Real phones, the public signal server (only a local one was used), and networks that need TURN (only STUN is set up).
+- Real phones, the public signal server (only a local one was used), and networks that need TURN (`TURN` in `net/config.ts` is empty until Open Relay credentials are added).
 
 ## To check on phones (milestone 5)
 - Sounds are synthesised stand-ins: footsteps and grunt may sound thin. Replace the wavs. (The win fanfare is now real kazoo audio in `aw-fanfare`.)

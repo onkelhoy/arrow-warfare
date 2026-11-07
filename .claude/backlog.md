@@ -83,6 +83,8 @@ asset/audio/songs.json         { "lobby": [...], "game": [...] }
 - [x] Ping per player from the clock pings
 - [x] Binary pose packing to keep 10 phones light (9 links each): 33 bytes on a lossy `pose` channel
 - [x] Late joiner while a round runs waits in the lobby (a reconnect during play; strangers can't join once locked)
+- [x] Milestone 9: short links `?g=CODE`, games found through a registry in the lobby's chord, a game outlives its lobby, guests leave the lobby once locked, reconnect for 2 min with a Stop button, gaps relayed through the host, `?debug` overlay
+- [ ] TURN credentials (Open Relay) in `net/config.ts`
 
 ### F5. Menu and lobby
 The lobby has phases, and the host panel (tabs) is open the whole time.
@@ -222,6 +224,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 5. ✅ **Drama** (F13, F2 sfx, F6 all settings): kill cam, spectating, all sounds, teams and modes.
 6. ✅ **Polish** (F16, quality, glb if wanted).
 7. ✅ **World design** (F17): softer, crisper colours after cowboy, lighter shadows, drawn sun and moon, clouds, the missing arm, dropped arrows. The arrow bag moved to later.
+9. ✅ **A connection that holds**: join by code through the lobby, the game survives a lost lobby, reconnects, relays. Owner tests on phones.
 8. ✅ **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
 
 ---

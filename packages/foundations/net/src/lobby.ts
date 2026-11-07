@@ -29,6 +29,8 @@ export type LobbyOptions = {
     retryMax?: number;
 };
 
+/** ms after making a lobby to look for another one made at the same time. */
+const EARLY_MERGE = [1500, 4000, 9000];
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 const byId = (a: Info, b: Info) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 /** Every field of `want` is the same in `info.meta`, so an older version's lobby is left alone. */
@@ -59,6 +61,8 @@ export class Lobby {
     /** The games made or joined through us, carried again by each new lobby. */
     private carried = new Set<Carried>();
     private watchers: ((network: Network) => void)[] = [];
+    private mergers: (() => void)[] = [];
+    private early: ReturnType<typeof setTimeout>[] = [];
 
     constructor(private options: LobbyOptions) {
         [this.status, this.setStatus] = signal<LobbyStatus>("connecting");
@@ -85,6 +89,11 @@ export class Lobby {
         this.watchers.push(watch);
         if (this.ready) watch(this.network!);
         return () => { this.watchers = this.watchers.filter(other => other !== watch); };
+    }
+
+    /** Called after our lobby merged into another: keys have new owners. */
+    onMerged(merged: () => void) {
+        this.mergers.push(merged);
     }
 
     /**
@@ -134,6 +143,9 @@ export class Lobby {
                 network.addEventListener("close", () => this.lost(network));
                 clearInterval(this.timer);
                 this.timer = setInterval(() => void this.mergeCheck(), this.options.rescan ?? 20_000);
+                // a few of us lost the same lobby at once (its anchor reloaded), each made one: meet soon, not in 20 s
+                for (const timer of this.early) clearTimeout(timer);
+                this.early = network.anchored ? EARLY_MERGE.map(ms => setTimeout(() => void this.mergeCheck(), ms)) : [];
                 for (const game of [...this.carried]) game.carry(network);
                 for (const watch of [...this.watchers]) watch(network);
                 return network;
@@ -301,8 +313,21 @@ export class Lobby {
                 .sort(byId)[0];
             if (!lower) return;
 
+            // alone in ours: joining theirs is simpler and surer than a merge
+            if (!network.linked.size) return void await this.move(network, lower.id);
+
             console.info("lobby: merging into", lower.id.slice(0, 8));
             await network.merge(lower.id);
+            for (const merged of [...this.mergers]) merged();
+            // papit's chord can leave a node out of the ring after a merge (its own successor while linked
+            // to others, nobody retries): then it moves over by a plain join
+            await wait(4000);
+            const ring = network.topology as { successors?: string[] } | undefined;
+            if (this.network === network && !network.closed && network.linked.size && ring?.successors?.[0] === network.me)
+            {
+                console.warn("lobby: left outside the ring by the merge, joining again");
+                await this.move(network, lower.id);
+            }
         }
         catch (error)
         {
@@ -312,6 +337,16 @@ export class Lobby {
         {
             this.merging = false;
         }
+    }
+
+    /** Leaves this lobby for another, by a plain join. Games carried by us go along to the new one. */
+    private async move(network: Network, to: string) {
+        console.info("lobby: moving into", to.slice(0, 8));
+        this.network = null;
+        clearInterval(this.timer);
+        network.leave();
+        await this.start(to);
+        for (const merged of [...this.mergers]) merged();
     }
 
     /** The lobby closed under us, so find or make one again. */

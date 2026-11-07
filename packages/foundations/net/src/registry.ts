@@ -27,6 +27,11 @@ export class Registry {
 
     constructor(private lobby: Lobby, private prefix: string) {
         lobby.onNetwork(network => this.listen(network));
+        // after a merge the keys have new owners: write again soon, once the ring has settled a little
+        lobby.onMerged(() => {
+            this.republish();
+            setTimeout(() => this.republish(), 1500);
+        });
     }
 
     /** Keeps `record()` findable under `name` until the returned stop. Null from `record` skips a write. */
