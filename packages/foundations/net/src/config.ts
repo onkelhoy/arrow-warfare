@@ -2,8 +2,15 @@ export const APP = "arrow-warfare";
 export const LOBBY_NAME = "arrow-warfare";
 export const DEFAULT_SIGNAL = "wss://render-webrtc-signal-server.onrender.com";
 
-/** STUN only, so a strict mobile or company network may not connect without TURN. */
-export const RTC: RTCConfiguration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+/**
+ * TURN relays a connection only when a direct one can't be made (strict mobile or company networks).
+ * Empty until the owner adds the free Open Relay (metered.ca) credentials: `{ urls, username, credential }`
+ * for `turn:<app>.metered.live:80`, `:443` and `turns:…:443?transport=tcp`.
+ */
+export const TURN: RTCIceServer[] = [];
+
+/** STUN finds the direct way, TURN (when set) is the fallback. */
+export const RTC: RTCConfiguration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, ...TURN] };
 
 /** One player keeps a socket so newcomers can find the lobby, everyone else closes theirs after joining. */
 export const ANCHORS = 1;
