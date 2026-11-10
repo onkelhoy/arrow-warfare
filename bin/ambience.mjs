@@ -1,5 +1,5 @@
 // The ambience, rendered by bin/sfx.mjs: loops that wrap without a seam, and calls (birds, owls).
-// Each entry is [versions, make(version) => Float32Array at AMBIENCE_RATE]. Replace a wav to change one.
+// The crickets are a recording (bin/crickets.mjs). Each entry is [versions, make(version) => Float32Array at AMBIENCE_RATE]. Replace a wav to change one.
 
 export const AMBIENCE_RATE = 16000;
 const R = AMBIENCE_RATE;
@@ -49,33 +49,6 @@ function bandpass(freq, q) {
 function lowpass() {
     let y = 0;
     return (x, freq) => (y += (1 - Math.exp(-TAU * freq / R)) * (x - y));
-}
-
-/** Night: a few crickets near, chirping at their own steady pace, and a soft trill of far ones. */
-function crickets() {
-    const seconds = 8, data = new Float32Array(seconds * R);
-    for (let c = 0; c < 6; c++) {
-        const chirps = [9, 10, 12, 13, 15, 11][c], period = seconds / chirps;
-        const freq = between(3900, 5200), pulses = 2 + Math.floor(rnd() * 3), gap = between(.03, .045), volume = between(.15, .4) * (c < 3 ? 1 : .5);
-        const offset = rnd() * period;
-        for (let k = 0; k < chirps; k++) {
-            // a cricket isn't a metronome: a little wobble, the pulses slightly louder at the start
-            const at = offset + k * period + between(-.02, .02);
-            for (let p = 0; p < pulses; p++) {
-                const f = freq * between(.995, 1.005);
-                stamp(data, at + p * gap, .016, (t, u) => Math.sin(TAU * f * (1 - .01 * u) * t) * Math.sin(Math.PI * u) * volume * (1 - p * .12));
-            }
-        }
-    }
-    // the far field: band noise near 4.6 kHz, trilling at about 45 Hz
-    const fade = 1, far = new Float32Array((seconds + fade) * R), band = bandpass(4600, 6);
-    for (let i = 0; i < far.length; i++) {
-        const t = i / R;
-        far[i] = band(white()) * (.5 + .5 * Math.sin(TAU * 45 * t)) ** 2 * (.7 + .3 * Math.sin(TAU * t / 4)) * .35;
-    }
-    const field = loopify(far, seconds, fade);
-    for (let i = 0; i < data.length; i++) data[i] += field[i];
-    return normalize(data, .8);
 }
 
 /** Always: air through the trees, swelling in gusts that repeat with the loop. */
@@ -234,7 +207,6 @@ function thunder(version) {
 }
 
 export const AMBIENCE = {
-    crickets: [1, crickets],
     wind: [1, wind],
     frogs: [1, frogs],
     crackle: [1, crackle],
