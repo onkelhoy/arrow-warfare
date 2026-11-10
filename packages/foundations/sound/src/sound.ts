@@ -4,8 +4,11 @@ import { Playlists, type PlaylistName } from "./playlists";
 export type Volumes = { everything: number; music: number; sounds: number; ambience: number };
 export type Vec = readonly [number, number, number] | number[];
 /** `at` places it in the world, heard from where `listen` last put the ears. Without it, it's in my head. */
-/** `half` is the distance where it's half as loud, `offset` seconds into it (wrapped, for loops). */
-export type PlayOptions = { rate?: number; volume?: number; at?: Vec; half?: number; loop?: boolean; offset?: number; fadeIn?: number; bus?: "sfx" | "ambience" };
+/**
+ * `half` is the distance where it's half as loud, `offset` seconds into it (wrapped, for loops). `reach` instead
+ * fades it out to silence at that many metres (full up to `near`), for small sounds like steps.
+ */
+export type PlayOptions = { rate?: number; volume?: number; at?: Vec; half?: number; reach?: number; near?: number; loop?: boolean; offset?: number; fadeIn?: number; bus?: "sfx" | "ambience" };
 
 /** How much of the music is left while it's dipped, for slow motion and the kill cam. */
 const MUSIC_DIP = .25;
@@ -99,14 +102,17 @@ export class Sound {
     }
 
     /** Plays one version of `name`. Resolves to its voice, or `null` when it can't play (unknown, broken, locked). */
-    async play(name: string, { rate = 1, volume = 1, at, half = HALF, loop = false, offset = 0, fadeIn, bus = "sfx" }: PlayOptions = {}): Promise<Voice | null> {
+    async play(name: string, { rate = 1, volume = 1, at, half = HALF, reach, near = 2, loop = false, offset = 0, fadeIn, bus = "sfx" }: PlayOptions = {}): Promise<Voice | null> {
         const ids = await this.ready.get(name);
         if (!ids?.length || this.mixer.state === "closed") return null;
         const id = ids[Math.floor(Math.random() * ids.length)];
         return this.mixer.play(id, {
             bus, loop, rate, volume, fadeIn, offset: offset % (this.lengths.get(id) || 1),
             // inverse: 1 / (1 + (distance - 1) / half)
-            spatial: at ? { position: { x: at[0], y: at[1], z: at[2] }, refDistance: 1, rolloff: 1 / half, panningModel: "equalpower" } : undefined,
+            spatial: !at ? undefined : reach
+                // linear: full up to `near`, silent at `reach`
+                ? { position: { x: at[0], y: at[1], z: at[2] }, distanceModel: "linear", refDistance: near, maxDistance: reach, rolloff: 1, panningModel: "equalpower" }
+                : { position: { x: at[0], y: at[1], z: at[2] }, refDistance: 1, rolloff: 1 / half, panningModel: "equalpower" },
         });
     }
 

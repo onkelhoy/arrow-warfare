@@ -30,6 +30,9 @@ import { Walker } from "./walker";
 import sheet from "./style.css" with { type: "css" };
 import { footing } from "./footing";
 
+/** Metres: others' footsteps fade out to silence here. */
+const STEPS = 28;
+
 /** What play needs from the network. Without it (the view) everything stays on this phone. */
 export type PlayNet = {
     /** The shared clock, in ms. */
@@ -154,7 +157,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const footstep = raining ? "wetstep" : "step";
     // splashing in a pond, rain or not
     const stepAt = (x: number, z: number) => field.depth(x, z) > .05 ? "wetstep" : footstep;
-    others.onStep = at => sound(stepAt(at[0], at[2]), at, .6);
+    others.onStep = at => {
+        const m = camera.worldMatrix;
+        if (Math.hypot(at[0] - m[12], at[2] - m[14]) < STEPS) sound(stepAt(at[0], at[2]), at, .6, 1, STEPS);
+    };
     const controls = new Controls(play);
     const hud = new Hud(play);
     const draw = new Draw();
@@ -309,8 +315,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const forBot = (id: unknown, sender: string) => sender === state.host && typeof id === "string" && !!player(id)?.bot;
 
     /** `at` is placed in 3D, heard from the camera (`listen` each frame), without it it's in my head. */
-    const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1) => {
-        sfx?.play(name, { volume, at, rate });
+    const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1, reach?: number) => {
+        sfx?.play(name, { volume, at, rate, reach });
     };
     /** The ears go where the camera is. */
     const listen = (dt: number) => {
