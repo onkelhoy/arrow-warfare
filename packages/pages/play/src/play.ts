@@ -1338,9 +1338,8 @@ function emittersOf(field: Field): Emitter[] {
     const list: Emitter[] = field.ponds.map(pond => ({ name: "frogs", at: [pond.x, pond.level + .3, pond.z], half: 2 + pond.radius * .6, reach: 35, volume: .9 }));
     for (const placed of field.models)
     {
+        // fires crackle, lamps are quiet
         if (placed.model === "props/firepit") list.push({ name: "crackle", at: [placed.x, placed.y + .4, placed.z], half: 2.5, reach: 25, volume: 1 });
-        else if (placed.model === "props/stone-lantern") list.push({ name: "crackle", at: [placed.x, placed.y + 1.2, placed.z], half: 1.2, reach: 12, volume: .35 });
-        else if (placed.model === "props/street-lamp" || placed.model === "props/double-lamp") list.push({ name: "crackle", at: [placed.x, placed.y + 3, placed.z], half: 1, reach: 10, volume: .2 });
     }
     // crickets in the forest around the edge
     const ring = 8;
