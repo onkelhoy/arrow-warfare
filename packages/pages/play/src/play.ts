@@ -215,7 +215,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const impacts = new Impacts(renderer, field);
 
     size();
-    window.addEventListener("resize", size);
+    // phones settle their size after the resize event (turning, fullscreen, the address bar), so watch the
+    // element itself: a canvas sized from a stale box is stretched, and everyone looks fat
+    const resizing = new ResizeObserver(size);
+    resizing.observe(play);
     const stopBow = effect(() => controls.placeBow(buttonPlace(), play.clientWidth));
     // a new quality changes the resolution and the lamp light now, the grass next round
     let quality = settings().quality;
@@ -1302,7 +1305,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             wake?.release().catch(() => undefined);
             clearTimeout(settle);
             clearTimeout(ending);
-            window.removeEventListener("resize", size);
+            resizing.disconnect();
             engine.stop();
             controls.destroy();
             others.destroy();
