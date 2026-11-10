@@ -45,6 +45,13 @@ export class Sound {
         this.mixer = new AudioMixer({ buses: ["music", "ambience", "sfx"] });
         this.mixer.addEventListener("statechange", () => this.started());
         this.apply(0);
+        // the mixer gives up after its first gesture, and iOS refuses a resume from pointerdown, after an app
+        // switch or a call ("interrupted"): every later tap tries again while it isn't running (bugs.md)
+        const wake = () => {
+            const context = this.mixer.context as AudioContext;
+            if (context.state !== "running" && this.mixer.state !== "closed") this.unlock();
+        };
+        for (const type of ["touchend", "click", "keydown"]) window.addEventListener(type, wake, true);
     }
 
     /** A browser only starts audio from a tap, so call this from one. The mixer also does it on the first tap. */
