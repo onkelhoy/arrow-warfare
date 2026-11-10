@@ -17,6 +17,8 @@ type Random = () => number;
 const NATURE_BRIGHT = 1.25;
 /** Fraction of a building's bounds that blocks: eaves and steps stick out past the walls. */
 const WALLS = .82;
+/** Metres each step of outside stairs rises, under what a foot steps up (`STEP_UP`). */
+const STAIR_STEP = .3;
 
 const TREES: ModelName[] = [
     "nature/CommonTree_1", "nature/CommonTree_2", "nature/CommonTree_3", "nature/CommonTree_4", "nature/CommonTree_5",
@@ -425,18 +427,33 @@ function building(field: Field, model: ModelName, x: number, z: number, yaw: num
     field.flats.push({ x, z, radius: Math.hypot(size.width, size.depth) / 2, level, blend: 4 });
     const placed = place(field, model, x, z, yaw, 1, level - .05);
     // the walls from the `collision` objects in its file (bin/collision.mjs), else a box a bit inside its bounds
-    const walls = COLLISION[model]?.walls;
-    if (walls?.length)
+    const collision = COLLISION[model];
+    if (collision?.walls.length)
     {
         const c = Math.cos(yaw), s = Math.sin(yaw);
-        for (const box of walls)
+        /** A point of the model to the field. */
+        const at = (px: number, pz: number) => [placed.x + px * c + pz * s, placed.z - px * s + pz * c] as const;
+        for (const box of collision.walls)
         {
-            const mx = (box.min[0] + box.max[0]) / 2, mz = (box.min[2] + box.max[2]) / 2;
-            field.blocks.push({
-                x: placed.x + mx * c + mz * s, z: placed.z - mx * s + mz * c, yaw,
-                hx: (box.max[0] - box.min[0]) / 2, hz: (box.max[2] - box.min[2]) / 2,
-                bottom: level - .5, top: placed.y + box.max[1],
-            });
+            const [bx, bz] = at((box.min[0] + box.max[0]) / 2, (box.min[2] + box.max[2]) / 2);
+            field.blocks.push({ x: bx, z: bz, yaw, hx: (box.max[0] - box.min[0]) / 2, hz: (box.max[2] - box.min[2]) / 2, bottom: level - .5, top: placed.y + box.max[1] });
+        }
+        // outside stairs in steps a foot can take, up to the landing stood on
+        for (const stairs of collision.stairs)
+        {
+            const dx = stairs.to[0] - stairs.from[0], dz = stairs.to[2] - stairs.from[2], length = Math.hypot(dx, dz) || 1;
+            const rise = stairs.to[1] - stairs.from[1], steps = Math.max(1, Math.ceil(rise / STAIR_STEP));
+            for (let i = 0; i < steps; i++)
+            {
+                const t = (i + .5) / steps;
+                const [sx, sz] = at(stairs.from[0] + dx * t, stairs.from[2] + dz * t);
+                field.blocks.push({ x: sx, z: sz, yaw: yaw + Math.atan2(dx, dz), hx: stairs.width / 2, hz: length / steps / 2, bottom: level - .5, top: placed.y + stairs.from[1] + rise * (i + 1) / steps, floor: true });
+            }
+        }
+        for (const box of collision.landings)
+        {
+            const [lx, lz] = at((box.min[0] + box.max[0]) / 2, (box.min[2] + box.max[2]) / 2);
+            field.blocks.push({ x: lx, z: lz, yaw, hx: (box.max[0] - box.min[0]) / 2, hz: (box.max[2] - box.min[2]) / 2, bottom: level - .5, top: placed.y + box.max[1], floor: true });
         }
     }
     else field.blocks.push({ x, z, yaw, hx: size.width / 2 * WALLS, hz: size.depth / 2 * WALLS, bottom: level - .5, top: level + size.height * .9 });
