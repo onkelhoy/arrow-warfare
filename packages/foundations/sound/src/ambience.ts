@@ -45,8 +45,9 @@ function soaked(mix: Mix): Mix {
     };
 }
 
-/** How many emitters sound at once, the nearest. */
+/** How many emitters sound at once, the nearest (crickets counted on their own). */
 const NEAREST = 4;
+const CRICKETS = 3;
 /** Seconds between picking the nearest emitters. */
 const PICK = .4;
 /** Seconds for the mix to change with the time of day. */
@@ -184,12 +185,13 @@ export class Ambience {
 
     /** The nearest few emitters sound, the rest fade out. */
     private pick(ears: Vec) {
-        const near = this.list
+        let near = this.list
             .map(emitter => ({ emitter, distance: Math.hypot(emitter.at[0] - ears[0], emitter.at[1] - ears[1], emitter.at[2] - ears[2]) }))
             // crickets only when it's their time of day
             .filter(({ emitter, distance }) => distance < (emitter.reach ?? 30) && (emitter.name !== "crickets" || this.mix.crickets > 0))
-            .sort((a, b) => a.distance - b.distance)
-            .slice(0, NEAREST);
+            .sort((a, b) => a.distance - b.distance);
+        const crickets = near.filter(({ emitter }) => emitter.name === "crickets").slice(0, CRICKETS);
+        near = near.filter(({ emitter }) => emitter.name !== "crickets").slice(0, NEAREST).concat(crickets);
         const wanted = new Set(near.map(({ emitter }) => emitter));
 
         for (const [emitter, playing] of this.playing)
