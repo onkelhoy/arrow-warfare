@@ -3,7 +3,7 @@
 Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models, F21 guns, F22 bots.
 
 ## Where we are
-Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, so `models` is folded in). PR open for the owner to test. Doing 15a-15d on `maps` (city and props), then branch `guns` once `maps` is merged.
+Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, so `models` is folded in). PR open for the owner to test. 15a-15d (city and props) done on `maps`, for the owner to test. Then branch `guns` once `maps` is merged.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 - One branch per group below so each can be reverted alone: `bugs`, `engine`, `maps`, `models`, `guns`, `bots`.
@@ -37,7 +37,7 @@ Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, 
 15a. [x] **Inside-out faces:** pap-adventure buildings have triangles wound inward (cabin gable and roof vanish). Fix in the pipeline, re-convert.
 15b. [x] **Buildings Pack (Jan 2019):** `~/Developer/3D/store/Buildings Pack - Jan 2019` through the pipeline, decimated to ~3-5k triangles, scaled to our houses.
 15c. [x] **City on `@papit/irregular-grid`:** blocks are cells, streets run along cell edges, houses along block edges facing the street, a square in the middle, yards inside.
-15d. [ ] **More props** from pap-adventure: benches, lamps, lanterns, flower pots, crates, barrels in streets and squares; firepit, logs, carts in farm and field.
+15d. [x] **More props** from pap-adventure: benches, lamps, lanterns, flower pots, crates, barrels in streets and squares; firepit, logs, carts in farm and field.
 
 ## Branch `models` (F20)
 14. [x] **Softer shading:** neighbouring faces step too dark. Raise the ambient/hemisphere floor and soften the sun bands (`render/src/shaders.ts:55`). Keep it subtle.

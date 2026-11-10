@@ -54,7 +54,10 @@ const pap = {
     props: [
         "barrel", "crate", "sack", "cart-hay", "cart-sacks", "well", "bench", "signpost", "street-lamp", "pumpkin",
         "big-pumpkin", "fruit-stall", "bread-stall", "cloth-stall", "fish-stall", "food-cart", "firepit", "basket", "bucket",
+        "flower-pot", "lantern", "double-lamp", "stone-lantern", "table", "stool", "chair", "brazier", "banner",
+        "cart-pumpkins", "pottery-stall",
     ],
+    foliage: ["woodpile", "log", "washing-line", "stook"],
     town: ["fence", "hay", "bale"],
     ground: ["cobble-straight", "cobble-cross", "cobble-t", "cobble-corner", "plaza"],
 };
@@ -74,8 +77,8 @@ for (const [name, file] of Object.entries(pack))
 }
 for (const [folder, names] of Object.entries(pap))
 {
-    // the town's few go with the props
-    const group = folder === "town" ? "props" : folder;
+    // the town's and the foliage's few go with the props
+    const group = folder === "town" || folder === "foliage" ? "props" : folder;
     fs.mkdirSync(path.join(out, group), { recursive: true });
     for (const name of names)
     {

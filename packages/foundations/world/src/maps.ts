@@ -39,7 +39,25 @@ const CITY_HOUSES: ModelName[] = [
 ];
 /** Metres across a street, kerbs and all. */
 const STREET = 4.6;
-const FARM_PROPS: ModelName[] = ["props/hay", "props/bale", "props/bale", "props/cart-hay", "props/cart-sacks", "props/barrel", "props/crate", "props/sack", "props/pumpkin", "props/big-pumpkin"];
+const FARM_PROPS: ModelName[] = [
+    "props/hay", "props/bale", "props/bale", "props/cart-hay", "props/cart-sacks", "props/barrel", "props/crate", "props/sack", "props/pumpkin",
+    "props/big-pumpkin", "props/woodpile", "props/log", "props/stook", "props/stook", "props/cart-pumpkins", "props/washing-line",
+];
+/** Piled up in the alleys between houses. */
+const ALLEY: ModelName[] = ["props/barrel", "props/barrel", "props/crate", "props/crate", "props/sack", "props/woodpile", "props/bucket", "props/basket"];
+const LAMPS: ModelName[] = ["props/street-lamp", "props/street-lamp", "props/double-lamp", "props/stone-lantern"];
+/** A thing at `u, v` from a spot (u along its yaw's x, v along its z) turned `turn` more. */
+type Piece = [ModelName, number, number, number];
+/** What a yard in the middle of a block holds, around its middle. */
+const YARDS: Piece[][] = [
+    [["props/table", 0, 0, 0], ["props/stool", 0, .75, Math.PI], ["props/chair", 0, -.75, 0], ["props/flower-pot", 1.3, .2, 0]],
+    [["props/washing-line", 0, 0, 0], ["props/basket", .6, .9, 0], ["props/bucket", -1.1, .8, 0]],
+    [["props/woodpile", 0, 0, 0], ["props/log", 0, 1.6, .2], ["props/crate", 1.3, -.2, .4]],
+    [["props/firepit", 0, 0, 0], ["props/log", 0, 1.6, 0], ["props/log", 1.4, -.8, Math.PI * 2 / 3], ["props/stool", -1.3, -.7, 0]],
+    [["props/bench", 0, 0, 0], ["props/flower-pot", 1.1, .1, 0], ["props/flower-pot", -1.1, .1, 0]],
+];
+/** A camp out in the meadow. */
+const CAMP: Piece[] = [["props/firepit", 0, 0, 0], ["props/log", 0, 1.7, 0], ["props/log", 1.5, -.9, Math.PI * 2 / 3], ["props/woodpile", -1.8, -.8, .5], ["props/stook", -1.4, 1.3, 0]];
 const TOWN_PROPS: ModelName[] = ["props/barrel", "props/crate", "props/sack", "props/bench", "props/street-lamp", "props/food-cart", "props/cart-sacks", "props/basket", "props/bucket"];
 const STALLS: ModelName[] = ["props/fruit-stall", "props/bread-stall", "props/cloth-stall", "props/fish-stall"];
 
@@ -51,9 +69,17 @@ export function layout(field: Field, random: Random, setting: FieldSetting) {
     const props = AMOUNT[setting.props ?? "few"];
     const towers = Math.round(AMOUNT[setting.towers ?? "none"] * (1 + scale));
 
-    if (field.map === "city") city(field, random, buildings);
+    if (field.map === "city") city(field, random, buildings, props);
     else if (field.map === "farm") farm(field, random, scale, buildings);
     else meadow(field, random, scale, buildings);
+
+    // a camp or two out in the country
+    if (field.map !== "city")
+        for (let i = 0, count = Math.round(props * scale * (field.map === "farm" ? .5 : 1)); i < count; i++)
+        {
+            const spot = space(field, random, field.radius - 6, 3);
+            if (spot) pieces(field, CAMP, spot[0], spot[1], random() * Math.PI * 2);
+        }
 
     for (let i = 0; i < towers; i++)
     {
@@ -140,7 +166,7 @@ function farm(field: Field, random: Random, scale: number, buildings: number) {
  * meet at odd angles. Houses stand along each block's edges facing the street, a square with a well and
  * stalls where the streets meet in the middle, the chapel in a block of its own.
  */
-function city(field: Field, random: Random, buildings: number) {
+function city(field: Field, random: Random, buildings: number, props: number) {
     field.hills = .12;
     const reach = field.radius - 6;
     const level = field.rolling(0, 0);
@@ -199,6 +225,11 @@ function city(field: Field, random: Random, buildings: number) {
         const x = mx + Math.cos(angle) * 5.6, z = mz + Math.sin(angle) * 5.6;
         // its front to the well
         prop(field, STALLS[i % STALLS.length], x, z, Math.atan2(mx - x, mz - z));
+        // a bench at the rim behind it, facing in, a lamp beside
+        const bx = mx + Math.cos(angle) * 8.6, bz = mz + Math.sin(angle) * 8.6;
+        if (clear(field, bx, bz)) prop(field, "props/bench", bx, bz, Math.atan2(mx - bx, mz - bz));
+        const lamp = angle + .35, lx = mx + Math.cos(lamp) * 8.4, lz = mz + Math.sin(lamp) * 8.4;
+        if (clear(field, lx, lz)) prop(field, "props/double-lamp", lx, lz, lamp + Math.PI / 2);
     });
 
     // the blocks: corners round each, the middle of it
@@ -236,7 +267,15 @@ function city(field: Field, random: Random, buildings: number) {
             {
                 if (random() > fill)
                 {
-                    along += 3 + random() * 3;
+                    // an alley: things piled up a little back from the street
+                    const gap = 3 + random() * 3;
+                    for (let k = 0, count = Math.round(random() * 3 * props); k < count; k++)
+                    {
+                        const t = along + .6 + random() * (gap - 1.2), back = half + 1 + random() * 2.5;
+                        const x = px + ux * t + nx * back, z = pz + uz * t + nz * back;
+                        if (clear(field, x, z)) prop(field, pick(random, ALLEY), x, z, random() * Math.PI * 2);
+                    }
+                    along += gap;
                     continue;
                 }
                 const fits = CITY_HOUSES.filter(model => sizeOf(model).width * .92 <= end - along);
@@ -258,6 +297,39 @@ function city(field: Field, random: Random, buildings: number) {
                 else along += 2;
             }
         }
+    }
+
+    // lamps on the kerbs, either side, now and then
+    for (const street of field.streets)
+    {
+        const dx = street.bx - street.ax, dz = street.bz - street.az, length = Math.hypot(dx, dz);
+        const ux = dx / length, uz = dz / length;
+        for (let t = 4 + random() * 4; t < length - 4; t += 9 + random() * 6 / (props || 1))
+        {
+            const side = random() < .5 ? -1 : 1, out = half - .12;
+            const x = street.ax + ux * t - uz * side * out, z = street.az + uz * t + ux * side * out;
+            if ([...field.blocks].every(block => !inside(block, x, z, .4)) && field.junctions.every(j => Math.hypot(j.x - x, j.z - z) > j.radius + .5))
+                prop(field, pick(random, LAMPS), x, z, Math.atan2(ux, uz));
+        }
+    }
+
+    // yards in the middle of the blocks big enough to have room left
+    for (const block of blocks)
+    {
+        const [x, z] = block.centre;
+        if (Math.hypot(x, z) > reach - 3 || ![[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2]].every(([a, b]) => clear(field, x + a, z + b))) continue;
+        if (random() < .5) tree(field, random, x + (random() - .5) * 2, z + (random() - .5) * 2);
+        else pieces(field, pick(random, YARDS), x, z, random() * Math.PI * 2);
+    }
+}
+
+/** A few things set out together round `x, z`, each only where it's free. */
+function pieces(field: Field, list: Piece[], x: number, z: number, yaw: number) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    for (const [model, u, v, turn] of list)
+    {
+        const px = x + u * c + v * s, pz = z - u * s + v * c;
+        if (clear(field, px, pz) && field.ponds.every(pond => Math.hypot(pond.x - px, pond.z - pz) > pond.radius + .5)) prop(field, model, px, pz, yaw + turn);
     }
 }
 
