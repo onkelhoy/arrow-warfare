@@ -10,7 +10,7 @@ import { BOTS_PER_PACKET, packBots, packPose, POSE_RATE, unpackBots, unpackPose,
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
 import { Ambience, Taverns, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
-import { currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteName } from "@arrow-warfare/world";
+import { Birds, currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
 import { Blood } from "./blood";
@@ -150,6 +150,17 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     ambience?.time(time && time !== "clock" ? time : currentPalette());
     if (rain) rain.onLightning = distance => ambience?.thunder(distance);
     ambience?.emitters(emittersOf(field));
+    // this phone's own birds, their calls from where they are
+    const birds = new Birds(renderer, field);
+    birds.setTime(time && time !== "clock" ? time : currentPalette());
+    birds.rain(raining);
+    birds.onCall = (call, at, volume) => {
+        const rate = call === "bird" ? .9 + Math.random() * .25 : .95 + Math.random() * .1;
+        void options.sound?.play(call, { bus: "ambience", at, volume, rate, half: call === "bird" ? 10 : call === "owl" ? 22 : 18 });
+    };
+    /** Where each arrow in the air was last frame, for hitting birds; the ones done with. */
+    const birdFlights = new Map<string, Vec>();
+    const birdDone = new Set<string>();
     // songs from the taverns, the game's music dipping close to one
     const taverns = options.sound ? new Taverns(options.sound, field.models.filter(one => one.model === "buildings/tavern").map(one => [one.x, one.y + 1.6, one.z])) : null;
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
@@ -1062,8 +1073,32 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 }
             }
         }
+        // birds: shots scare them, arrows can hit them, people come too close
+        for (const arrow of arrows.all.values())
+        {
+            const id = arrow.shot.id;
+            if (birdDone.has(id)) continue;
+            const at: Vec = [arrow.x, arrow.y, arrow.z];
+            const last = birdFlights.get(id);
+            const done = arrow.rest || arrow.gone;
+            // one already down when I first see it (I came late) neither scares nor hits
+            if (!last && !done) birds.startle([arrow.shot.x, arrow.shot.y, arrow.shot.z], isBullet(arrow.shot) ? 25 : 12);
+            if (last || !done) birds.hit(last ?? [arrow.shot.x, arrow.shot.y, arrow.shot.z], at);
+            if (done)
+            {
+                birdDone.add(id);
+                birdFlights.delete(id);
+            }
+            else birdFlights.set(id, at);
+        }
+        {
+            const near = others.living.map(other => other.rig.where);
+            if (walker.alive) near.push({ x: walker.x, y: walker.y, z: walker.z, yaw: 0, tip: 0 });
+            birds.update(dt, near);
+        }
         for (const { arrow, kind } of flown.landed)
         {
+            birds.startle([arrow.x, arrow.y, arrow.z], 9);
             bots?.heard(arrow.shot.by, [arrow.shot.x, arrow.shot.y, arrow.shot.z], [arrow.x, arrow.y, arrow.z]);
             sound(kind === "ground" ? "ground" : "wood", [arrow.x, arrow.y, arrow.z]);
             // a bullet leaves a puff and a hole, an arrow stays in what it hit
@@ -1235,6 +1270,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const palette = name === "clock" ? currentPalette() : name;
             meadow.palette(palette);
             ambience?.time(palette);
+            birds.setTime(palette);
         },
         /** Players who left are gone and count as out, nothing else about the field changes mid round. */
         update(next: GameState) {
@@ -1249,6 +1285,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             stopQuality();
             playing = false;
             ambience?.stop();
+            birds.destroy();
             taverns?.stop();
             document.removeEventListener("visibilitychange", awake);
             wake?.release().catch(() => undefined);
