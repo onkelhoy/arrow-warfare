@@ -66,6 +66,8 @@ const sounds = {
     hop: [3, .3, () => [noise(jit(1800), .8, .06, .3, 0, .01), tone("sine", jit(110), 60, .08, .3, .02)]],
     grunt: [4, .4, () => { const f = jit(130, .2); return [tone("saw", f, f * .7, .18, .25, 0, .03), tone("square", f * 2, f * 1.4, .12, .05, 0, .03), noise(jit(600), 2, .15, .2, 0, .03)]; }],
     heartbeat: [2, .8, () => [tone("sine", 60, 40, .08, .9, 0, .005), tone("sine", 55, 38, .1, .7, .22, .005)]],
+    // on wet ground: a soft squelch and a little splash
+    wetstep: [6, .3, () => [noise(jit(900, .3), 2.5, .07, .35, 0, .01, 1.8), noise(jit(4500, .2), 1.5, .08, .25, .02, .01), tone("sine", jit(70), 50, .04, .12)]],
 };
 
 function wav(data, rate = RATE) {

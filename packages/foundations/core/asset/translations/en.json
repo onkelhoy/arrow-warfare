@@ -16,6 +16,7 @@
       "sensitivity": "Look speed",
       "hand": "Drawing hand",
       "quality": "Quality",
+      "splashes": "Rain splashes",
       "low": "Low",
       "medium": "Medium",
       "high": "High",
@@ -120,6 +121,7 @@
         "5": "Best of 5"
       },
       "round": "Round {number}",
+      "rain": "Rain",
       "friendly": "Friendly fire",
       "friendlyOn": "On",
       "friendlyOff": "Off: arrows fly through teammates",

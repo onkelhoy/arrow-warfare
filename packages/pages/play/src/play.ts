@@ -10,7 +10,7 @@ import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
 import { Ambience, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
-import { currentPalette, Field, GUN_FILES, loadGun, Meadow, type PaletteName } from "@arrow-warfare/world";
+import { currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
 import { Blood } from "./blood";
@@ -131,14 +131,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const coarse = matchMedia("(pointer: coarse)").matches;
     // the rule's time of day, or my own clock
     const time = state.rules.time;
-    const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: QUALITY[settings().quality].grass }));
+    const raining = state.rules.rain === true;
+    const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: QUALITY[settings().quality].grass, rain: raining }));
+    const rain = raining ? engine.add(new Rain(renderer, field, camera, { drops: QUALITY[settings().quality].drops, splashes: settings().splashes })) : null;
     const spawns = field.spawns(state.players);
     const ambience = options.sound ? new Ambience(options.sound) : null;
+    ambience?.rain(raining);
     ambience?.time(time && time !== "clock" ? time : currentPalette());
+    if (rain) rain.onLightning = distance => ambience?.thunder(distance);
     ambience?.emitters(emittersOf(field));
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
-    others.onStep = at => sound("step", at, .6);
+    const footstep = raining ? "wetstep" : "step";
+    others.onStep = at => sound(footstep, at, .6);
     const controls = new Controls(play);
     const hud = new Hud(play);
     const draw = new Draw();
@@ -929,7 +934,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (alive)
         {
             const foot = Math.floor(walker.posture === "hop" ? walker.hop / Math.PI : walker.stride / Math.PI);
-            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : "step", undefined, .35);
+            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : footstep, undefined, .35);
             feet = foot;
             beat -= dt;
             if (wounds.energy < .25 && beat <= 0)
@@ -1141,6 +1146,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             hud.destroy();
             engine.remove(driver);
             engine.remove(meadow);
+            if (rain) engine.remove(rain);
             engine.remove(renderer);
             renderer.gl.getExtension("WEBGL_lose_context")?.loseContext();
             play.remove();

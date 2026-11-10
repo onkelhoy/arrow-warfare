@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World | rain</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" defer src="main.ts"></script>
+</head>
+
+<body>
+    <canvas>Your browser does not support HTML canvas</canvas>
+    <form class="panel">
+        <label>Time
+            <select name="palette">
+                <option value="night">night</option>
+                <option value="dawn">dawn</option>
+                <option value="noon" selected>noon</option>
+                <option value="sunset">sunset</option>
+            </select>
+        </label>
+        <label>Map
+            <select name="map">
+                <option value="field">meadow</option>
+                <option value="farm">farm</option>
+                <option value="city" selected>town</option>
+            </select>
+        </label>
+        <label>Rain <input name="rain" type="checkbox" checked></label>
+        <label>Drops
+            <select name="drops">
+                <option value="700">low (700)</option>
+                <option value="1300" selected>medium (1300)</option>
+                <option value="2200">high (2200)</option>
+                <option value="4000">a lot (4000)</option>
+            </select>
+        </label>
+        <label>Splashes <input name="splashes" type="checkbox" checked></label>
+        <label>Lightning <input name="lightning" type="checkbox" checked></label>
+        <button type="button" id="strike">Lightning now</button>
+        <p class="hint">Tap once for sound. Drag to turn.</p>
+    </form>
+    <pre class="stats"></pre>
+</body>
+
+</html>

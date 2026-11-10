@@ -350,6 +350,7 @@ export class Session {
         if (change.time && TIMES.includes(change.time)) state.rules.time = change.time;
         if (change.rounds !== undefined && ROUNDS.includes(change.rounds)) state.rules.rounds = change.rounds;
         if (change.friendly !== undefined) state.rules.friendly = !!change.friendly;
+        if (change.rain !== undefined) state.rules.rain = !!change.rain;
         this.publish();
     }
 

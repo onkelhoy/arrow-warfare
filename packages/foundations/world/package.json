@@ -48,6 +48,7 @@
     "@papit/irregular-grid": "^0.0.1"
   },
   "devDependencies": {
+    "@arrow-warfare/sound": "*",
     "@papit/theme": "*",
     "typescript": "5.9.3"
   },

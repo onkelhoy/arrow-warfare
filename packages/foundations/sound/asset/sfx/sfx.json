@@ -76,6 +76,14 @@
     "heartbeat-1.wav",
     "heartbeat-2.wav"
   ],
+  "wetstep": [
+    "wetstep-1.wav",
+    "wetstep-2.wav",
+    "wetstep-3.wav",
+    "wetstep-4.wav",
+    "wetstep-5.wav",
+    "wetstep-6.wav"
+  ],
   "crickets": [
     "crickets-1.wav"
   ],
@@ -99,6 +107,13 @@
   "owl": [
     "owl-1.wav",
     "owl-2.wav"
+  ],
+  "rain": [
+    "rain-1.wav"
+  ],
+  "thunder": [
+    "thunder-1.wav",
+    "thunder-2.wav"
   ],
   "gunshot": [
     "gunshot-1.mp3",

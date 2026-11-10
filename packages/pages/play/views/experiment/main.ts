@@ -43,6 +43,7 @@ function start() {
         time: data.get("time") as TimeOfDay,
         rounds: 1,
         friendly: true,
+        rain: data.get("rain") === "on",
     };
     play = mountPlay(stage, {
         state, me: "a", host: true, sound, bots: data.get("bots") === "on", contained: true, ruleArrows: true,

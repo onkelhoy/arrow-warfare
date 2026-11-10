@@ -193,6 +193,46 @@ function owl(version) {
     return normalize(data, .85);
 }
 
+/** Rain: a wash of noise, and many small drops patting on leaves and ground. */
+function rain() {
+    const seconds = 10, fade = 1, data = new Float32Array((seconds + fade) * R);
+    const low = lowpass(), lower = lowpass(), hiss = bandpass(5000, .7);
+    for (let i = 0; i < data.length; i++) {
+        const t = i / R, x = white();
+        data[i] = lower(low(x, 2200), 1600) * (.8 + .1 * Math.sin(TAU * t / 5)) * 1.2 + hiss(x) * .12;
+    }
+    const wash = loopify(data, seconds, fade), out = new Float32Array(seconds * R);
+    for (let i = 0; i < out.length; i++) out[i] = wash[i];
+    // the drops, wrapping round the loop
+    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 260) {
+        const band = bandpass(between(1500, 7000), 3), volume = rnd() ** 2 * .5;
+        stamp(out, t, between(.004, .012), (_, u) => band(white()) * Math.exp(-6 * u) * volume);
+    }
+    // now and then a fat drop off a leaf
+    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 3) {
+        const f = between(900, 1800);
+        stamp(out, t, .05, (time, u) => Math.sin(TAU * f * (1 + u * .6) * time) * Math.exp(-8 * u) * .35);
+    }
+    return normalize(out, .8);
+}
+
+/** Thunder far off: a crack (the near one), then a long rumble rolling in swells. */
+function thunder(version) {
+    const seconds = 7, data = new Float32Array(seconds * R), low = lowpass(), lower = lowpass(), crack = bandpass(1400, .6);
+    const near = version === 1, swells = [[.1, 1], [.9, .7], [1.8, .9], [3, .5], [4.2, .3]].map(([at, v]) => [at + between(-.2, .2), v * between(.7, 1.1)]);
+    for (let i = 0; i < data.length; i++) {
+        const t = i / R, x = white();
+        let level = 0;
+        for (const [at, v] of swells) if (t > at) level += v * Math.exp(-(t - at) * 1.3) * Math.min(1, (t - at) * 6);
+        let y = lower(low(x, 90 + 120 * Math.min(1, level)), 70) * level * 7;
+        if (near && t < .5) y += crack(x) * Math.exp(-t * 14) * .8;
+        data[i] = y;
+    }
+    // fade the tail to silence
+    for (let i = 0; i < data.length; i++) data[i] *= Math.min(1, (data.length - i) / (R * 1.5));
+    return normalize(data, .9);
+}
+
 export const AMBIENCE = {
     crickets: [1, crickets],
     wind: [1, wind],
@@ -200,4 +240,6 @@ export const AMBIENCE = {
     crackle: [1, crackle],
     bird: [6, bird],
     owl: [2, owl],
+    rain: [1, rain],
+    thunder: [2, thunder],
 };

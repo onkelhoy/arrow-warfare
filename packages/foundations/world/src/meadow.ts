@@ -1,7 +1,7 @@
 import { GameObject } from "@papit/game-engine";
 import { MeshBuilder, seeded, type Batch, type MeshData, type Renderer, type Vec3 } from "@arrow-warfare/render";
 
-import { CLOUDS, PALETTES, type PaletteName } from "./atmosphere";
+import { CLOUDS, PALETTES, wet, wetClouds, type PaletteName } from "./atmosphere";
 import { Backdrop } from "./backdrop";
 import { Field, STONES, VARIANTS, type Placed } from "./field";
 import { fileModel, type ModelName } from "./files";
@@ -20,6 +20,8 @@ export type MeadowSetting = {
     palette?: PaletteName;
     /** 0..1, how much of the grass is drawn (quality). */
     grass?: number;
+    /** A rainy day: greyer, darker light, grey clouds, no fireflies. */
+    rain?: boolean;
 };
 
 /**
@@ -35,13 +37,15 @@ export class Meadow extends GameObject {
     private backdrop: Backdrop;
     private sky: { batch: number; index: number; x: number; y: number; z: number; yaw: number; scale: number }[] = [];
     private gone = false;
+    private readonly rain: boolean;
     /** Resolves once every model from a file is on screen (or failed). */
     readonly ready: Promise<void>;
 
     constructor(readonly renderer: Renderer, readonly field: Field, setting: MeadowSetting = {}) {
         super();
         const name = setting.palette ?? "noon";
-        renderer.light = structuredClone(PALETTES[name]);
+        this.rain = setting.rain ?? false;
+        renderer.light = this.lightOf(name);
         const at = (x: number, z: number) => field.height(x, z);
 
         const add = (mesh: MeshData, things: { x: number; z: number; yaw: number; scale: number }[], options: Parameters<Renderer["batch"]>[1] = {}, sink = 0) => {
@@ -100,15 +104,20 @@ export class Meadow extends GameObject {
 
         this.backdrop = new Backdrop(renderer, field.radius, field.seed, name);
         this.addClouds(name);
-        if (name === "night") this.addFireflies();
+        if (name === "night" && !this.rain) this.addFireflies();
+    }
+
+    private lightOf(name: PaletteName) {
+        const light = structuredClone(PALETTES[name]);
+        return this.rain ? wet(light) : light;
     }
 
     /** Another time of day, straight away: the light, and the fireflies at night. */
     palette(name: PaletteName) {
-        this.renderer.light = structuredClone(PALETTES[name]);
+        this.renderer.light = this.lightOf(name);
         this.tintClouds(name);
         this.backdrop.palette(name);
-        if (name === "night" && !this.fireflies) this.addFireflies();
+        if (name === "night" && !this.fireflies && !this.rain) this.addFireflies();
         if (name !== "night" && this.fireflies)
         {
             this.renderer.removeBatch(this.fireflies);
@@ -168,7 +177,7 @@ export class Meadow extends GameObject {
     }
 
     private tintClouds(name: PaletteName) {
-        for (const one of this.sky) this.clouds[one.batch].tint(one.index, CLOUDS[name]);
+        for (const one of this.sky) this.clouds[one.batch].tint(one.index, this.rain ? wetClouds(CLOUDS[name]) : CLOUDS[name]);
     }
 
     private addFireflies() {

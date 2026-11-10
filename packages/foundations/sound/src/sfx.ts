@@ -1,6 +1,6 @@
 import type { Sound, Vec } from "./sound";
 
-export type SfxName = "creak" | "twang" | "wood" | "ground" | "body" | "kill" | "pant" | "pickup" | "empty" | "whoosh" | "grunt" | "step" | "hop" | "heartbeat" | "stretch" | "gunshot" | "reload" | "flyby";
+export type SfxName = "creak" | "twang" | "wood" | "ground" | "body" | "kill" | "pant" | "pickup" | "empty" | "whoosh" | "grunt" | "step" | "wetstep" | "hop" | "heartbeat" | "stretch" | "gunshot" | "reload" | "flyby";
 /** `at` places it in the world (3D), without it it's in my head. */
 export type SfxOptions = { volume?: number; at?: Vec; rate?: number };
 

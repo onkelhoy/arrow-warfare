@@ -35,7 +35,7 @@ Branch `guns` done with 16-21 and the gun asks 21h-21j, 21l, 21m (aiming, others
 21g. [ ] **Lamps and lit windows (unconfirmed, owner 2026-11-10):** more lamp posts and lamps. Cheap glow first: lamp glass, lanterns, some windows emissive. Then a few nearest point lights (~8) in the toon shader that light the ground and walls around them, with a setting to turn them off (or tied to quality). 
 
 26. [x] **Sound on papit/audio and ambience:** 26a sound on `@papit/audio` (buses, 3D effects, ears on the camera, "Nature" volume); 26b ambience rendered by `bin/ambience.mjs` (crickets, wind, frogs, crackle loops, bird and owl calls); 26c `Ambience` in the game (beds by time of day, calls around you, nearest 4 emitters: ponds, firepits, lamps); 26d kill cam dips the ambience (papit `Voice` can't change rate while playing, so it isn't slowed).
-27a. [ ] **Rain (owner 2026-11-10):** dense streaks around the camera like minecraft, darker sky and fog, a rain loop and drips on roofs. A lobby rule or random weather, owner to pick.
-27b. [ ] **Rain splashes:** tiny splash particles where drops land, on the ground and roofs.
-27c. [ ] **Rain settings:** rain amount tied to quality, and splashes off on low, each its own setting.
+27a. [x] **Rain (owner 2026-11-10):** a lobby checkbox "Rain". Streaks round the camera (`Rain` in world), a grey wet light and clouds (`wet`), no fireflies, rain loop, fewer crickets and birds, wet footsteps. Lightning lights the sky every 14-40 s, thunder comes after by distance. A view: `world/views/rain`.
+27b. [x] **Rain splashes:** tiny sparks where drops land near me, on the ground and roofs (`field.roof`).
+27c. [x] **Rain settings:** drops by quality (700 / 1300 / 2200), "Rain splashes" its own setting.
 28. [ ] **Bullet hits (owner 2026-11-10):** a puff of tiny particles where a bullet hits (dirt, wood chips, stone dust by what it hit) and a small hit mark left on the surface, fading after a while.

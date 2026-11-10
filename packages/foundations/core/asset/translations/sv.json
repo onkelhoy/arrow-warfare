@@ -16,6 +16,7 @@
       "sensitivity": "Tittfart",
       "hand": "Dragande hand",
       "quality": "Kvalitet",
+      "splashes": "Regnstänk",
       "low": "Låg",
       "medium": "Mellan",
       "high": "Hög",
@@ -120,6 +121,7 @@
         "5": "Bäst av 5"
       },
       "round": "Runda {number}",
+      "rain": "Regn",
       "friendly": "Vådabeskjutning",
       "friendlyOn": "På",
       "friendlyOff": "Av: pilar flyger genom lagkamrater",
