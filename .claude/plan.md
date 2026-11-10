@@ -1,41 +1,17 @@
-# Plan: what's left of F21 and F23
-
-From the plan confirmed on 2026-11-10 (F18 to F23); the rest is done and ticked in the backlog.
-
 ## Where we are
+Town, sound and buildings round (owner's feedback 2026-11-10, screenshots of the city). Tasks 1-7 done (2026-11-10), not pushed. Task 8 waits for the owner.
 
-`bots` merged. `environment` 21a-21g done, owner looked: OK. 23a-23k (sound, buttons, weather) done on `environment`, for the owner to test. Then 21k on `guns`.
+### town, sound, buildings
+1. [x] Lamps quiet: no crackle from street lamps, double lamps, stone lanterns.
+2. [x] Fire pits crackle: a real crackling sound (pops and a soft hiss) instead of the current one.
+3. [x] Tavern music on the game clock: one tavern song at a time for the whole game, the same song and place in it on every phone; walking away and back picks it up where the time has got to. Every tavern in reach plays it in sync, so between two it's the same song. The game's music stays: at the edge of a tavern's reach it drops fast to about half while the tavern comes in a little louder than it, then blends slowly, only right at the tavern is it the tavern alone.
+4. [x] Building collision files: each building gets `<name>.collision.json` next to its model, a box (8 corners) around its walls at waist height (no posts, awnings, stairs), made once by a script, editable by hand. The field blocks walking and arrows with it instead of the model's bounds.
+5. [x] Outside stairs: walkable up to their landing (a ramp in the collision file), the house itself still solid.
+6. [x] My own footsteps: a better sound (soft, varied, not repetitive), stone on streets and squares, grass elsewhere.
+7. [x] Town centres: the round paved disc lies over the streets, no flicker where they overlap.
+8. [ ] (skipped for now) Town: the owner likes the large city and its wide streets. More dynamic streets instead, using the irregular patterns more; no right angles needed.
 
-## Branches (owner's call, overrides "everything on main" for this plan)
+### birds
 
-- One branch per group below so each can be reverted alone: `guns` for 21k, `environment` for 21a-21g.
-- Each branch starts from `main` after the previous one is merged, in this order. Commit locally as tasks finish.
-- When a branch is done: report to the owner, who tests it. Merge it to `main` and push only once the owner OKs it (a push deploys).
-
-## Branch `guns` (F21)
-
-21k. [ ] **The arrow leaves above the nocked arrow:** the flying arrow (and trail) starts above where the nocked one points. Make the shot leave exactly from the nocked arrow along its line.
-
-## Branch `environment` (F23), confirmed 2026-11-10, done
-
-21a. [x] **Name tags rule:** a lobby option to hide other players' name tags, harder game ("hardcore" or "name tags: on / off"). Synced like the other rules.
-21b. [x] **Shoot through tower railings:** the watch tower's fence/railing boxes stop arrows; let shots pass between the rails (thinner blocks, or the railing walk-only).
-21c. [x] **Walk into ponds:** ponds are shallow, they shouldn't block walking. Maybe slower and lower in the water.
-21d. [x] **Bushes block walking:** today you can stand inside a bush and hide. Bushes block walking (arrows still go through, `soft`).
-21e. [x] **More Plant_1 and Plant_4:** Plant_4 barely shows up today, more of both.
-21f. [x] **Lily pads above the water:** the water covers the leaves (owner's screenshot on the Desktop). Raise them to the water's surface.
-21g. [x] **Lamps and lit windows:** more lamp posts and lamps. Cheap glow first: lamp glass, lanterns, some windows emissive. Then a few nearest point lights (~8) in the toon shader that light the ground and walls around them, with a setting to turn them off (or tied to quality).
-
-## Branch `environment`, round 2 (confirmed 2026-11-10)
-
-23a. [x] **No wind:** the wind loop goes, it sounds like waves.
-23b. [x] **Rain sound:** the owner's recording (rain.mp3) as a seamless 24 s loop (`bin/loop.mjs`), the generated one sounded like ice.
-23c. [x] **Crickets:** in bursts with quiet gaps, about half as loud.
-23d. [x] **Gun buttons:** their own default place, low near the bottom right corner.
-23e. [x] **Bow button:** default a bit further right (0.6 to about 0.7), for long phones.
-23f. [x] **Tavern music:** `Fill the Cup` and `Let the Fiddler Leap` (owner's) as a tavern list, played in 3D from each tavern; close up the game music dips so it takes over, blends back walking away.
-23g. [x] **Thunder and lightning:** the thunder is silent, find why. A jagged bolt to the horizon, the sky flashing, a big low rolling thunder 1-4 s later, a bit scary.
-23h. [x] **Gun hit dust:** after the fast chips, the dust keeps spinning and drifting about. Dust rises slowly and fades, no spin.
-23i. [x] **Crow and owl:** the owner's recordings (Downloads) split into calls, cleaned, levelled; owl replaced, crows a new day call.
-23j. [x] **Rain starts in sheets (owner, 2026-11-10):** the drops were made round the camera before it got to the player; the column fills again wherever the eye jumps.
-23k. [x] **Bluer rain at night:** bluer drops, less glow.
+- [x] Birds (owner's idea 2026-11-10, a plan): crows circling high and landing on roofs and treetops now and then, small birds on the ground flying up when someone comes near or shoots close by and landing on branches and roofs, an owl in a tree at night. Their calls in 3D from the bird. A hit drops it and silences it (the owl too). 10-20 a phone in one batch, flapping by a simple sway; each phone its own birds (not synced, no traffic) to begin with.
+- [ ] Bots played by the nearest player instead of the host, to spread the work: an owner per bot that moves (handing over wounds, quiver, goal, target), the owner judging hits on it, phones taking bot messages from the current owner. Only if a phone host struggles: 100 bots' thinking is 0.8 ms a frame on a laptop, drawing their bodies likely costs more.
