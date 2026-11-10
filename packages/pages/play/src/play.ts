@@ -1305,5 +1305,13 @@ function emittersOf(field: Field): Emitter[] {
         else if (placed.model === "props/stone-lantern") list.push({ name: "crackle", at: [placed.x, placed.y + 1.2, placed.z], half: 1.2, reach: 12, volume: .35 });
         else if (placed.model === "props/street-lamp" || placed.model === "props/double-lamp") list.push({ name: "crackle", at: [placed.x, placed.y + 3, placed.z], half: 1, reach: 10, volume: .2 });
     }
+    // crickets in the forest around the edge, heard from near it rather than everywhere
+    const ring = 8;
+    for (let i = 0; i < ring; i++)
+    {
+        const angle = (i + Math.random() * .6) / ring * Math.PI * 2, r = field.radius + 3 + Math.random() * 4;
+        const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
+        list.push({ name: "crickets", at: [x, field.height(x, z) + .3, z], half: 6, reach: 30, volume: .8 + Math.random() * .4 });
+    }
     return list;
 }

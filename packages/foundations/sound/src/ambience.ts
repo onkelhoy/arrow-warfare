@@ -3,16 +3,18 @@ import type { Sound, Vec } from "./sound";
 import { register } from "./sfx";
 
 export type AmbienceTime = "night" | "dawn" | "noon" | "sunset";
-/** Something in the world that sounds all the time: frogs at a pond, a fire crackling. */
-export type Emitter = { name: "frogs" | "crackle"; at: Vec; volume?: number; half?: number; reach?: number };
+/** Something in the world that sounds all the time: frogs at a pond, a fire crackling, crickets in the forest. */
+export type Emitter = { name: "frogs" | "crackle" | "crickets"; at: Vec; volume?: number; half?: number; reach?: number };
 
-const BEDS = ["crickets", "rain"] as const;
+const BEDS = ["rain"] as const;
 type Bed = typeof BEDS[number];
 type CallName = "bird" | "owl" | "crow";
 
 type Mix = {
-    /** Volumes of the loops in my head (the crickets' while they sing, they come in bursts). */
+    /** Volumes of the loops in my head. */
     beds: Record<Bed, number>;
+    /** How loud the crickets in the forest are while they sing (they come in bursts). */
+    crickets: number;
     /** Seconds between calls, `null` for none. */
     calls: { name: CallName; every: [number, number] } | null;
     /** Seconds between crows cawing somewhere, `null` for none. */
@@ -22,10 +24,10 @@ type Mix = {
 };
 
 const MIX: Record<AmbienceTime, Mix> = {
-    night: { beds: { crickets: .28, rain: 0 }, calls: { name: "owl", every: [18, 45] }, crows: null, frogs: 1 },
-    dawn: { beds: { crickets: .08, rain: 0 }, calls: { name: "bird", every: [1.2, 4] }, crows: [20, 50], frogs: .6 },
-    noon: { beds: { crickets: 0, rain: 0 }, calls: { name: "bird", every: [3, 9] }, crows: [25, 70], frogs: .3 },
-    sunset: { beds: { crickets: .18, rain: 0 }, calls: { name: "bird", every: [5, 14] }, crows: [15, 40], frogs: .8 },
+    night: { beds: { rain: 0 }, crickets: .7, calls: { name: "owl", every: [7, 20] }, crows: null, frogs: 1 },
+    dawn: { beds: { rain: 0 }, crickets: .2, calls: { name: "bird", every: [1.2, 4] }, crows: [20, 50], frogs: .6 },
+    noon: { beds: { rain: 0 }, crickets: 0, calls: { name: "bird", every: [3, 9] }, crows: [25, 70], frogs: .3 },
+    sunset: { beds: { rain: 0 }, crickets: .45, calls: { name: "bird", every: [5, 14] }, crows: [15, 40], frogs: .8 },
 };
 
 /** Seconds the crickets sing, and are quiet between. */
@@ -35,7 +37,8 @@ const QUIET: [number, number] = [4, 20];
 /** `mix` in the rain: the rain loud, crickets and birds mostly hiding, the frogs loving it. */
 function soaked(mix: Mix): Mix {
     return {
-        beds: { crickets: mix.beds.crickets * .3, rain: .6 },
+        beds: { rain: .6 },
+        crickets: mix.crickets * .3,
         calls: mix.calls && { name: mix.calls.name, every: [mix.calls.every[0] * 3, mix.calls.every[1] * 3] },
         crows: mix.crows && [mix.crows[0] * 2, mix.crows[1] * 2],
         frogs: Math.min(1, mix.frogs * 1.4),
@@ -131,7 +134,10 @@ export class Ambience {
             this.chirping = !this.chirping;
             const [least, most] = this.chirping ? CHIRPING : QUIET;
             this.nextChirp = least + Math.random() * (most - least);
-            void this.beds.get("crickets")?.then(voice => voice?.fadeTo(this.bedLevel("crickets"), { seconds: this.chirping ? 1.5 : 2.5 }));
+            for (const playing of this.playing.values())
+            {
+                if (playing.emitter.name === "crickets") void playing.voice.then(voice => voice?.fadeTo(this.level(playing.emitter), { seconds: this.chirping ? 1.5 : 2.5 }));
+            }
         }
 
         this.nextPick -= dt;
@@ -163,7 +169,7 @@ export class Ambience {
     }
 
     private bedLevel(name: Bed) {
-        return this.mix.beds[name] * (name === "crickets" && !this.chirping ? 0 : 1);
+        return this.mix.beds[name];
     }
 
     /** A bird, a crow or an owl somewhere around me, up in the trees (crows further and higher). */
@@ -172,15 +178,16 @@ export class Ambience {
         const angle = Math.random() * Math.PI * 2, distance = (name === "crow" ? 20 : 12) + Math.random() * 25;
         const at = [ears[0] + Math.cos(angle) * distance, ears[1] + (name === "crow" ? 8 : 4) + Math.random() * 6, ears[2] + Math.sin(angle) * distance];
         const rate = name === "bird" ? .9 + Math.random() * .25 : .95 + Math.random() * .1;
-        const volume = name === "owl" ? .75 : name === "crow" ? .6 : .45 + Math.random() * .35;
-        void this.sound.play(name, { bus: "ambience", at, half: name === "bird" ? 12 : 18, volume, rate });
+        const volume = name === "owl" ? 1 : name === "crow" ? .6 : .45 + Math.random() * .35;
+        void this.sound.play(name, { bus: "ambience", at, half: name === "bird" ? 12 : name === "owl" ? 25 : 18, volume, rate });
     }
 
     /** The nearest few emitters sound, the rest fade out. */
     private pick(ears: Vec) {
         const near = this.list
             .map(emitter => ({ emitter, distance: Math.hypot(emitter.at[0] - ears[0], emitter.at[1] - ears[1], emitter.at[2] - ears[2]) }))
-            .filter(({ emitter, distance }) => distance < (emitter.reach ?? 30))
+            // crickets only when it's their time of day
+            .filter(({ emitter, distance }) => distance < (emitter.reach ?? 30) && (emitter.name !== "crickets" || this.mix.crickets > 0))
             .sort((a, b) => a.distance - b.distance)
             .slice(0, NEAREST);
         const wanted = new Set(near.map(({ emitter }) => emitter));
@@ -202,6 +209,7 @@ export class Ambience {
     }
 
     private level(emitter: Emitter) {
-        return (emitter.volume ?? 1) * (emitter.name === "frogs" ? this.mix.frogs : 1);
+        const mix = emitter.name === "frogs" ? this.mix.frogs : emitter.name === "crickets" ? this.mix.crickets * (this.chirping ? 1 : 0) : 1;
+        return (emitter.volume ?? 1) * mix;
     }
 }
