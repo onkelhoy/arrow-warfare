@@ -1,4 +1,5 @@
 {
     "lobby": ["nimble-pulse", "pirates-pulse", "guardians-watch"],
-    "game": ["battle-pulse", "arena-motif"]
+    "game": ["battle-pulse", "arena-motif"],
+    "tavern": ["fill-the-cup", "let-the-fiddler-leap"]
 }

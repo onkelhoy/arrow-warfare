@@ -1,13 +1,19 @@
 import { GameObject } from "@papit/game-engine";
-import { MeshBuilder, seeded, type Batch, type MeshData, type Renderer, type Vec3 } from "@arrow-warfare/render";
+import { MeshBuilder, seeded, type Batch, type Lamp, type MeshData, type Renderer, type Vec3 } from "@arrow-warfare/render";
 
 import { CLOUDS, PALETTES, wet, wetClouds, type PaletteName } from "./atmosphere";
 import { Backdrop } from "./backdrop";
-import { Field, STONES, VARIANTS, type Placed } from "./field";
-import { fileModel, type ModelName } from "./files";
+import { Field, SQUARE_LIFT, STONES, VARIANTS, type Placed } from "./field";
+import { fileModel, glowOf, type ModelName } from "./files";
 import { blob, cloud, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
 
 const WHITE: Vec3 = [1, 1, 1];
+
+/** Models whose glow lights what's around them, and how far (m). */
+const LAMP_REACH: Partial<Record<ModelName, number>> = {
+    "props/street-lamp": 9, "props/double-lamp": 10, "props/stone-lantern": 5.5, "props/lantern": 5,
+    "props/brazier": 7, "props/firepit": 7.5, "buildings/watchtower": 7,
+};
 
 /** How far past the field the clouds go before they come round again, and how fast they drift (m/s). */
 const CLOUD_REACH = 90;
@@ -38,6 +44,8 @@ export class Meadow extends GameObject {
     private sky: { batch: number; index: number; x: number; y: number; z: number; yaw: number; scale: number }[] = [];
     private gone = false;
     private readonly rain: boolean;
+    /** The lamps of this field, lighting their surroundings (`renderer.lamps`). */
+    private readonly lamps: Lamp[] = [];
     /** Resolves once every model from a file is on screen (or failed). */
     readonly ready: Promise<void>;
 
@@ -46,6 +54,7 @@ export class Meadow extends GameObject {
         const name = setting.palette ?? "noon";
         this.rain = setting.rain ?? false;
         renderer.light = this.lightOf(name);
+        renderer.lamps = this.lamps;
         const at = (x: number, z: number) => field.height(x, z);
 
         const add = (mesh: MeshData, things: { x: number; z: number; yaw: number; scale: number }[], options: Parameters<Renderer["batch"]>[1] = {}, sink = 0) => {
@@ -83,11 +92,11 @@ export class Meadow extends GameObject {
         const tufts = [grassTuft(field.seed), grassTuft(field.seed + 1), grassTuft(field.seed + 2)];
         tufts.forEach((tuft, i) => add(tuft, grass.filter((_, g) => g % tufts.length === i), { sway: .12 }));
 
-        // water: a flat disc a touch inside each pond's rim
+        // water: a flat disc a touch inside each pond's rim, its top at the pond's level (lily pads float on it)
         if (field.ponds.length)
         {
             const water = renderer.batch(new MeshBuilder().cylinder("#5f9fc4", { scale: [2, .02, 2] }, 18).build(), { capacity: field.ponds.length, emissive: .15 });
-            for (const pond of field.ponds) water.add(pond.x, pond.level, pond.z, 0, pond.radius * .97);
+            for (const pond of field.ponds) water.add(pond.x, pond.level - .02 * pond.radius * .97, pond.z, 0, pond.radius * .97);
             this.batches.push(water);
         }
 
@@ -100,6 +109,13 @@ export class Meadow extends GameObject {
             const batch = renderer.batch(mesh, { capacity: all.length, sway: /Corn|Wheat/.test(model) ? .04 : 0, twoSided: true });
             for (const one of all) batch.add(one.x, one.y, one.z, one.yaw, one.scale, WHITE, one.bright ?? 1);
             this.batches.push(batch);
+            const glow = glowOf(model), reach = LAMP_REACH[model];
+            if (glow && reach)
+                for (const one of all)
+                {
+                    const c = Math.cos(one.yaw), s = Math.sin(one.yaw), [gx, gy, gz] = glow.map(v => v * one.scale);
+                    this.lamps.push({ x: one.x + gx * c + gz * s, y: one.y + gy, z: one.z - gx * s + gz * c, reach: reach * one.scale });
+                }
         })).then(() => undefined);
 
         this.backdrop = new Backdrop(renderer, field.radius, field.seed, name);
@@ -151,6 +167,7 @@ export class Meadow extends GameObject {
     /** Takes every batch off the renderer. */
     override destroy() {
         this.gone = true;
+        if (this.renderer.lamps === this.lamps) this.renderer.lamps = [];
         for (const batch of this.batches) this.renderer.removeBatch(batch);
         this.batches.length = 0;
         if (this.fireflies) this.renderer.removeBatch(this.fireflies);
@@ -246,25 +263,41 @@ function addStreets(renderer: Renderer, field: Field) {
             }
         }
     }
-    // where streets meet: a round of stones a touch higher, so it lies over their ends
+    // where streets meet: a round of cobbles laid in rings, over the kerbs (no flicker with the streets' ends), in
+    // small cells so it follows the ground, a kerb around it down to the grass
+    const LIFT = SQUARE_LIFT;
     for (const junction of field.junctions)
     {
-        const sides = Math.max(10, Math.round(junction.radius * 3));
-        const middle = point(junction.x, junction.z, .015);
-        for (let i = 0; i < sides; i++)
+        const rings = Math.max(2, Math.round(junction.radius / .9));
+        const p = (r: number, a: number, lift = LIFT) => point(junction.x + Math.cos(a) * r, junction.z + Math.sin(a) * r, lift);
+        for (let ring = 0; ring < rings; ring++)
         {
-            const a0 = i / sides * Math.PI * 2, a1 = (i + 1) / sides * Math.PI * 2;
-            for (const [r0, r1] of [[0, .5], [.5, 1]])
+            const r0 = ring / rings * junction.radius, r1 = (ring + 1) / rings * junction.radius;
+            const cells = Math.max(6, Math.round(Math.PI * 2 * r1 / 1));
+            // each ring turned a little, so the cells don't line up into spokes
+            const turn = random() * Math.PI * 2;
+            for (let i = 0; i < cells; i++)
             {
-                const p = (r: number, a: number) => point(junction.x + Math.cos(a) * r * junction.radius, junction.z + Math.sin(a) * r * junction.radius, .015);
+                const a0 = turn + i / cells * Math.PI * 2, a1 = turn + (i + 1) / cells * Math.PI * 2;
                 const colour = cobble();
-                if (r0 === 0) flat(middle, p(r1, a0), p(r1, a1), colour);
+                if (ring === 0) flat(p(0, 0), p(r1, a0), p(r1, a1), colour);
                 else
                 {
                     flat(p(r0, a0), p(r1, a0), p(r1, a1), colour);
                     flat(p(r0, a0), p(r1, a1), p(r0, a1), colour);
                 }
             }
+        }
+        const sides = Math.max(12, Math.round(Math.PI * 2 * junction.radius / .8));
+        for (let i = 0; i < sides; i++)
+        {
+            const a0 = i / sides * Math.PI * 2, a1 = (i + 1) / sides * Math.PI * 2;
+            const outer = junction.radius + .3;
+            // the kerb's top, then its side down to the ground, facing out
+            flat(p(junction.radius, a0), p(outer, a0), p(outer, a1), KERB);
+            flat(p(junction.radius, a0), p(outer, a1), p(junction.radius, a1), KERB);
+            const a = p(outer, a0), b = p(outer, a1), c = p(outer, a1, -OVER - .05), d = p(outer, a0, -OVER - .05);
+            stones.quad(a, b, c, d, KERB);
         }
     }
     const batch = renderer.batch(stones.build(), { capacity: 1 });

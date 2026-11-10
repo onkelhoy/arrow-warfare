@@ -34,7 +34,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
             <label class="aw-corner-row">${t("corner.hand")} <select name="hand"><option value="right">${t("corner.right")}</option><option value="left">${t("corner.left")}</option></select></label>
             <label class="aw-corner-row">${t("corner.quality")} <select name="quality">${QUALITIES.map(quality => `<option value="${quality}">${t(`corner.${quality}`)}</option>`).join("")}</select></label>
             <label class="aw-corner-row">${t("corner.splashes")} <input type="checkbox" name="splashes"></label>
-            ${matchMedia("(pointer: coarse)").matches ? `<pap-button data-do="layout" size="small" variant="outline">${t("layout.open")}</pap-button>` : ""}
+            ${matchMedia("(pointer: coarse)").matches ? `<pap-button data-do="layout" size="small" variant="outline">${t("layout.open")}</pap-button><pap-button data-do="layout-gun" size="small" variant="outline">${t("layout.openGun")}</pap-button>` : ""}
         </pap-dialog>
     `;
     root.append(corner);
@@ -71,6 +71,10 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
     corner.querySelector("[data-do=layout]")?.addEventListener("click", () => {
         panel.close();
         mountTouchLayout(root);
+    });
+    corner.querySelector("[data-do=layout-gun]")?.addEventListener("click", () => {
+        panel.close();
+        mountTouchLayout(root, undefined, "gun");
     });
 
     name.addEventListener("input", () => {

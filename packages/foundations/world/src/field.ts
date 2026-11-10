@@ -23,7 +23,7 @@ export type FieldSetting = {
 /** Metres from the middle to the forest edge. */
 /** Metres between sides on a spawn ring, at least. */
 const SPACING = 7;
-export const RADIUS: Record<MapSize, number> = { small: 28, medium: 42, large: 60 };
+export const RADIUS: Record<MapSize, number> = { small: 28, medium: 42, large: 80 };
 /** Meadow trees per square metre. */
 const TREES: Record<TreeAmount, number> = { none: 0, few: .0025, many: .008 };
 /** How deep the forest wall is. */
@@ -38,12 +38,13 @@ export type Spawn = { x: number; z: number; yaw: number };
 export type Placed = { model: ModelName; x: number; y: number; z: number; yaw: number; scale: number; bright?: number };
 /**
  * A box that blocks walking and arrows, turned by `yaw` around y: `hx`, `hz` are half its size along its own
- * x and z, from `bottom` to `top`. A `floor` can be stood on (a tower's platform).
+ * x and z, from `bottom` to `top`. A `floor` can be stood on (a tower's platform). A `rail` only stops walking,
+ * shots go between its bars.
  */
-export type Block = { x: number; z: number; yaw: number; hx: number; hz: number; bottom: number; top: number; floor?: boolean };
+export type Block = { x: number; z: number; yaw: number; hx: number; hz: number; bottom: number; top: number; floor?: boolean; rail?: boolean };
 /** The ground made level: `level` inside `radius`, easing back to the hills over `blend` metres. */
 export type Flat = { x: number; z: number; radius: number; level: number; blend: number };
-/** Water at `level`, a bowl under it. Nobody walks in, arrows sink. */
+/** Water at `level`, a shallow bowl under it. Walked in slowly, arrows sink. */
 export type Pond = { x: number; z: number; radius: number; level: number };
 /** Where a watch tower's ladder is: a box to climb in (same shape as a block), up to `top`. `tx, tz` is the tower. */
 export type Ladder = { x: number; z: number; yaw: number; hx: number; hz: number; bottom: number; top: number; tx: number; tz: number };
@@ -57,6 +58,8 @@ export type Junction = { x: number; z: number; radius: number };
 
 /** Metres a foot can step up onto a floor (and how far under its top a block stops counting). */
 export const STEP_UP = .45;
+/** Metres the round cobbled places stand over the ground, over the streets' kerbs; walked on. */
+export const SQUARE_LIFT = .13;
 /** How tall a player is for blocks: a box higher than this over the feet is walked under. */
 const TALL = 1.5;
 
@@ -205,10 +208,26 @@ export class Field {
         for (const pond of this.ponds)
         {
             const d2 = ((x - pond.x) ** 2 + (z - pond.z) ** 2) / (pond.radius * pond.radius);
-            // a bowl from just over the water at the rim down to a metre under it
-            if (d2 < 1.3) height = Math.min(height, pond.level + .2 - 1.2 * Math.max(0, 1 - d2));
+            // a bowl from just over the water at the rim down to 70 cm under it, shallow enough to wade
+            if (d2 < 1.3) height = Math.min(height, pond.level + .2 - .9 * Math.max(0, 1 - d2));
         }
         return height;
+    }
+
+    /** How deep the water is at `x, z`, 0 out of the ponds. */
+    depth(x: number, z: number) {
+        let depth = 0;
+        for (const pond of this.ponds)
+        {
+            if ((x - pond.x) ** 2 + (z - pond.z) ** 2 > (pond.radius * 1.15) ** 2) continue;
+            depth = Math.max(depth, pond.level - this.height(x, z));
+        }
+        return depth;
+    }
+
+    /** How fast one walks at `x, z`, 1 on land, down to about half in the deepest water. */
+    wade(x: number, z: number) {
+        return 1 - Math.min(.5, this.depth(x, z) * .75);
     }
 
     /** The hills alone, before anything was levelled. */
@@ -227,6 +246,7 @@ export class Field {
      */
     floor(x: number, z: number, y = -Infinity) {
         let floor = this.height(x, z);
+        for (const junction of this.junctions) if ((junction.x - x) ** 2 + (junction.z - z) ** 2 < (junction.radius + .3) ** 2) { floor += SQUARE_LIFT; break; }
         for (const block of this.blocks)
         {
             if (!block.floor || block.top <= floor || block.top > y + STEP_UP || !inside(block, x, z, 0)) continue;
@@ -258,6 +278,18 @@ export class Field {
     /** Whether a tree at `x, z` would stand closer than 5 m to another, the meadow's or a model. */
     crowded(x: number, z: number) {
         return [...this.trees, ...this.treeSpots].some(tree => (tree.x - x) ** 2 + (tree.z - z) ** 2 < 25);
+    }
+
+    /** Whether `x, z` is on a street or a square (footsteps on stone there). */
+    paved(x: number, z: number) {
+        for (const junction of this.junctions) if ((junction.x - x) ** 2 + (junction.z - z) ** 2 < junction.radius ** 2) return true;
+        for (const street of this.streets)
+        {
+            const dx = street.bx - street.ax, dz = street.bz - street.az, length2 = dx * dx + dz * dz || 1;
+            const t = Math.max(0, Math.min(1, ((x - street.ax) * dx + (z - street.az) * dz) / length2));
+            if (Math.hypot(street.ax + dx * t - x, street.az + dz * t - z) < street.width / 2) return true;
+        }
+        return false;
     }
 
     /** The colour of a dirt patch at `x, z`, or null for the meadow's own. */

@@ -9,8 +9,8 @@ import { adopt, CHAT_LENGTH, COLOURS, people, QUALITY, settings, SKINS, t, teamN
 import { BOTS_PER_PACKET, packBots, packPose, POSE_RATE, unpackBots, unpackPose, type Pose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
-import { Ambience, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
-import { currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteName } from "@arrow-warfare/world";
+import { Ambience, Taverns, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
+import { Birds, currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
 import { Blood } from "./blood";
@@ -29,6 +29,9 @@ import { Replay } from "./replay";
 import { Walker } from "./walker";
 import sheet from "./style.css" with { type: "css" };
 import { footing } from "./footing";
+
+/** Metres: others' footsteps fade out to silence here. */
+const STEPS = 28;
 
 /** What play needs from the network. Without it (the view) everything stays on this phone. */
 export type PlayNet = {
@@ -100,6 +103,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const play = document.createElement("main");
     play.className = options.contained ? "aw-play contained" : "aw-play";
     const density = () => Math.min(window.devicePixelRatio || 1, QUALITY[settings().quality].pixels);
+    /** Where the trigger goes on a touch screen: the bow's place, or a gun's own. */
+    const buttonPlace = () => (state.rules.weapon ?? "bow") === "bow" ? settings().bow : settings().gun;
     play.innerHTML = `
         <canvas class="aw-play-canvas"></canvas>
         <div class="aw-play-names"></div>
@@ -122,7 +127,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const aspect = play.clientWidth / Math.max(1, play.clientHeight);
         baseFov = aspect > WIDE ? 2 * Math.atan(Math.tan(FOV / 2) * WIDE / aspect) : FOV;
         camera.fov = baseFov;
-        controls.placeBow(settings().bow, play.clientWidth);
+        controls.placeBow(buttonPlace(), play.clientWidth);
     };
     /** The field of view for this screen, before aiming zooms in. */
     let baseFov = FOV;
@@ -130,6 +135,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const camera = new Camera({ fov: FOV, near: .05, far: 320 });
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
+    renderer.pointLights = QUALITY[settings().quality].lights;
 
     const field = new Field({ seed: state.seed, ...state.rules });
     const coarse = matchMedia("(pointer: coarse)").matches;
@@ -144,10 +150,28 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     ambience?.time(time && time !== "clock" ? time : currentPalette());
     if (rain) rain.onLightning = distance => ambience?.thunder(distance);
     ambience?.emitters(emittersOf(field));
+    // this phone's own birds, their calls from where they are
+    const birds = new Birds(renderer, field);
+    birds.setTime(time && time !== "clock" ? time : currentPalette());
+    birds.rain(raining);
+    birds.onCall = (call, at, volume) => {
+        const rate = call === "bird" ? .9 + Math.random() * .25 : .95 + Math.random() * .1;
+        void options.sound?.play(call, { bus: "ambience", at, volume, rate, half: call === "bird" ? 10 : call === "owl" ? 22 : 18 });
+    };
+    /** Where each arrow in the air was last frame, for hitting birds; the ones done with. */
+    const birdFlights = new Map<string, Vec>();
+    const birdDone = new Set<string>();
+    // songs from the taverns, the game's music dipping close to one
+    const taverns = options.sound ? new Taverns(options.sound, field.models.filter(one => one.model === "buildings/tavern").map(one => [one.x, one.y + 1.6, one.z]), () => net.shared()) : null;
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
     const footstep = raining ? "wetstep" : "step";
-    others.onStep = at => sound(footstep, at, .6);
+    // splashing in a pond, rain or not
+    const stepAt = (x: number, z: number) => field.depth(x, z) > .05 ? "wetstep" : footstep;
+    others.onStep = at => {
+        const m = camera.worldMatrix;
+        if (Math.hypot(at[0] - m[12], at[2] - m[14]) < STEPS) sound(stepAt(at[0], at[2]), at, .3, .92 + Math.random() * .16, STEPS);
+    };
     const controls = new Controls(play);
     const hud = new Hud(play);
     const draw = new Draw();
@@ -192,12 +216,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     size();
     window.addEventListener("resize", size);
-    const stopBow = effect(() => controls.placeBow(settings().bow, play.clientWidth));
-    // a new quality changes the resolution now, the grass next round
+    const stopBow = effect(() => controls.placeBow(buttonPlace(), play.clientWidth));
+    // a new quality changes the resolution and the lamp light now, the grass next round
     let quality = settings().quality;
     const stopQuality = effect(() => {
         if (settings().quality === quality) return;
         quality = settings().quality;
+        renderer.pointLights = QUALITY[quality].lights;
         size();
     });
 
@@ -301,14 +326,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const forBot = (id: unknown, sender: string) => sender === state.host && typeof id === "string" && !!player(id)?.bot;
 
     /** `at` is placed in 3D, heard from the camera (`listen` each frame), without it it's in my head. */
-    const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1) => {
-        sfx?.play(name, { volume, at, rate });
+    const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1, reach?: number) => {
+        sfx?.play(name, { volume, at, rate, reach });
     };
     /** The ears go where the camera is. */
     const listen = (dt: number) => {
         const m = camera.worldMatrix;
         options.sound?.listen([m[12], m[13], m[14]], [-m[8], -m[9], -m[10]], [m[4], m[5], m[6]]);
         ambience?.update(dt, [m[12], m[13], m[14]]);
+        taverns?.update(dt, [m[12], m[13], m[14]]);
     };
     const vibrate = (pattern: number | number[]) => {
         try { navigator.vibrate?.(pattern); } catch { /* not here */ }
@@ -991,7 +1017,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (alive)
         {
             const foot = Math.floor(walker.posture === "hop" ? walker.hop / Math.PI : walker.stride / Math.PI);
-            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : footstep, undefined, .35);
+            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : stepAt(walker.x, walker.z), undefined, .07 + Math.random() * .02, .92 + Math.random() * .16);
             feet = foot;
             beat -= dt;
             if (wounds.energy < .25 && beat <= 0)
@@ -1047,8 +1073,32 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 }
             }
         }
+        // birds: shots scare them, arrows can hit them, people come too close
+        for (const arrow of arrows.all.values())
+        {
+            const id = arrow.shot.id;
+            if (birdDone.has(id)) continue;
+            const at: Vec = [arrow.x, arrow.y, arrow.z];
+            const last = birdFlights.get(id);
+            const done = arrow.rest || arrow.gone;
+            // one already down when I first see it (I came late) neither scares nor hits
+            if (!last && !done) birds.startle([arrow.shot.x, arrow.shot.y, arrow.shot.z], isBullet(arrow.shot) ? 25 : 12);
+            if (last || !done) birds.hit(last ?? [arrow.shot.x, arrow.shot.y, arrow.shot.z], at);
+            if (done)
+            {
+                birdDone.add(id);
+                birdFlights.delete(id);
+            }
+            else birdFlights.set(id, at);
+        }
+        {
+            const near = others.living.map(other => other.rig.where);
+            if (walker.alive) near.push({ x: walker.x, y: walker.y, z: walker.z, yaw: 0, tip: 0 });
+            birds.update(dt, near);
+        }
         for (const { arrow, kind } of flown.landed)
         {
+            birds.startle([arrow.x, arrow.y, arrow.z], 9);
             bots?.heard(arrow.shot.by, [arrow.shot.x, arrow.shot.y, arrow.shot.z], [arrow.x, arrow.y, arrow.z]);
             sound(kind === "ground" ? "ground" : "wood", [arrow.x, arrow.y, arrow.z]);
             // a bullet leaves a puff and a hole, an arrow stays in what it hit
@@ -1179,7 +1229,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
     const debug: PlayDebug = {
-        walker, field, draw, arrows, others, hud, replay, film, bots, tally, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, gun, controls, get dead() { return [...dead]; },
+        walker, field, draw, arrows, others, hud, replay, film, bots, tally, rain, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, gun, controls, get dead() { return [...dead]; },
         /** The view's "a bot shoots me": the nearest standing bot sends a strong arrow at my chest. */
         shootMe(by?: string, at = me) {
             const pose = (id: string) => others.poseOf(id);
@@ -1220,6 +1270,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const palette = name === "clock" ? currentPalette() : name;
             meadow.palette(palette);
             ambience?.time(palette);
+            birds.setTime(palette);
         },
         /** Players who left are gone and count as out, nothing else about the field changes mid round. */
         update(next: GameState) {
@@ -1234,6 +1285,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             stopQuality();
             playing = false;
             ambience?.stop();
+            birds.destroy();
+            taverns?.stop();
             document.removeEventListener("visibilitychange", awake);
             wake?.release().catch(() => undefined);
             clearTimeout(settle);
@@ -1285,9 +1338,17 @@ function emittersOf(field: Field): Emitter[] {
     const list: Emitter[] = field.ponds.map(pond => ({ name: "frogs", at: [pond.x, pond.level + .3, pond.z], half: 2 + pond.radius * .6, reach: 35, volume: .9 }));
     for (const placed of field.models)
     {
+        // fires crackle, lamps are quiet
         if (placed.model === "props/firepit") list.push({ name: "crackle", at: [placed.x, placed.y + .4, placed.z], half: 2.5, reach: 25, volume: 1 });
-        else if (placed.model === "props/stone-lantern") list.push({ name: "crackle", at: [placed.x, placed.y + 1.2, placed.z], half: 1.2, reach: 12, volume: .35 });
-        else if (placed.model === "props/street-lamp" || placed.model === "props/double-lamp") list.push({ name: "crackle", at: [placed.x, placed.y + 3, placed.z], half: 1, reach: 10, volume: .2 });
+    }
+    // crickets in the forest around the edge
+    const ring = 8;
+    for (let i = 0; i < ring; i++)
+    {
+        const angle = (i + Math.random() * .6) / ring * Math.PI * 2, r = field.radius + 3 + Math.random() * 4;
+        const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
+        // heard across the map, faint in the middle (about a tenth), loud by the edge
+        list.push({ name: "crickets", at: [x, field.height(x, z) + .3, z], half: 4, reach: field.radius * 2 + 20, volume: .8 + Math.random() * .4 });
     }
     return list;
 }

@@ -1,5 +1,5 @@
-// The ambience, rendered by bin/sfx.mjs: loops that wrap without a seam, and calls (birds, owls).
-// The crickets are a recording (bin/crickets.mjs). Each entry is [versions, make(version) => Float32Array at AMBIENCE_RATE]. Replace a wav to change one.
+// The ambience, rendered by bin/sfx.mjs: loops that wrap without a seam, and calls (birds).
+// Crickets, owls, crows and rain are recordings (bin/crickets.mjs, bin/calls.mjs, bin/loop.mjs). Each entry is [versions, make(version) => Float32Array at AMBIENCE_RATE]. Replace a wav to change one.
 
 export const AMBIENCE_RATE = 16000;
 const R = AMBIENCE_RATE;
@@ -51,21 +51,6 @@ function lowpass() {
     return (x, freq) => (y += (1 - Math.exp(-TAU * freq / R)) * (x - y));
 }
 
-/** Always: air through the trees, swelling in gusts that repeat with the loop. */
-function wind() {
-    const seconds = 12, fade = 1.5, data = new Float32Array((seconds + fade) * R);
-    const low = lowpass(), lower = lowpass(), rustle = bandpass(1800, .8);
-    for (let i = 0; i < data.length; i++) {
-        const t = i / R, p = TAU * t / seconds;
-        const gust = Math.max(0, .5 + .22 * Math.sin(p) + .15 * Math.sin(3 * p + 1) + .1 * Math.sin(5 * p + 2) + .05 * Math.sin(11 * p + 4));
-        const x = white();
-        const body = lower(low(x, 180 + 520 * gust), 260 + 700 * gust);
-        // the leaves, only in the strong part of a gust
-        data[i] = body * (.3 + gust * gust) * 3 + rustle(x) * Math.max(0, gust - .55) * .5;
-    }
-    return normalize(loopify(data, seconds, fade), .7);
-}
-
 /** Ponds: a few frogs, each croaking at its own pace. */
 function frogs() {
     const seconds = 8, data = new Float32Array(seconds * R);
@@ -90,23 +75,68 @@ function frogs() {
     return normalize(data, .8);
 }
 
-/** Lanterns and fires: small pops, some bigger cracks, and a soft roar under them. */
+/** The fire's own rate: clicks need the highs. */
+export const FIRE_RATE = 32000;
+
+/**
+ * A wood fire: sharp irregular clicks, often in little clusters, a louder snap now and then with a short
+ * woody ring, a faint hiss and a soft breath under it. Its own random numbers, so the other sounds stay as they are.
+ */
 function crackle() {
-    const seconds = 6, fade = .8, data = new Float32Array(seconds * R);
-    const pop = (at, length, volume, freq) => {
-        const band = bandpass(freq, 1.2);
-        stamp(data, at, length, (t, u) => band(white()) * Math.exp(-7 * u) * volume);
+    const F = FIRE_RATE, seconds = 8, data = new Float32Array(seconds * F);
+    let s = 4242;
+    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const noise = () => r() * 2 - 1;
+    const at = (t, length, fn) => {
+        const start = Math.round(t * F), count = Math.max(1, Math.round(length * F));
+        for (let j = 0; j < count; j++) data[(start + j) % data.length] += fn(j / count);
     };
-    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 22) pop(t, between(.002, .006), rnd() ** 3, between(2000, 6000));
-    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 1.6) pop(t, between(.01, .03), between(.5, 1), between(900, 2500));
-    const roar = new Float32Array((seconds + fade) * R), low = lowpass(), lower = lowpass();
-    for (let i = 0; i < roar.length; i++) {
-        const t = i / R;
-        roar[i] = lower(low(white(), 400), 300) * (.7 + .3 * Math.sin(TAU * t * 1.3) * Math.sin(TAU * t * .37)) * 1.6;
+    /** A click: a few ms of noise, its lows taken out, falling fast. */
+    const click = (t, volume, length) => {
+        let low = 0;
+        at(t, length, u => {
+            const x = noise();
+            low += .25 * (x - low);
+            return (x - low) * Math.exp(-9 * u) * volume;
+        });
+    };
+    /** A snap: a click and a short ring of the wood, two resonances. */
+    const snap = (t, volume) => {
+        click(t, volume, .004);
+        const f1 = 1400 + r() * 1600, f2 = f1 * (1.6 + r() * .5), decay = 60 + r() * 60;
+        at(t, .06, u => {
+            const time = u * .06;
+            return (Math.sin(Math.PI * 2 * f1 * time) + .5 * Math.sin(Math.PI * 2 * f2 * time)) * Math.exp(-decay * time) * volume * .35 * (1 + noise() * .3);
+        });
+    };
+    // single clicks, quiet mostly, a few loud
+    for (let t = 0; t < seconds; t += -Math.log(1 - r()) / 9) click(t, .15 + r() ** 3 * .7, .0006 + r() * .0015);
+    // clusters: a handful of clicks within a tenth of a second, as a log splits
+    for (let t = r(); t < seconds; t += -Math.log(1 - r()) / 1.3)
+    {
+        const count = 3 + Math.floor(r() * 7), volume = .3 + r() * .5;
+        for (let k = 0, c = t; k < count; k++, c += .005 + r() * .025) click(c, volume * (.4 + r() * .6), .0005 + r() * .001);
     }
-    const under = loopify(roar, seconds, fade);
-    for (let i = 0; i < data.length; i++) data[i] += under[i];
-    return normalize(data, .8);
+    for (let t = r() * 2; t < seconds; t += 1 + -Math.log(1 - r()) * 1.2) snap(t, .7 + r() * .3);
+    // the hiss and the breath, slowly coming and going, made seamless by wrapping their start into their end
+    let high = 0, low = 0, lower = 0;
+    const bed = new Float32Array(data.length);
+    for (let pass = 0; pass < 2; pass++)
+        for (let i = 0; i < data.length; i++)
+        {
+            const x = noise(), time = i / F;
+            high += .5 * (x - high);
+            low += .02 * (x - low);
+            lower += .02 * (low - lower);
+            const swell = .7 + .3 * Math.sin(Math.PI * 2 * time / 4) * Math.sin(Math.PI * 2 * time / 1.6);
+            // the second pass runs on warm filters, so its start joins the end
+            if (pass) bed[i] = ((x - high) * .035 + lower * 1.4) * swell;
+        }
+    for (let i = 0; i < data.length; i++) data[i] += bed[i];
+    let top = 0;
+    for (const x of data) top = Math.max(top, Math.abs(x));
+    for (let i = 0; i < data.length; i++) data[i] *= .85 / top;
+    return data;
 }
 
 /** One sine call: `notes` of [start, length, from Hz, to Hz, volume], with a soft 2nd harmonic. */
@@ -151,67 +181,37 @@ function bird(version) {
     }
 }
 
-/** Night: an owl, hoo... hoo-hoo-hoo, breathy. */
-function owl(version) {
-    const f = version === 1 ? 380 : 330, seconds = 2.4, data = new Float32Array(seconds * R), breath = bandpass(f * 2, 4);
-    const hoots = version === 1 ? [[0, .45], [.85, .25], [1.15, .25], [1.5, .5]] : [[0, .6], [.9, .7]];
-    for (const [at, length] of hoots) {
-        let phase = 0;
-        stamp(data, at, length, (t, u) => {
-            phase += f * (1 + .04 * Math.sin(Math.PI * u)) / R;
-            const envelope = Math.sin(Math.PI * Math.min(1, u * 1.3)) ** 1.5;
-            return (Math.sin(TAU * phase) + .25 * Math.sin(2 * TAU * phase) + breath(white()) * .6) * envelope;
-        });
-    }
-    return normalize(data, .85);
-}
-
-/** Rain: a wash of noise, and many small drops patting on leaves and ground. */
-function rain() {
-    const seconds = 10, fade = 1, data = new Float32Array((seconds + fade) * R);
-    const low = lowpass(), lower = lowpass(), hiss = bandpass(5000, .7);
-    for (let i = 0; i < data.length; i++) {
-        const t = i / R, x = white();
-        data[i] = lower(low(x, 2200), 1600) * (.8 + .1 * Math.sin(TAU * t / 5)) * 1.2 + hiss(x) * .12;
-    }
-    const wash = loopify(data, seconds, fade), out = new Float32Array(seconds * R);
-    for (let i = 0; i < out.length; i++) out[i] = wash[i];
-    // the drops, wrapping round the loop
-    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 260) {
-        const band = bandpass(between(1500, 7000), 3), volume = rnd() ** 2 * .5;
-        stamp(out, t, between(.004, .012), (_, u) => band(white()) * Math.exp(-6 * u) * volume);
-    }
-    // now and then a fat drop off a leaf
-    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 3) {
-        const f = between(900, 1800);
-        stamp(out, t, .05, (time, u) => Math.sin(TAU * f * (1 + u * .6) * time) * Math.exp(-8 * u) * .35);
-    }
-    return normalize(out, .8);
-}
-
-/** Thunder far off: a crack (the near one), then a long rumble rolling in swells. */
+/**
+ * Thunder: `1` close, a tearing crack then a heavy roll; `2` further, rolling in swells. Gritty (soft clipped)
+ * so a phone speaker, which plays nothing under ~150 Hz, still hears it.
+ */
 function thunder(version) {
-    const seconds = 7, data = new Float32Array(seconds * R), low = lowpass(), lower = lowpass(), crack = bandpass(1400, .6);
-    const near = version === 1, swells = [[.1, 1], [.9, .7], [1.8, .9], [3, .5], [4.2, .3]].map(([at, v]) => [at + between(-.2, .2), v * between(.7, 1.1)]);
+    const near = version === 1, seconds = near ? 8 : 9, data = new Float32Array(seconds * R);
+    const low = lowpass(), lower = lowpass(), body = bandpass(180, .7), crack = bandpass(1800, .5), tear = bandpass(700, .6);
+    const swells = (near ? [[.05, 1.2], [.6, .9], [1.4, 1], [2.5, .7], [3.8, .45], [5.2, .25]] : [[.3, .6], [1.1, .9], [2.2, 1], [3.4, .7], [4.8, .45], [6.2, .25]])
+        .map(([at, v]) => [at + between(-.15, .15), v * between(.8, 1.1)]);
+    // crackles inside the roll: little bursts that make it sound torn, not smooth
+    const crackles = [];
+    for (let t = near ? 0 : .3; t < seconds - 2; t += -Math.log(1 - rnd()) / (near ? 18 : 9)) crackles.push([t, between(.3, 1) * Math.exp(-t / (near ? 1.5 : 2.5))]);
+    let ci = 0, burst = 0;
     for (let i = 0; i < data.length; i++) {
         const t = i / R, x = white();
         let level = 0;
-        for (const [at, v] of swells) if (t > at) level += v * Math.exp(-(t - at) * 1.3) * Math.min(1, (t - at) * 6);
-        let y = lower(low(x, 90 + 120 * Math.min(1, level)), 70) * level * 7;
-        if (near && t < .5) y += crack(x) * Math.exp(-t * 14) * .8;
-        data[i] = y;
+        for (const [at, v] of swells) if (t > at) level += v * Math.exp(-(t - at) * 1.1) * Math.min(1, (t - at) * 5);
+        while (ci < crackles.length && crackles[ci][0] <= t) burst = Math.max(burst, crackles[ci++][1]);
+        burst *= Math.exp(-28 / R);
+        const rumble = lower(low(x, 160 + 260 * Math.min(1, level)), 120 + 200 * Math.min(1, level)) * 9 + body(x) * 1.6;
+        let y = rumble * level + tear(x) * burst * .9;
+        if (near && t < .6) y += crack(x) * Math.exp(-t * 7) * 1.4 + tear(x) * Math.exp(-t * 4) * .8;
+        data[i] = Math.tanh(y * 2.2) * .7;
     }
-    // fade the tail to silence
-    for (let i = 0; i < data.length; i++) data[i] *= Math.min(1, (data.length - i) / (R * 1.5));
-    return normalize(data, .9);
+    for (let i = 0; i < data.length; i++) data[i] *= Math.min(1, (data.length - i) / (R * 2));
+    return normalize(data, .95);
 }
 
 export const AMBIENCE = {
-    wind: [1, wind],
     frogs: [1, frogs],
-    crackle: [1, crackle],
+    crackle: [1, crackle, FIRE_RATE],
     bird: [6, bird],
-    owl: [2, owl],
-    rain: [1, rain],
     thunder: [2, thunder],
 };

@@ -1,4 +1,4 @@
-/** The two lists in `songs.json`. */
+/** The two lists in `songs.json` played as playlists (it also has `tavern`, see `Taverns`). */
 export type PlaylistName = "lobby" | "game";
 export type SongList = Record<PlaylistName, string[]>;
 

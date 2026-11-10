@@ -84,12 +84,6 @@
     "wetstep-5.wav",
     "wetstep-6.wav"
   ],
-  "crickets": [
-    "crickets-1.wav"
-  ],
-  "wind": [
-    "wind-1.wav"
-  ],
   "frogs": [
     "frogs-1.wav"
   ],
@@ -104,16 +98,28 @@
     "bird-5.wav",
     "bird-6.wav"
   ],
-  "owl": [
-    "owl-1.wav",
-    "owl-2.wav"
+  "thunder": [
+    "thunder-1.wav",
+    "thunder-2.wav"
+  ],
+  "crickets": [
+    "crickets-1.wav"
   ],
   "rain": [
     "rain-1.wav"
   ],
-  "thunder": [
-    "thunder-1.wav",
-    "thunder-2.wav"
+  "owl": [
+    "owl-1.wav",
+    "owl-2.wav",
+    "owl-3.wav"
+  ],
+  "crow": [
+    "crow-1.wav",
+    "crow-2.wav",
+    "crow-3.wav",
+    "crow-4.wav",
+    "crow-5.wav",
+    "crow-6.wav"
   ],
   "gunshot": [
     "gunshot-1.mp3",

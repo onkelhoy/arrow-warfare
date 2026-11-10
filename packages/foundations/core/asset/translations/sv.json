@@ -125,6 +125,9 @@
       "friendly": "Vådabeskjutning",
       "friendlyOn": "På",
       "friendlyOff": "Av: pilar flyger genom lagkamrater",
+      "tags": "Namnskyltar",
+      "tagsOn": "På",
+      "tagsOff": "Av: bara lagkamraters namn, svårare",
       "weapon": "Vapen",
       "weapons": {
         "bow": "Pilbåge",
@@ -286,6 +289,8 @@
     },
     "layout": {
       "open": "Placera bågknappen",
+      "openGun": "Placera vapenknapparna",
+      "gunTitle": "Dra avtryckaren dit tummen vill ha den",
       "title": "Dra bågknappen dit tummen vill ha den",
       "size": "Storlek",
       "reset": "Återställ",

@@ -61,6 +61,8 @@ export type Rules = {
     rounds: number;
     /** Off: a teammate's arrow flies through you. */
     friendly: boolean;
+    /** Off: no names over others' heads, only teammates' (harder). */
+    tags: boolean;
     /** Rain all round. */
     rain: boolean;
     /** Bots the host plays, on top of the players. */
@@ -85,7 +87,7 @@ export const BOT_LIMIT = 100;
 export const BOTS_WARN = 30;
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, rain: false, bots: 0, difficulty: "normal" };
+export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, tags: true, rain: false, bots: 0, difficulty: "normal" };
 
 export type GameState = {
     host: string;

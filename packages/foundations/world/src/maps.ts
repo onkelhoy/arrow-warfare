@@ -1,6 +1,7 @@
 import { IrregularGrid } from "@papit/irregular-grid";
 
 import type { ModelName } from "./catalog";
+import { COLLISION } from "./collision";
 import { sizeOf } from "./files";
 import { inDisc, inside, type Field, type FieldSetting, type Placed, type TreeAmount } from "./field";
 
@@ -16,6 +17,8 @@ type Random = () => number;
 const NATURE_BRIGHT = 1.25;
 /** Fraction of a building's bounds that blocks: eaves and steps stick out past the walls. */
 const WALLS = .82;
+/** Metres each step of outside stairs rises, under what a foot steps up (`STEP_UP`). */
+const STAIR_STEP = .3;
 
 const TREES: ModelName[] = [
     "nature/CommonTree_1", "nature/CommonTree_2", "nature/CommonTree_3", "nature/CommonTree_4", "nature/CommonTree_5",
@@ -24,6 +27,8 @@ const TREES: ModelName[] = [
 ];
 const WILLOWS: ModelName[] = ["nature/Willow_1", "nature/Willow_2", "nature/Willow_4"];
 const ROCKS: ModelName[] = ["nature/Rock_Moss_1", "nature/Rock_Moss_2", "nature/Rock_Moss_3", "nature/Rock_Moss_4", "nature/Rock_Moss_5", "nature/Rock_Moss_6", "nature/Rock_Moss_7", "nature/Rock_4", "nature/Rock_6"];
+/** Low plants about the ground, walked through. */
+const PLANTS: ModelName[] = ["nature/Plant_1", "nature/Plant_4"];
 const BUSHES: ModelName[] = ["nature/Bush_1", "nature/Bush_2", "nature/BushBerries_1", "nature/BushBerries_2", "nature/Plant_3", "nature/Plant_5"];
 const COUNTRY_HOUSES: ModelName[] = ["buildings/cabin", "buildings/cabin-2", "buildings/cottage", "buildings/cottage-2", "buildings/stone-house", "buildings/stone-house-2"];
 const BARNS: ModelName[] = ["buildings/barracks", "buildings/smithy", "buildings/cabin", "buildings/cabin-2"];
@@ -93,6 +98,18 @@ export function layout(field: Field, random: Random, setting: FieldSetting) {
         else if (roll < .75 || field.map === "field") bush(field, random, spot[0], spot[1]);
         else prop(field, pick(random, field.map === "farm" ? FARM_PROPS : TOWN_PROPS), spot[0], spot[1], random() * Math.PI * 2);
     }
+    // low plants everywhere, in little clumps, fewer in town
+    const clumps = Math.round(field.radius * field.radius * Math.PI * .004 * (field.map === "city" ? .4 : 1) * Math.max(.5, props));
+    for (let i = 0; i < clumps; i++)
+    {
+        const spot = space(field, random, field.radius - 1, .8);
+        if (!spot) continue;
+        for (let k = 0, count = 1 + Math.floor(random() * 3); k < count; k++)
+        {
+            const x = spot[0] + (random() - .5) * 2.4, z = spot[1] + (random() - .5) * 2.4;
+            if (field.open(x, z, .4) && field.depth(x, z) === 0) place(field, pick(random, PLANTS), x, z, random() * Math.PI * 2, .8 + random() * .6, field.height(x, z) - .04, NATURE_BRIGHT);
+        }
+    }
     // a few nature trees among the meadow's own
     if (field.map !== "city")
         for (let i = 0, count = Math.round(4 * scale * scale * (setting.trees === "none" ? 0 : setting.trees === "many" ? 2.5 : 1)); i < count; i++)
@@ -103,6 +120,15 @@ export function layout(field: Field, random: Random, setting: FieldSetting) {
 }
 
 // ------------------------------------------------------------------ the maps
+
+function hasTavern(field: Field) {
+    return field.models.some(one => one.model === "buildings/tavern");
+}
+
+/** Out in the country, often one tavern among the houses (the first house, if there isn't one yet). */
+function countryTavern(field: Field, random: Random): ModelName | null {
+    return !hasTavern(field) && random() < .45 ? "buildings/tavern" : null;
+}
 
 /** The meadow with ponds and lily pads, and a few cottages if buildings are on. */
 function meadow(field: Field, random: Random, scale: number, buildings: number) {
@@ -116,7 +142,7 @@ function meadow(field: Field, random: Random, scale: number, buildings: number) 
     for (let i = 0, count = Math.round(buildings * 2 * scale); i < count; i++)
     {
         const spot = space(field, random, field.radius - 8, 5);
-        if (spot) building(field, pick(random, COUNTRY_HOUSES), spot[0], spot[1], random() * Math.PI * 2);
+        if (spot) house(field, random, countryTavern(field, random) ?? pick(random, COUNTRY_HOUSES), spot[0], spot[1], random() * Math.PI * 2);
     }
 }
 
@@ -133,6 +159,12 @@ function farm(field: Field, random: Random, scale: number, buildings: number) {
     building(field, pick(random, BARNS), bx, bz, turn - Math.PI / 2);
     const [wx, wz] = at(0, 3);
     prop(field, "props/well", wx, wz, turn);
+    for (const side of [-1, 1])
+    {
+        const [lx, lz] = at(side * 2.6, 5.2);
+        if (clear(field, lx, lz)) prop(field, "props/street-lamp", lx, lz, turn);
+    }
+    doorLamp(field, random, "buildings/farmhouse", hx, hz, turn + Math.PI / 2, 1);
     for (let i = 0, count = 3 + Math.round(buildings * 2); i < count; i++)
     {
         const [x, z] = at((random() - .5) * 8, (random() - .5) * 8 - 2);
@@ -152,7 +184,7 @@ function farm(field: Field, random: Random, scale: number, buildings: number) {
     for (let i = 0, count = Math.round(buildings * 1.5 * scale); i < count; i++)
     {
         const spot = space(field, random, field.radius - 8, 5);
-        if (spot) building(field, pick(random, [...BARNS, ...COUNTRY_HOUSES]), spot[0], spot[1], turn + Math.round(random() * 4) * Math.PI / 2);
+        if (spot) house(field, random, countryTavern(field, random) ?? pick(random, [...BARNS, ...COUNTRY_HOUSES]), spot[0], spot[1], turn + Math.round(random() * 4) * Math.PI / 2);
     }
 }
 
@@ -275,7 +307,9 @@ function city(field: Field, random: Random, buildings: number, props: number) {
                 }
                 const fits = TOWN_HOUSES.filter(model => sizeOf(model).width * .92 <= end - along);
                 if (!fits.length) break;
-                const model = pick(random, fits), size = sizeOf(model);
+                // a tavern in most towns: its music plays from it
+                const tavern = fits.includes("buildings/tavern") && !hasTavern(field) && random() < .6;
+                const model = tavern ? "buildings/tavern" : pick(random, fits), size = sizeOf(model);
                 const width = size.width * .92, depth = size.depth;
                 const back = half + .5 + depth / 2;
                 const x = px + ux * (along + width / 2) + nx * back, z = pz + uz * (along + width / 2) + nz * back;
@@ -299,7 +333,7 @@ function city(field: Field, random: Random, buildings: number, props: number) {
     {
         const dx = street.bx - street.ax, dz = street.bz - street.az, length = Math.hypot(dx, dz);
         const ux = dx / length, uz = dz / length;
-        for (let t = 4 + random() * 4; t < length - 4; t += 9 + random() * 6 / (props || 1))
+        for (let t = 4 + random() * 4; t < length - 4; t += 6.5 + random() * 4 / (props || 1))
         {
             const side = random() < .5 ? -1 : 1, out = half - .12;
             const x = street.ax + ux * t - uz * side * out, z = street.az + uz * t + ux * side * out;
@@ -315,6 +349,7 @@ function city(field: Field, random: Random, buildings: number, props: number) {
         if (Math.hypot(x, z) > reach - 3 || ![[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2]].every(([a, b]) => clear(field, x + a, z + b))) continue;
         if (random() < .5) tree(field, random, x + (random() - .5) * 2, z + (random() - .5) * 2);
         else pieces(field, pick(random, YARDS), x, z, random() * Math.PI * 2);
+        if (random() < .6 && clear(field, x + 2.2, z + 1.4)) prop(field, "props/lantern", x + 2.2, z + 1.4, random() * Math.PI * 2);
     }
 }
 
@@ -390,9 +425,55 @@ function building(field: Field, model: ModelName, x: number, z: number, yaw: num
     const size = sizeOf(model);
     const level = field.height(x, z);
     field.flats.push({ x, z, radius: Math.hypot(size.width, size.depth) / 2, level, blend: 4 });
-    place(field, model, x, z, yaw, 1, level - .05);
-    field.blocks.push({ x, z, yaw, hx: size.width / 2 * WALLS, hz: size.depth / 2 * WALLS, bottom: level - .5, top: level + size.height * .9 });
+    const placed = place(field, model, x, z, yaw, 1, level - .05);
+    // the walls from the `collision` objects in its file (bin/collision.mjs), else a box a bit inside its bounds
+    const collision = COLLISION[model];
+    if (collision?.walls.length)
+    {
+        const c = Math.cos(yaw), s = Math.sin(yaw);
+        /** A point of the model to the field. */
+        const at = (px: number, pz: number) => [placed.x + px * c + pz * s, placed.z - px * s + pz * c] as const;
+        for (const box of collision.walls)
+        {
+            const [bx, bz] = at((box.min[0] + box.max[0]) / 2, (box.min[2] + box.max[2]) / 2);
+            field.blocks.push({ x: bx, z: bz, yaw, hx: (box.max[0] - box.min[0]) / 2, hz: (box.max[2] - box.min[2]) / 2, bottom: level - .5, top: placed.y + box.max[1] });
+        }
+        // outside stairs in steps a foot can take, up to the landing stood on
+        for (const stairs of collision.stairs)
+        {
+            const dx = stairs.to[0] - stairs.from[0], dz = stairs.to[2] - stairs.from[2], length = Math.hypot(dx, dz) || 1;
+            const rise = stairs.to[1] - stairs.from[1], steps = Math.max(1, Math.ceil(rise / STAIR_STEP));
+            for (let i = 0; i < steps; i++)
+            {
+                const t = (i + .5) / steps;
+                const [sx, sz] = at(stairs.from[0] + dx * t, stairs.from[2] + dz * t);
+                field.blocks.push({ x: sx, z: sz, yaw: yaw + Math.atan2(dx, dz), hx: stairs.width / 2, hz: length / steps / 2, bottom: level - .5, top: placed.y + stairs.from[1] + rise * (i + 1) / steps, floor: true });
+            }
+        }
+        for (const box of collision.landings)
+        {
+            const [lx, lz] = at((box.min[0] + box.max[0]) / 2, (box.min[2] + box.max[2]) / 2);
+            field.blocks.push({ x: lx, z: lz, yaw, hx: (box.max[0] - box.min[0]) / 2, hz: (box.max[2] - box.min[2]) / 2, bottom: level - .5, top: placed.y + box.max[1], floor: true });
+        }
+    }
+    else field.blocks.push({ x, z, yaw, hx: size.width / 2 * WALLS, hz: size.depth / 2 * WALLS, bottom: level - .5, top: level + size.height * .9 });
     field.taken.push({ x, z, radius: Math.max(size.width, size.depth) / 2 + .5 });
+}
+
+/** A house out in the country, most with a lantern by the door. */
+function house(field: Field, random: Random, model: ModelName, x: number, z: number, yaw: number) {
+    building(field, model, x, z, yaw);
+    doorLamp(field, random, model, x, z, yaw, .7);
+}
+
+/** A lantern on the ground or a stone lantern in front of a building (its +z), by `chance`. */
+function doorLamp(field: Field, random: Random, model: ModelName, x: number, z: number, yaw: number, chance: number) {
+    if (random() > chance) return;
+    const size = sizeOf(model), c = Math.cos(yaw), s = Math.sin(yaw);
+    const u = (random() < .5 ? -1 : 1) * size.width * (.2 + random() * .15), v = size.depth / 2 + .7;
+    const lx = x + u * c + v * s, lz = z - u * s + v * c;
+    if (clear(field, lx, lz) && field.ponds.every(pond => Math.hypot(pond.x - lx, pond.z - lz) > pond.radius + 1))
+        prop(field, random() < .5 ? "props/lantern" : "props/stone-lantern", lx, lz, yaw);
 }
 
 /** A smaller thing that blocks: a cart, a barrel, a stall, a well. */
@@ -410,9 +491,11 @@ function rock(field: Field, random: Random, x: number, z: number) {
     field.obstacles.push({ x, z, radius: Math.min(size.width, size.depth) / 2 * scale * .9, height: size.height * scale });
 }
 
-/** Bushes hide you but stop nothing. */
+/** Bushes hide you and stop walking, arrows go through (`soft`). */
 function bush(field: Field, random: Random, x: number, z: number) {
-    place(field, pick(random, BUSHES), x, z, random() * Math.PI * 2, 1.1 + random() * .7, field.height(x, z) - .05, NATURE_BRIGHT);
+    const model = pick(random, BUSHES), size = sizeOf(model), scale = 1.1 + random() * .7;
+    place(field, model, x, z, random() * Math.PI * 2, scale, field.height(x, z) - .05, NATURE_BRIGHT);
+    field.obstacles.push({ x, z, radius: Math.min(size.width, size.depth) / 2 * scale * .8, height: size.height * scale, soft: true });
 }
 
 function tree(field: Field, random: Random, x: number, z: number, model = pick(random, TREES)) {
@@ -428,19 +511,17 @@ function pond(field: Field, random: Random, x: number, z: number, radius: number
     const level = field.height(x, z) - .25;
     field.flats.push({ x, z, radius: radius + 1, level: level + .25, blend: 3 });
     field.ponds.push({ x, z, radius, level });
-    // nobody walks in, a circle a little inside the water's edge
-    field.obstacles.push({ x, z, radius: radius * .85, height: 3, soft: true });
     for (let i = 0, count = 2 + Math.floor(random() * 4); i < count; i++)
     {
         const [px, pz] = inDisc(random, radius * .7);
-        place(field, "nature/Lilypad", x + px, z + pz, random() * Math.PI * 2, .7 + random() * .5, level + .02, NATURE_BRIGHT);
+        place(field, "nature/Lilypad", x + px, z + pz, random() * Math.PI * 2, .7 + random() * .5, level + .015, NATURE_BRIGHT);
     }
     for (let i = 0, count = 2 + Math.floor(random() * 3); i < count; i++)
     {
         const angle = random() * Math.PI * 2, out = radius + .8 + random() * 1.2;
         const bx = x + Math.cos(angle) * out, bz = z + Math.sin(angle) * out;
         if (random() < .3) tree(field, random, bx, bz, pick(random, WILLOWS));
-        else place(field, pick(random, ["nature/Plant_2", "nature/Plant_1", "nature/Flowers"] as ModelName[]), bx, bz, random() * 6, 1 + random() * .5, field.height(bx, bz) - .05, NATURE_BRIGHT);
+        else place(field, pick(random, ["nature/Plant_2", "nature/Plant_1", "nature/Plant_4", "nature/Flowers"] as ModelName[]), bx, bz, random() * 6, 1 + random() * .5, field.height(bx, bz) - .05, NATURE_BRIGHT);
     }
 }
 
@@ -480,20 +561,21 @@ export function tower(field: Field, x: number, z: number, yaw: number) {
     field.taken.push({ x, z, radius: 2.8 });
     const c = Math.cos(yaw), s = Math.sin(yaw);
     const world = (u: number, v: number): [number, number] => [x + u * c + v * s, z - u * s + v * c];
-    const box = (u: number, v: number, hx: number, hz: number, bottom: number, top: number, floor = false) => {
+    const box = (u: number, v: number, hx: number, hz: number, bottom: number, top: number, floor = false, rail = false) => {
         const [bx, bz] = world(u, v);
-        field.blocks.push({ x: bx, z: bz, yaw, hx, hz, bottom: level + bottom, top: level + top, floor });
+        field.blocks.push({ x: bx, z: bz, yaw, hx, hz, bottom: level + bottom, top: level + top, floor, rail });
     };
     // the file's measures (bin/models.mjs): the platform from -1.46 to 1.41 on x, -1.36 to 1.52 on z
     const FLOOR = 5.1, RAIL = 6;
     for (const u of [-1.15, 1.15]) for (const v of [-1.1, 1.35]) box(u, v, .15, .15, -.3, FLOOR);
     box(0, .08, 1.44, 1.44, FLOOR - .25, FLOOR, true);
-    box(-1.38, .08, .12, 1.44, FLOOR, RAIL);
-    box(1.34, .08, .12, 1.44, FLOOR, RAIL);
-    box(0, -1.29, 1.44, .12, FLOOR, RAIL);
+    // the rails keep you up there, shots go between the bars
+    box(-1.38, .08, .12, 1.44, FLOOR, RAIL, false, true);
+    box(1.34, .08, .12, 1.44, FLOOR, RAIL, false, true);
+    box(0, -1.29, 1.44, .12, FLOOR, RAIL, false, true);
     // the ladder's side: rail on each side of the gap
-    box(-.97, 1.45, .5, .12, FLOOR, RAIL);
-    box(.93, 1.45, .5, .12, FLOOR, RAIL);
+    box(-.97, 1.45, .5, .12, FLOOR, RAIL, false, true);
+    box(.93, 1.45, .5, .12, FLOOR, RAIL, false, true);
     const [lx, lz] = world(0, 2);
     field.ladders.push({ x: lx, z: lz, yaw, hx: .45, hz: .55, bottom: level, top: level + FLOOR, tx: x, tz: z });
 }

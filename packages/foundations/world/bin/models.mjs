@@ -109,6 +109,10 @@ if (fs.existsSync(EDITED))
             console.log(`models: ${group}/${file} from asset/edited`);
         }
 
+// the buildings' walls and stairs, as objects in their files (bin/collision.mjs)
+const { collision } = await import("./collision.mjs");
+collision(force);
+
 // the catalog: size from the position bounds, triangles from the indices
 const entries = [];
 let bytes = 0;

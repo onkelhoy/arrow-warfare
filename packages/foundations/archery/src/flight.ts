@@ -147,6 +147,7 @@ function worldHit(field: Field, from: Vec, to: Vec): [number, "ground" | "wood" 
         // buildings, props, a tower's legs and platform: boxes
         for (const block of field.blocks)
         {
+            if (block.rail) continue;
             const t = boxEntry(block, from, to);
             if (t !== null && (!best || t < best[0])) best = [t, "wood"];
         }

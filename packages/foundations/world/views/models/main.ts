@@ -3,7 +3,7 @@ import { GameEngine, GameObject, type Camera } from "@papit/game-engine";
 import { mat4, NOON, Renderer, type Batch } from "@arrow-warfare/render";
 
 // component
-import { CATALOG, fileModel, sizeOf, type ModelName } from "@arrow-warfare/world";
+import { BIRD_MODELS, CATALOG, fileModel, poseBird, sizeOf, type BirdKind, type ModelName } from "@arrow-warfare/world";
 
 // every model in `asset/models` on its own tile, like pap-adventure's gallery: drag one to turn it
 const engine = new GameEngine({ name: "main", query: "canvas", type: "webgl2", theme: true });
@@ -12,31 +12,69 @@ const renderer = new Renderer(layer);
 renderer.light = structuredClone(NOON);
 const gl = renderer.gl;
 
-type Item = { name: ModelName; figure: HTMLElement; batch: Batch | null; yaw: number; drag: number | null };
+/** A tile: its batches, and how it's placed turned by `yaw` at time `t`, its middle at the origin, seen from `reach`. */
+type Item = { figure: HTMLElement; batches: Batch[]; yaw: number; drag: number | null; place: (yaw: number, t: number) => number };
 const items: Item[] = [];
 const main = document.querySelector("main")!;
+
+/** A tile in `section` called `caption`, turned by dragging. */
+function tile(section: HTMLElement, caption: string, place: Item["place"]) {
+    const figure = section.appendChild(document.createElement("figure"));
+    figure.innerHTML = `<figcaption>${caption}</figcaption>`;
+    const item: Item = { figure, batches: [], yaw: .6, drag: null, place };
+    figure.onpointerdown = event => { item.drag = event.clientX; figure.setPointerCapture(event.pointerId); };
+    figure.onpointermove = event => {
+        if (item.drag === null) return;
+        item.yaw += (event.clientX - item.drag) * .01;
+        item.drag = event.clientX;
+    };
+    figure.onpointerup = () => item.drag = null;
+    items.push(item);
+    return item;
+}
 const names = Object.keys(CATALOG) as ModelName[];
+// the birds of `birds.ts`, sitting and flying (the wings beating)
+{
+    main.insertAdjacentHTML("beforeend", `<h2>birds</h2>`);
+    const section = main.appendChild(document.createElement("section"));
+    for (const kind of ["tiny", "crow", "owl"] as BirdKind[])
+    {
+        const model = BIRD_MODELS[kind]();
+        const triangles = (model.body.count + model.wing.count * 2) / 3;
+        for (const flying of [false, true])
+        {
+            const body = renderer.batch(model.body, { capacity: 1, dynamic: true });
+            const wings = renderer.batch(model.wing, { capacity: 2, dynamic: true, twoSided: true });
+            body.add(0, 0, 0);
+            wings.add(0, 0, 0);
+            wings.add(0, 0, 0);
+            if (kind === "tiny") for (const [batch, index] of [[body, 0], [wings, 0], [wings, 1]] as const) batch.tint(index, [.55, .4, .27]);
+            const item = tile(section, `${kind} ${flying ? "flying" : "sitting"}<small>${triangles} tris</small>`, (yaw, t) => {
+                const beat = kind === "tiny" ? 28 : kind === "crow" ? 9 : 7;
+                poseBird(kind, model, { x: 0, y: -model.shoulder[1] * (flying ? 1 : .6), z: 0, yaw, flying, flap: flying ? Math.sin(t * beat) : 0 }, body, wings, 0);
+                return model.size * (flying ? 2.6 : 1.5);
+            });
+            item.batches.push(body, wings);
+        }
+    }
+}
+
 for (const group of [...new Set(names.map(name => name.split("/")[0]))])
 {
     main.insertAdjacentHTML("beforeend", `<h2>${group}</h2>`);
     const section = main.appendChild(document.createElement("section"));
     for (const name of names.filter(name => name.startsWith(`${group}/`)))
     {
-        const figure = section.appendChild(document.createElement("figure"));
-        figure.innerHTML = `<figcaption>${name.split("/")[1]}<small>${CATALOG[name].triangles.toLocaleString()} tris</small></figcaption>`;
-        const item: Item = { name, figure, batch: null, yaw: .6, drag: null };
-        figure.onpointerdown = event => { item.drag = event.clientX; figure.setPointerCapture(event.pointerId); };
-        figure.onpointermove = event => {
-            if (item.drag === null) return;
-            item.yaw += (event.clientX - item.drag) * .01;
-            item.drag = event.clientX;
-        };
-        figure.onpointerup = () => item.drag = null;
-        items.push(item);
+        const size = sizeOf(name);
+        const item = tile(section, `${name.split("/")[1]}<small>${CATALOG[name].triangles.toLocaleString()} tris</small>`, yaw => {
+            const c = Math.cos(yaw), s = Math.sin(yaw);
+            item.batches[0].place(0, -(size.x * c + size.z * s), -size.bottom - size.height / 2, -(-size.x * s + size.z * c), yaw, 0, 0, 1);
+            return Math.max(size.height, Math.hypot(size.width, size.depth)) * 1.7;
+        });
         fileModel(name).then(mesh => {
             if (!mesh) return;
-            item.batch = renderer.batch(mesh, { capacity: 1, twoSided: true });
-            item.batch.add(0, 0, 0);
+            item.batches.push(renderer.batch(mesh, { capacity: 1, twoSided: true }));
+            item.batches[0].add(0, 0, 0);
         });
     }
 }
@@ -59,17 +97,14 @@ class Gallery extends GameObject {
         for (const item of items)
         {
             const box = item.figure.getBoundingClientRect();
-            if (!item.batch || box.bottom < 0 || box.top > innerHeight) continue;
+            if (!item.batches.length || box.bottom < 0 || box.top > innerHeight) continue;
             const x = box.left * ratio, y = layer.height - box.bottom * ratio, w = box.width * ratio, h = box.height * ratio;
             gl.viewport(x, y, w, h);
             gl.scissor(x, y, w, h);
             gl.clear(gl.DEPTH_BUFFER_BIT);
             // only this one, turned, its middle at the origin
-            for (const other of items) if (other.batch) other.batch.visible = other === item;
-            const size = sizeOf(item.name);
-            const c = Math.cos(item.yaw), s = Math.sin(item.yaw);
-            item.batch.place(0, -(size.x * c + size.z * s), -size.bottom - size.height / 2, -(-size.x * s + size.z * c), item.yaw, 0, 0, 1);
-            const reach = Math.max(size.height, Math.hypot(size.width, size.depth)) * 1.7;
+            for (const other of items) for (const batch of other.batches) batch.visible = other === item;
+            const reach = item.place(item.yaw, renderer.time);
             lookAt([0, reach * .45, reach], w / h, reach);
             renderer.frame(camera);
         }

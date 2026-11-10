@@ -1,8 +1,8 @@
 import type { Sound, Vec } from "./sound";
 
 export type SfxName = "creak" | "twang" | "wood" | "ground" | "body" | "kill" | "pant" | "pickup" | "empty" | "whoosh" | "grunt" | "step" | "wetstep" | "hop" | "heartbeat" | "stretch" | "gunshot" | "reload" | "flyby";
-/** `at` places it in the world (3D), without it it's in my head. */
-export type SfxOptions = { volume?: number; at?: Vec; rate?: number };
+/** `at` places it in the world (3D), without it it's in my head. `reach`: silent beyond that many metres. */
+export type SfxOptions = { volume?: number; at?: Vec; rate?: number; reach?: number };
 
 /**
  * The game's sound effects, files listed in `sfx.json` (made by `bin/sfx.mjs`, replace a file to
@@ -13,9 +13,9 @@ export class Sfx {
         register(sound, folder);
     }
 
-    play(name: SfxName, { volume = 1, at, rate = 1 }: SfxOptions = {}) {
+    play(name: SfxName, { volume = 1, at, rate = 1, reach }: SfxOptions = {}) {
         if (volume <= .001 || !this.sound.running) return;
-        void this.sound.play(name, { volume, at, rate });
+        void this.sound.play(name, { volume, at, rate, reach });
     }
 }
 

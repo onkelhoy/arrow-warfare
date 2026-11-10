@@ -1,6 +1,6 @@
 import { loadGLTF, rig, sample, type GLTF, type GLTFNode, type Mesh, type Rig } from "@papit/game-mesh";
 
-import { invert, mat4, multiply, type Mat4 } from "./math";
+import { invert, mat4, multiply, type Mat4, type Vec3 } from "./math";
 import { STRIDE, type MeshData } from "./mesh";
 
 /** `@papit/game-mesh`'s glTF, kept for skins and animations later. */
@@ -12,6 +12,8 @@ export type GLTFSetting = {
     tint?: number;
     /** Only the nodes with these names (and what's under them). */
     nodes?: string[];
+    /** Nodes whose names match are left out with what's under them (the buildings' `collision` and `stairs`). */
+    skip?: RegExp;
     /** One normal per triangle, the low poly look (default). Off keeps the file's (or the loader's smooth) normals. */
     flat?: boolean;
 };
@@ -32,6 +34,7 @@ export function fromGLTF(gltf: GLTF, setting: GLTFSetting = {}): MeshData {
     const parts: { mesh: Mesh; matrix: Mat4 }[] = [];
     const walk = (index: number, parent: Mat4, picked: boolean) => {
         const node = gltf.nodes[index];
+        if (setting.skip?.test(node.name ?? "")) return;
         const matrix = multiply(mat4(), parent, local(node));
         const take = picked || !setting.nodes || setting.nodes.includes(node.name ?? "");
         if (take && node.mesh !== undefined)
@@ -230,4 +233,31 @@ function normalMatrix(m: Mat4): Mat4 {
     const out = mat4();
     for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) out[c * 4 + r] = inverse[r * 4 + c];
     return out;
+}
+
+/** The packs' colours (sRGB) for lamp light and fire, which glow, and for window glass, lit at night. */
+const GLOWS: Vec3[] = [[1, .78, .42], [1, .45, .12]];
+const WINDOWS: Vec3[] = [[.24, .32, .39]];
+
+/**
+ * Marks the glowing parts of a model from a file by their colour (see `TOON_VERTEX`): lamp glass and fire
+ * glow, window glass lights up at night. Returns the middle of what glows in the model's own space, or null.
+ */
+export function glowing(data: MeshData): Vec3 | null {
+    const { vertices, count } = data;
+    const near = (o: number, colours: Vec3[]) => colours.some(c => Math.abs(vertices[o + 6] - c[0]) < .02 && Math.abs(vertices[o + 7] - c[1]) < .02 && Math.abs(vertices[o + 8] - c[2]) < .02);
+    const sum: Vec3 = [0, 0, 0];
+    let glows = 0;
+    for (let o = 0; o < count * STRIDE; o += STRIDE)
+    {
+        if (vertices[o + 9] >= 2) continue;
+        if (near(o, GLOWS))
+        {
+            vertices[o + 9] += 2;
+            sum[0] += vertices[o]; sum[1] += vertices[o + 1]; sum[2] += vertices[o + 2];
+            glows++;
+        }
+        else if (near(o, WINDOWS)) vertices[o + 9] += 4;
+    }
+    return glows ? [sum[0] / glows, sum[1] / glows, sum[2] / glows] : null;
 }

@@ -2,7 +2,7 @@ import { GameObject, type Camera, type Layer2D, type Layer3D } from "@papit/game
 
 import { compose, invert, mat4, multiply, normalize, type Vec3 } from "./math";
 import { STRIDE, type MeshData } from "./mesh";
-import { SKY_FRAGMENT, SKY_VERTEX, TOON_FRAGMENT, TOON_VERTEX } from "./shaders";
+import { LIGHTS, SKY_FRAGMENT, SKY_VERTEX, TOON_FRAGMENT, TOON_VERTEX } from "./shaders";
 
 /** Floats per instance: a matrix and a tint (rgb, then a brightness). */
 const INSTANCE = 20;
@@ -29,7 +29,12 @@ export type Light = {
     moon: number;
     /** 0..1. */
     stars: number;
+    /** 0..1, how much lamps, fires and windows light up: 1 at night, none at noon. */
+    lamps: number;
 };
+
+/** A lamp lighting what's around it, `reach` metres. */
+export type Lamp = { x: number; y: number; z: number; reach: number };
 
 export const NOON: Light = {
     sunDirection: [.4, .8, .3],
@@ -45,6 +50,7 @@ export const NOON: Light = {
     discSize: .05,
     moon: 0,
     stars: 0,
+    lamps: 0,
 };
 
 export type BatchSetting = {
@@ -208,6 +214,10 @@ export class Renderer extends GameObject {
     readonly batches: Batch[] = [];
     /** Triangles drawn last frame, for the stats. */
     drawn = 0;
+    /** Every lamp in the world, the nearest `pointLights` of them light their surroundings. */
+    lamps: Lamp[] = [];
+    /** How many lamps light at once, 0 for only the glow (quality), at most `LIGHTS`. */
+    pointLights = LIGHTS;
 
     private toon: WebGLProgram;
     private sky: WebGLProgram;
@@ -216,6 +226,7 @@ export class Renderer extends GameObject {
     private skyVao: WebGLVertexArrayObject;
     private viewProjection = mat4();
     private inverse = mat4();
+    private lightData = new Float32Array(LIGHTS * 4);
 
     constructor(readonly surface: Layer3D) {
         super();
@@ -223,7 +234,7 @@ export class Renderer extends GameObject {
         const gl = this.gl;
         this.toon = program(gl, TOON_VERTEX, TOON_FRAGMENT);
         this.sky = program(gl, SKY_VERTEX, SKY_FRAGMENT);
-        this.toonUniforms = uniforms(gl, this.toon, ["uViewProjection", "uTime", "uSway", "uCamera", "uSunDirection", "uSunColour", "uSky", "uGround", "uFogColour", "uFogDensity", "uEmissive", "uFog"]);
+        this.toonUniforms = uniforms(gl, this.toon, ["uViewProjection", "uTime", "uSway", "uCamera", "uSunDirection", "uSunColour", "uSky", "uGround", "uFogColour", "uFogDensity", "uEmissive", "uFog", "uLamps", "uLightCount", "uLights"]);
         this.skyUniforms = uniforms(gl, this.sky, ["uInverseViewProjection", "uZenith", "uHorizon", "uFogColour", "uSunDirection", "uDisc", "uRing", "uDiscSize", "uMoon", "uStars"]);
         this.skyVao = gl.createVertexArray()!;
         this.layer = surface.name;
@@ -297,6 +308,10 @@ export class Renderer extends GameObject {
         gl.uniform3fv(u.uGround, light.ground);
         gl.uniform3fv(u.uFogColour, light.fogColour);
         gl.uniform1f(u.uFogDensity, light.fogDensity);
+        gl.uniform1f(u.uLamps, light.lamps ?? 0);
+        const lights = (light.lamps ?? 0) > 0 ? this.nearestLamps(eye.x, eye.y, eye.z) : 0;
+        gl.uniform1i(u.uLightCount, lights);
+        if (lights) gl.uniform4fv(u.uLights, this.lightData);
 
         let drawn = 0;
         let cleared = false;
@@ -320,6 +335,25 @@ export class Renderer extends GameObject {
         }
         gl.bindVertexArray(null);
         this.drawn = drawn;
+    }
+
+    /** Puts the lamps nearest to the eye in `lightData`, returns how many. */
+    private nearestLamps(x: number, y: number, z: number) {
+        const most = Math.max(0, Math.min(LIGHTS, Math.floor(this.pointLights)));
+        if (!most || !this.lamps.length) return 0;
+        // a short list kept sorted by distance, the lamps far past their reach left out
+        const best: { lamp: Lamp; d: number }[] = [];
+        for (const lamp of this.lamps)
+        {
+            const d = (lamp.x - x) ** 2 + (lamp.y - y) ** 2 + (lamp.z - z) ** 2;
+            if (d > (lamp.reach + 40) ** 2 || (best.length === most && d >= best[most - 1].d)) continue;
+            let i = best.length;
+            while (i > 0 && best[i - 1].d > d) i--;
+            best.splice(i, 0, { lamp, d });
+            if (best.length > most) best.pop();
+        }
+        best.forEach(({ lamp }, i) => this.lightData.set([lamp.x, lamp.y, lamp.z, lamp.reach], i * 4));
+        return best.length;
     }
 }
 
