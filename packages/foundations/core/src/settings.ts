@@ -3,7 +3,7 @@ import { effect, signal } from "@papit/signals";
 const KEY = "arrow-warfare.settings";
 export const NAME_LENGTH = 16;
 
-export type Volumes = { everything: number; music: number; sounds: number };
+export type Volumes = { everything: number; music: number; sounds: number; ambience: number };
 
 export type Settings = {
     name: string;
@@ -42,7 +42,7 @@ export const BOW_SIZE = { min: 48, max: 140 };
 
 export const SENSITIVITY = { min: .3, max: 3 };
 
-export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1 }, sensitivity: 1, bow: { ...BOW_PLACE }, hand: "right", quality: QUALITY_DEFAULT };
+export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1, ambience: .8 }, sensitivity: 1, bow: { ...BOW_PLACE }, hand: "right", quality: QUALITY_DEFAULT };
 
 const volume = (value: unknown, fallback: number) =>
     typeof value === "number" && value >= 0 && value <= 1 ? value : fallback;
@@ -58,7 +58,7 @@ export function parseSettings(saved: string | null): Settings {
     }
     catch { /* start over */ }
 
-    const { everything, music, sounds } = DEFAULTS.volumes;
+    const { everything, music, sounds, ambience } = DEFAULTS.volumes;
     return {
         name: typeof raw?.name === "string" ? cleanName(raw.name) : "",
         mute: raw?.mute === true,
@@ -66,6 +66,7 @@ export function parseSettings(saved: string | null): Settings {
             everything: volume(raw?.volumes?.everything, everything),
             music: volume(raw?.volumes?.music, music),
             sounds: volume(raw?.volumes?.sounds, sounds),
+            ambience: volume(raw?.volumes?.ambience, ambience),
         },
         sensitivity: typeof raw?.sensitivity === "number" && raw.sensitivity >= SENSITIVITY.min && raw.sensitivity <= SENSITIVITY.max ? raw.sensitivity : 1,
         bow: parseBow(raw?.bow),

@@ -1,64 +1,52 @@
+import { AudioMixer, type Voice } from "@papit/audio";
 import { Playlists, type PlaylistName } from "./playlists";
 
-export type Volumes = { everything: number; music: number; sounds: number };
-export type PlayOptions = { rate?: number; volume?: number; pan?: number };
+export type Volumes = { everything: number; music: number; sounds: number; ambience: number };
+export type Vec = readonly [number, number, number] | number[];
+/** `at` places it in the world, heard from where `listen` last put the ears. Without it, it's in my head. */
+export type PlayOptions = { rate?: number; volume?: number; at?: Vec; loop?: boolean; fadeIn?: number; bus?: "sfx" | "ambience" };
 
 /** How much of the music is left while it's dipped, for slow motion and the kill cam. */
 const MUSIC_DIP = .25;
+/** And of the ambience. */
+const AMBIENCE_DIP = .4;
+/** The distance where a sound is half as loud, in metres. */
+const HALF = 9;
 
 /**
- * Plain Web Audio: one gain for everything, with one each for music and sounds under it. Sound effects
- * are registered by name and decoded, songs stream from the playlists in `songs.json`.
+ * The game's audio on `@papit/audio`: a master, with music, ambience and sounds buses under it. Sound
+ * effects are registered by name, with versions of which one is picked at random. Songs stream from the
+ * playlists in `songs.json`. Sounds with `at` are placed in 3D, heard from `listen`.
  */
 export class Sound {
-    readonly volumes: Volumes = { everything: 1, music: .6, sounds: 1 };
-    private context: AudioContext | null = null;
-    private master: GainNode | null = null;
-    private sounds: GainNode | null = null;
-    private music: GainNode | null = null;
+    readonly volumes: Volumes = { everything: 1, music: .6, sounds: 1, ambience: .8 };
+    readonly mixer: AudioMixer;
     private playlists: Playlists | null = null;
     private files = new Map<string, string[]>();
-    private buffers = new Map<string, Promise<(AudioBuffer | null)[]>>();
+    private ready = new Map<string, Promise<string[]>>();
+    private decoded = new Set<string>();
     private muted = false;
     private dipped = false;
     private hushed = false;
     private wanted: PlaylistName | null = null;
 
     /** `songs` is where `songs.json` and the songs are, asked for with `fetch`. */
-    constructor(private songs = "/audio/songs") { }
+    constructor(private songs = "/audio/songs") {
+        this.mixer = new AudioMixer({ buses: ["music", "ambience", "sfx"] });
+        this.mixer.addEventListener("statechange", () => this.started());
+        this.apply(0);
+    }
 
-    /** A browser only starts audio from a tap, so call this from one. */
+    /** A browser only starts audio from a tap, so call this from one. The mixer also does it on the first tap. */
     unlock() {
-        if (!this.context)
-        {
-            const context = this.context = new AudioContext();
-            this.master = context.createGain();
-            this.sounds = context.createGain();
-            this.music = context.createGain();
-            this.sounds.connect(this.master);
-            this.music.connect(this.master);
-            this.master.connect(context.destination);
-            this.apply();
-            this.playlists = new Playlists(context, this.music, this.songs);
-            this.playlists.play(this.wanted);
-            for (const name of this.files.keys()) this.decodeAll(name);
-        }
-
-        if (this.context.state === "suspended") void this.context.resume();
+        void this.mixer.unlock().catch(() => { /* the next tap tries again */ });
     }
 
-    /** Listens for the first tap or key, and takes itself away after it. */
-    unlockOnFirstTap() {
-        const events = ["pointerdown", "keydown"];
-        const once = () => {
-            this.unlock();
-            for (const event of events) window.removeEventListener(event, once, true);
-        };
-        for (const event of events) window.addEventListener(event, once, true);
-    }
+    /** The mixer listens for the first tap or key by itself, this stays for callers. */
+    unlockOnFirstTap() { }
 
     get running() {
-        return this.context?.state === "running";
+        return this.mixer.state === "running";
     }
 
     get mute() {
@@ -91,77 +79,84 @@ export class Sound {
         this.playlists?.next();
     }
 
-    /** Sound effects by name, each a list of files of which one is picked at random. */
+    /** Sounds by name, each a list of files of which one is picked at random. */
     register(files: Record<string, string[]>) {
         for (const [name, list] of Object.entries(files))
         {
             this.files.set(name, list);
-            if (this.context) this.decodeAll(name);
+            this.ready.set(name, this.decodeAll(name, list));
         }
     }
 
-    async play(name: string, { rate = 1, volume = 1, pan = 0 }: PlayOptions = {}) {
-        const { context, sounds } = this;
-        if (!context || !sounds) return;
-
-        const options = (await this.buffers.get(name))?.filter(buffer => buffer !== null);
-        if (!options?.length) return;
-
-        const source = context.createBufferSource();
-        source.buffer = options[Math.floor(Math.random() * options.length)];
-        source.playbackRate.value = rate;
-
-        const gain = context.createGain();
-        gain.gain.value = volume;
-        let last: AudioNode = source.connect(gain);
-        if (pan)
-        {
-            const panner = context.createStereoPanner();
-            panner.pan.value = Math.max(-1, Math.min(1, pan));
-            last = last.connect(panner);
-        }
-        last.connect(sounds);
-        source.start();
+    /** Whether `name` is decoded and can play now. */
+    has(name: string) {
+        return this.decoded.has(name);
     }
 
-    /** The context and the sounds gain, for effects that are made rather than played from a file. */
+    /** Plays one version of `name`. Resolves to its voice, or `null` when it can't play (unknown, broken, locked). */
+    async play(name: string, { rate = 1, volume = 1, at, loop = false, fadeIn, bus = "sfx" }: PlayOptions = {}): Promise<Voice | null> {
+        const ids = await this.ready.get(name);
+        if (!ids?.length || this.mixer.state === "closed") return null;
+        const id = ids[Math.floor(Math.random() * ids.length)];
+        return this.mixer.play(id, {
+            bus, loop, rate, volume, fadeIn,
+            spatial: at ? { position: { x: at[0], y: at[1], z: at[2] }, refDistance: 1, rolloff: 1 / HALF, panningModel: "equalpower" } : undefined,
+        });
+    }
+
+    /** Puts the ears at `x, y, z` looking along `forward`, every frame. */
+    listen(at: Vec, forward: Vec, up: Vec = [0, 1, 0]) {
+        this.mixer.setListener({ x: at[0], y: at[1], z: at[2] }, { x: forward[0], y: forward[1], z: forward[2] }, { x: up[0], y: up[1], z: up[2] });
+    }
+
+    /** The context and the sounds bus, for effects that are made rather than played from a file. */
     get output() {
-        return this.context && this.sounds ? { context: this.context, destination: this.sounds } : null;
+        return this.running ? { context: this.mixer.context as AudioContext, destination: this.mixer.bus("sfx").gain } : null;
     }
 
-    /** Pulls the music down, for slow motion, and lets it back up. */
+    /** Pulls the music and the ambience down, for slow motion, and lets them back up. */
     dip(value: boolean) {
         this.dipped = value;
-        const { context, music } = this;
-        if (!context || !music) return;
-
-        music.gain.cancelScheduledValues(context.currentTime);
-        music.gain.setTargetAtTime(this.musicLevel(), context.currentTime, .12);
+        this.apply(.4);
     }
 
     /** Fades the music to silence (over about `seconds`) and keeps it there, for the fanfare; `false` brings it back. */
     hush(value: boolean, seconds = 1.2) {
         this.hushed = value;
-        const { context, music } = this;
-        if (!context || !music) return;
-
-        music.gain.cancelScheduledValues(context.currentTime);
-        music.gain.setTargetAtTime(this.musicLevel(), context.currentTime, seconds / 4);
+        this.mixer.bus("music").fadeTo(this.musicLevel(), { seconds });
     }
 
     private musicLevel() {
         return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1);
     }
 
-    private apply() {
-        if (this.master) this.master.gain.value = this.muted ? 0 : this.volumes.everything;
-        if (this.sounds) this.sounds.gain.value = this.volumes.sounds;
-        if (this.music) this.music.gain.value = this.musicLevel();
+    private apply(seconds = 0) {
+        const { mixer, volumes } = this;
+        mixer.master.fadeTo(this.muted ? 0 : volumes.everything, { seconds: 0 });
+        mixer.bus("sfx").fadeTo(volumes.sounds, { seconds: 0 });
+        mixer.bus("ambience").fadeTo(volumes.ambience * (this.dipped ? AMBIENCE_DIP : 1), { seconds });
+        mixer.bus("music").fadeTo(this.musicLevel(), { seconds });
     }
 
-    private decodeAll(name: string) {
-        const list = this.files.get(name) ?? [];
-        this.buffers.set(name, Promise.all(list.map(url => this.decode(url))));
+    /** The songs start once audio runs, an `<audio>` element won't play before a tap. */
+    private started() {
+        if (this.playlists || this.mixer.state !== "running") return;
+        this.playlists = new Playlists(this.mixer.context as AudioContext, this.mixer.bus("music").gain, this.songs);
+        this.playlists.play(this.wanted);
+    }
+
+    /** Decodes every version, the ones that load are added to the mixer as `name#i`. */
+    private async decodeAll(name: string, list: string[]) {
+        const buffers = await Promise.all(list.map(url => this.decode(url)));
+        const ids: string[] = [];
+        buffers.forEach((buffer, i) => {
+            if (!buffer || this.files.get(name) !== list) return;
+            const id = `${name}#${i}`;
+            this.mixer.add(id, buffer);
+            ids.push(id);
+        });
+        if (ids.length) this.decoded.add(name);
+        return ids;
     }
 
     /** A missing or broken file means silence, not a crash. */
@@ -170,7 +165,7 @@ export class Sound {
         {
             const response = await fetch(url);
             if (!response.ok) return null;
-            return await this.context!.decodeAudioData(await response.arrayBuffer());
+            return await this.mixer.context.decodeAudioData(await response.arrayBuffer());
         }
         catch
         {

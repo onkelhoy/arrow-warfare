@@ -248,17 +248,14 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const everyone = () => state.players.map(other => other.id);
     const broadcast = (type: string, payload: unknown) => net.send(everyone(), type, payload);
 
-    /** Volume and pan of something at `at`, as heard from the camera. */
-    const heard = (at: Vec): { volume: number; pan: number } => {
-        const m = camera.worldMatrix;
-        const dx = at[0] - m[12], dy = at[1] - m[13], dz = at[2] - m[14];
-        const distance = Math.hypot(dx, dy, dz) || 1;
-        return { volume: 1 / (1 + distance / 9), pan: (m[0] * dx + m[1] * dy + m[2] * dz) / distance * .8 };
-    };
+    /** `at` is placed in 3D, heard from the camera (`listen` each frame), without it it's in my head. */
     const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1) => {
-        if (!sfx) return;
-        const where = at ? heard(at) : { volume: 1, pan: 0 };
-        sfx.play(name, { volume: where.volume * volume, pan: where.pan, rate });
+        sfx?.play(name, { volume, at, rate });
+    };
+    /** The ears go where the camera is. */
+    const listen = () => {
+        const m = camera.worldMatrix;
+        options.sound?.listen([m[12], m[13], m[14]], [-m[8], -m[9], -m[10]], [m[4], m[5], m[6]]);
     };
     const vibrate = (pattern: number | number[]) => {
         try { navigator.vibrate?.(pattern); } catch { /* not here */ }
@@ -1040,6 +1037,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         controls.aimButton.hidden = !gun || !alive;
         if (!alive) controls.stopAiming();
         hint.hidden = coarse || controls.locked || view !== "play";
+        listen();
 
         const pose = {
             time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,

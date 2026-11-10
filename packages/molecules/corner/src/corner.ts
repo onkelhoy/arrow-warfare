@@ -13,7 +13,7 @@ import sheet from "./style.css" with { type: "css" };
 type Dialog = HTMLElement & { showModal(): void; close(): void };
 type Field = HTMLElement & { value: string };
 
-const VOLUMES: (keyof Volumes)[] = ["everything", "music", "sounds"];
+const VOLUMES: (keyof Volumes)[] = ["everything", "music", "sounds", "ambience"];
 
 /** The buttons that are always in the top right, and the settings dialog they open. */
 export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
