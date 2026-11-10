@@ -101,7 +101,7 @@ export function poseBird(kind: BirdKind, model: BirdModel, pose: BirdPose, body:
     // an owl flies leaning forward, near flat, its wings from where its shoulders went
     if (kind === "owl" && pose.flying)
     {
-        compose(lean, 0, 0, .25, -.15, 0, 1.25, 0, 1);
+        compose(lean, 0, 0, .25, -.15, 0, 1.05, 0, 1);
         multiply(local, scratch, lean);
         body.matrix(index, local);
         [, sy, sz] = transformPoint(lean, [sx, sy, sz]);
@@ -113,7 +113,7 @@ export function poseBird(kind: BirdKind, model: BirdModel, pose: BirdPose, body:
         let yaw = 0, roll = flap, pitch = 0, size = 1;
         if (!pose.flying)
         {
-            if (kind === "owl") { roll = -1.45; yaw = -.15; size = .8; }
+            if (kind === "owl") { roll = -1.5; yaw = -.1; size = .65; }
             else { yaw = 1.45; roll = -.15; pitch = -.08; size = .9; }
         }
         compose(local, 0, sx * side, sy, sz, yaw * side, pitch, roll * side, size * side, size, size);
