@@ -170,7 +170,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const stepAt = (x: number, z: number) => field.depth(x, z) > .05 ? "wetstep" : footstep;
     others.onStep = at => {
         const m = camera.worldMatrix;
-        if (Math.hypot(at[0] - m[12], at[2] - m[14]) < STEPS) sound(stepAt(at[0], at[2]), at, .45, .92 + Math.random() * .16, STEPS);
+        if (Math.hypot(at[0] - m[12], at[2] - m[14]) < STEPS) sound(stepAt(at[0], at[2]), at, .3, .92 + Math.random() * .16, STEPS);
     };
     const controls = new Controls(play);
     const hud = new Hud(play);
@@ -1017,7 +1017,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (alive)
         {
             const foot = Math.floor(walker.posture === "hop" ? walker.hop / Math.PI : walker.stride / Math.PI);
-            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : stepAt(walker.x, walker.z), undefined, .14 + Math.random() * .04, .92 + Math.random() * .16);
+            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : stepAt(walker.x, walker.z), undefined, .07 + Math.random() * .02, .92 + Math.random() * .16);
             feet = foot;
             beat -= dt;
             if (wounds.energy < .25 && beat <= 0)
