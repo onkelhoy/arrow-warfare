@@ -13,7 +13,28 @@ export type Shot = {
     /** Unit direction. */
     dx: number; dy: number; dz: number;
     speed: number;
+    /** What flies, an arrow if not said. */
+    kind?: Projectile;
 };
+
+/** One weapon for everyone in a game: the bow's arrows or a gun's bullets. */
+export type Projectile = "arrow" | "revolver" | "rifle";
+
+/**
+ * Muzzle speed (m/s), quadratic drag (per metre) and how long a shot lives (s). Real ones: a .45 revolver
+ * round leaves at about 280 m/s and slows fast, a rifle's at about 850 and keeps it, so it stays flat for
+ * longer (at 100 m it has dropped some 8 cm, the revolver's over 70 cm). Arrows' speed comes from the draw.
+ */
+export const BALLISTICS: Record<Projectile, { speed: number; drag: number; life: number }> = {
+    arrow: { speed: 0, drag: .0016, life: 10 },
+    revolver: { speed: 280, drag: .0023, life: 3 },
+    rifle: { speed: 850, drag: .0006, life: 3 },
+};
+
+/** A bullet, not an arrow: nothing to see once it stops, nothing to pick up. */
+export function isBullet(shot: Shot) {
+    return !!shot.kind && shot.kind !== "arrow";
+}
 
 /** What an arrow ended up in. `body` is a player, `id` says who. */
 export type Rest = { in: "ground" | "wood" | "wall" } | { in: "body"; id: string };
@@ -35,12 +56,8 @@ export type Arrow = {
 };
 
 export const GRAVITY = 9.81;
-/** Quadratic drag, per metre. */
-const DRAG = .0016;
 /** Seconds per step, the same on every phone so arrows land the same. */
 export const STEP = 1 / 120;
-/** After this many seconds in the air an arrow is gone. */
-const LIFE = 10;
 /** How deep a tip goes in. */
 const DEPTH = .14;
 /** The forest wall catches arrows this far past the meadow's edge, up to `WALL_HEIGHT` over the ground. */
@@ -65,13 +82,14 @@ export function launch(shot: Shot): Arrow {
  */
 export function fly(arrow: Arrow, until: number, field: Field, step?: (from: Vec, to: Vec) => boolean) {
     const ms = STEP * 1000;
+    const { drag, life } = BALLISTICS[arrow.shot.kind ?? "arrow"] ?? BALLISTICS.arrow;
     while (!arrow.rest && !arrow.gone && arrow.at + ms <= until)
     {
         arrow.at += ms;
         const from: Vec = [arrow.x, arrow.y, arrow.z];
         arrow.from = from;
         const speed = Math.hypot(arrow.vx, arrow.vy, arrow.vz);
-        const slow = 1 - DRAG * speed * STEP;
+        const slow = 1 - drag * speed * STEP;
         arrow.vx *= slow;
         arrow.vz *= slow;
         arrow.vy = arrow.vy * slow - GRAVITY * STEP;
@@ -90,7 +108,7 @@ export function fly(arrow: Arrow, until: number, field: Field, step?: (from: Vec
             return;
         }
         [arrow.x, arrow.y, arrow.z] = to;
-        if ((arrow.at - arrow.shot.time) / 1000 > LIFE || arrow.y < -20) arrow.gone = true;
+        if ((arrow.at - arrow.shot.time) / 1000 > life || arrow.y < -20) arrow.gone = true;
         else if (Math.hypot(arrow.x, arrow.z) > field.radius + WALL && arrow.y > field.height(arrow.x, arrow.z) + WALL_HEIGHT) arrow.gone = true;
     }
 }

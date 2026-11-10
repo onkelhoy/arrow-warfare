@@ -1,4 +1,4 @@
-import { fly, heading, hitBody, launch, STEP, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
+import { fly, heading, hitBody, isBullet, launch, STEP, type Arrow, type BodyHit, type BodyPlace, type Shot, type Vec } from "@arrow-warfare/archery";
 import { multiply, seeded, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
 import type { Rig } from "@arrow-warfare/rig";
 import { arrow as arrowModel, ARROW_LENGTH, beam, type Field } from "@arrow-warfare/world";
@@ -13,6 +13,8 @@ export const REACH = { side: 1.6, low: -.4, high: 2.6 };
 
 /** A white trail behind each flying arrow: seconds it lasts and how thick it starts. Mine shows more. */
 const TRAIL = { mine: { life: 1.8, width: .018, brightness: 1.6 }, others: { life: .25, width: .014, brightness: 1.1 } };
+/** A bullet's tracer: a short bright streak, gone the moment it stops. */
+const TRACER = { mine: { life: .09, width: .012, brightness: 2 }, others: { life: .07, width: .012, brightness: 1.6 } };
 
 /** Metres from the bow before a trail starts. */
 const TRAIL_START = 2;
@@ -137,7 +139,7 @@ export class Arrows {
                     // where it went in, before it goes deeper
                     const at = body.rig.world(hit.point);
                     // a strong arrow goes on through and out the other side
-                    const depth = pierce(Math.hypot(arrow.vx, arrow.vy, arrow.vz), hit.zone);
+                    const depth = isBullet(arrow.shot) ? 0 : pierce(Math.hypot(arrow.vx, arrow.vy, arrow.vz), hit.zone);
                     hit.point = [hit.point[0] + hit.direction[0] * depth, hit.point[1] + hit.direction[1] * depth, hit.point[2] + hit.direction[2] * depth];
                     const local = { point: body.rig.toPart(hit.part, hit.point), direction: body.rig.toPart(hit.part, hit.direction, 0) };
                     arrow.rest = { in: "body", id: body.id };
@@ -177,6 +179,8 @@ export class Arrows {
         let index = 0;
         for (const [id, arrow] of this.all)
         {
+            // a bullet is only its tracer
+            if (isBullet(arrow.shot)) continue;
             // in me, only the legs: the rest is up at my eyes, where my body isn't drawn
             if (arrow.rest?.in === "body" && arrow.rest.id === this.me && !this.showMine && !/Thigh|Shin/.test(this.parts.get(id) ?? "")) continue;
             const at = this.where(arrow, now, rigOf);
@@ -197,9 +201,19 @@ export class Arrows {
         let index = 0;
         for (const [id, arrow] of this.all)
         {
-            const trail = TRAIL[arrow.shot.by === this.me ? "mine" : "others"];
+            const trail = (isBullet(arrow.shot) ? TRACER : TRAIL)[arrow.shot.by === this.me ? "mine" : "others"];
             let points = this.trails.get(id);
-            if (!arrow.rest && !arrow.gone)
+            if (isBullet(arrow.shot))
+            {
+                // it crosses the field in a frame or two: the streak runs from just out of the muzzle to where
+                // the bullet is, or where it stopped
+                const { shot } = arrow;
+                if (!points && !this.landed.has(id)) this.trails.set(id, points = [{ x: shot.x + shot.dx * TRAIL_START, y: shot.y + shot.dy * TRAIL_START, z: shot.z + shot.dz * TRAIL_START, at: now }]);
+                const at = this.where(arrow, now, rigOf);
+                const last = points?.[points.length - 1];
+                if (points && at && !this.landed.has(id) && (!last || last.x !== at.tip[0] || last.z !== at.tip[2])) points.push({ x: at.tip[0], y: at.tip[1], z: at.tip[2], at: now });
+            }
+            else if (!arrow.rest && !arrow.gone)
             {
                 const at = this.where(arrow, now, rigOf);
                 // behind the feathers, and only from a little way out: at the bow it would fill the view
@@ -259,7 +273,7 @@ export class Arrows {
         for (const [id, arrow] of this.all)
         {
             // the ones in me are pulled out with their own button
-            if (!arrow.rest || arrow.gone || (arrow.rest.in === "body" && arrow.rest.id === this.me)) continue;
+            if (!arrow.rest || arrow.gone || isBullet(arrow.shot) || (arrow.rest.in === "body" && arrow.rest.id === this.me)) continue;
             const at = this.where(arrow, now, rigOf);
             if (!at) continue;
             // the middle of the shaft, it's what sticks out
@@ -360,6 +374,7 @@ export class Arrows {
                     beams++;
                 }
             }
+            if (isBullet(shot)) continue;
             const yaw = Math.atan2(-direction[0], -direction[2]), pitch = Math.asin(Math.max(-1, Math.min(1, direction[1])));
             this.batch.place(index, tip[0], tip[1], tip[2], yaw, pitch);
             this.batch.tint(index, colour);
@@ -381,7 +396,7 @@ export class Arrows {
 
     /** The arrows stuck in a body, for pulling them out. */
     in(id: string) {
-        return [...this.all.values()].filter(arrow => !arrow.gone && arrow.rest?.in === "body" && arrow.rest.id === id);
+        return [...this.all.values()].filter(arrow => !arrow.gone && !isBullet(arrow.shot) && arrow.rest?.in === "body" && arrow.rest.id === id);
     }
 
     destroy() {

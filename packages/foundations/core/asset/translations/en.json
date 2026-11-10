@@ -58,6 +58,7 @@
       "back": "Back to the lobby",
       "waitHost": "Waiting for the host to go back to the lobby.",
       "hint": "Click to look around, WASD to walk, hold space to draw",
+      "hintGun": "Click to look around, WASD to walk, click or space to fire, right button or Q to aim, R to reload",
       "turn": "Turn your phone sideways 🔄"
     },
     "lobby": {
@@ -121,6 +122,13 @@
       "friendly": "Friendly fire",
       "friendlyOn": "On",
       "friendlyOff": "Off: arrows fly through teammates",
+      "weapon": "Weapon",
+      "weapons": {
+        "bow": "Bow",
+        "revolver": "Revolver",
+        "rifle": "Rifle"
+      },
+      "weaponNote": "Everyone gets the same one. With limited rounds, take a fallen player's.",
       "mapKind": "Map",
       "maps": {
         "field": "Meadow",
@@ -135,7 +143,8 @@
         "few": "A few",
         "many": "Many"
       },
-      "towersNote": "Walk into a tower's ladder to climb it."
+      "towersNote": "Walk into a tower's ladder to climb it.",
+      "ammo": "Spare rounds per player"
     },
     "colour": {
       "red": "red",
@@ -233,7 +242,15 @@
       "kill": "kill",
       "kills": "kills",
       "watching": "Watching {name}",
-      "switch": "tap to switch"
+      "switch": "tap to switch",
+      "rounds": "rounds",
+      "reloading": "Reloading…",
+      "reloadKey": "R to reload",
+      "ammo": "{count} spare",
+      "pickArrow": "Pick up arrow",
+      "pickAmmo": "Pick up ammo",
+      "noAmmo": "Out of ammo",
+      "pickClick": "click"
     },
     "results": {
       "title": "Round over",

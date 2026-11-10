@@ -58,6 +58,7 @@
       "back": "Tillbaka till lobbyn",
       "waitHost": "Väntar på att värden går tillbaka till lobbyn.",
       "hint": "Klicka för att se dig om, WASD för att gå, håll mellanslag för att spänna",
+      "hintGun": "Klicka för att se dig om, WASD för att gå, klicka eller mellanslag för att skjuta, höger knapp eller Q för att sikta, R för att ladda om",
       "turn": "Vänd telefonen på sidan 🔄"
     },
     "lobby": {
@@ -121,6 +122,13 @@
       "friendly": "Vådabeskjutning",
       "friendlyOn": "På",
       "friendlyOff": "Av: pilar flyger genom lagkamrater",
+      "weapon": "Vapen",
+      "weapons": {
+        "bow": "Pilbåge",
+        "revolver": "Revolver",
+        "rifle": "Gevär"
+      },
+      "weaponNote": "Alla får samma. Med begränsat med skott, ta från de som fallit.",
       "mapKind": "Karta",
       "maps": {
         "field": "Äng",
@@ -135,7 +143,8 @@
         "few": "Några",
         "many": "Många"
       },
-      "towersNote": "Gå in i ett torns stege för att klättra upp."
+      "towersNote": "Gå in i ett torns stege för att klättra upp.",
+      "ammo": "Extra skott per spelare"
     },
     "colour": {
       "red": "röd",
@@ -233,7 +242,15 @@
       "kill": "fälld",
       "kills": "fällda",
       "watching": "Du följer {name}",
-      "switch": "tryck för att byta"
+      "switch": "tryck för att byta",
+      "rounds": "skott",
+      "reloading": "Laddar om…",
+      "reloadKey": "R för att ladda om",
+      "ammo": "{count} kvar",
+      "pickArrow": "Plocka upp pilen",
+      "pickAmmo": "Plocka upp skott",
+      "noAmmo": "Slut på skott",
+      "pickClick": "klicka"
     },
     "results": {
       "title": "Rundan är slut",

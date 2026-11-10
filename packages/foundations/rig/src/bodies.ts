@@ -71,10 +71,12 @@ export class Bodies {
     private bows: Batch;
     private nocked: Batch;
     private shadows: Batch;
+    /** A gun in the bow hand instead of the bow, see `useGun`. */
+    private gun: { batch: Batch; scale: number; grip: [number, number, number] } | null = null;
     private local = mat4();
     private world = mat4();
 
-    constructor(private renderer: Renderer, capacity = 32) {
+    constructor(private renderer: Renderer, private capacity = 32) {
         const setting = (n: number) => ({ capacity: capacity * n, dynamic: true });
         this.torsos = renderer.batch(torso(), setting(1));
         this.heads = renderer.batch(head(), setting(1));
@@ -88,7 +90,14 @@ export class Bodies {
         this.shadows = renderer.batch(blob(), { ...setting(1), twoSided: true });
     }
 
+    /** Everyone holds this gun instead of a bow: `scale` to metres, `grip` the hand's point in the mesh. */
+    useGun(mesh: MeshData, scale: number, grip: [number, number, number]) {
+        if (this.gun) this.renderer.removeBatch(this.gun.batch);
+        this.gun = { batch: this.renderer.batch(mesh, { capacity: this.capacity, dynamic: true }), scale, grip };
+    }
+
     draw(rigs: { rig: Rig; look: Look }[]) {
+        let guns = 0;
         let body = 0, deadHeads = 0, shadows = 0, arms = 0, legs = 0, hands = 0, feet = 0, bows = 0, nocked = 0;
         for (const { rig, look } of rigs)
         {
@@ -132,6 +141,16 @@ export class Bodies {
             for (const foot of rig.feet) this.feet.matrix(feet++, multiply(this.world, place, foot));
 
             if (!rig.armed) continue;
+            if (this.gun)
+            {
+                // the rig holds its frame (see `Rig.held`): the grip at the hand
+                const { batch, scale, grip } = this.gun;
+                multiply(this.world, place, rig.bow);
+                compose(this.local, 0, -grip[0] * scale, -grip[1] * scale, -grip[2] * scale, 0, 0, 0, scale);
+                batch.matrix(guns, multiply(this.world, this.world, this.local));
+                batch.tint(guns++, [1, 1, 1]);
+                continue;
+            }
             // drawn, the limbs bend back and get a touch shorter
             const draw = rig.draw;
             multiply(this.world, place, rig.bow);
@@ -157,10 +176,11 @@ export class Bodies {
         this.feet.count = feet;
         this.bows.count = bows;
         this.nocked.count = nocked;
+        if (this.gun) this.gun.batch.count = guns;
     }
 
     destroy() {
-        for (const batch of [this.torsos, this.heads, this.deadHeads, this.arms, this.legs, this.hands, this.feet, this.bows, this.nocked, this.shadows]) this.renderer.removeBatch(batch);
+        for (const batch of [this.torsos, this.heads, this.deadHeads, this.arms, this.legs, this.hands, this.feet, this.bows, this.nocked, this.shadows, ...(this.gun ? [this.gun.batch] : [])]) this.renderer.removeBatch(batch);
     }
 
     /** A bone's frame in the world, its x stretched to the bone's length. */

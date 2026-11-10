@@ -95,5 +95,12 @@ for (const [name, [count, length, voices]] of Object.entries(sounds)) {
         list[name].push(file);
     }
 }
+// copied in, not rendered: the guns, from cowboy (packages/game/asset/audio)
+const COPIED = {
+    gunshot: ["gunshot-1.mp3", "gunshot-2.mp3"],
+    reload: ["reload-1.mp3"],
+    flyby: ["flyby-1.mp3", "flyby-2.mp3", "flyby-3.mp3", "flyby-4.mp3", "flyby-5.mp3"],
+};
+Object.assign(list, COPIED);
 writeFileSync(join(out, "sfx.json"), JSON.stringify(list, null, 2) + "\n");
 console.log(`${Object.keys(list).length} sounds to ${out}`);

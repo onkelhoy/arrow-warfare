@@ -1,4 +1,4 @@
-import { fly, heading, launch, powerOf, STEP, type Shot, type Vec } from "@arrow-warfare/archery";
+import { fly, heading, isBullet, launch, powerOf, STEP, type Shot, type Vec } from "@arrow-warfare/archery";
 import type { Pose } from "@arrow-warfare/net";
 import type { Renderer, Vec3 } from "@arrow-warfare/render";
 import { Bodies, Rig, type Blow } from "@arrow-warfare/rig";
@@ -14,7 +14,7 @@ import { footing } from "./footing";
 const FLYBY_LEAST = 380;
 
 type Look = { clothes: Vec3; skin: Vec3 };
-export type SoundName = "twang" | "whoosh" | "body" | "kill" | "grunt";
+export type SoundName = "twang" | "whoosh" | "body" | "kill" | "grunt" | "gunshot" | "heartbeat";
 
 /** What the kill cam needs from the round. */
 export type FilmWorld = {
@@ -98,6 +98,7 @@ export class Film {
         if (!hit) return false;
         this.victim = victim;
         this.killer = killer;
+        this.mode = mode;
         this.shots = [];
         this.cues = [];
         this.index = 0;
@@ -143,7 +144,7 @@ export class Film {
                 },
             });
             start = from;
-            if (shot) this.cues.push({ time: shot.time, play: () => this.world.sound("twang", [shot.x, shot.y, shot.z], .6, 1) });
+            if (shot) this.cues.push({ time: shot.time, play: () => this.world.sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], .6, 1) });
         }
         else if (shot && shooter && path.length > 1)
         {
@@ -156,10 +157,12 @@ export class Film {
             const look = add(add(body, [0, .95, 0]), forward, .35);
             const far = ground(add(add(add(body, forward, 1.9), right, -1.25 * hand), [0, .75, 0]));
             start = shot.time - 750;
-            this.shots.push({ name: "release", real: 1.7, from: start, to: shot.time + 120, ease: u => Math.sin(u * Math.PI / 2), camera: (_, u) => ({ eye: mix(far, look, u * .22), look }) });
-            this.cues.push({ time: shot.time, play: () => this.world.sound("twang", [shot.x, shot.y, shot.z], 1, .7) });
+            // never past the hit: a bullet (or a short arrow) is there within a few ms
+            const leave = Math.max(shot.time + 5, Math.min(shot.time + 120, strike - 30));
+            this.shots.push({ name: "release", real: 1.7, from: start, to: leave, ease: u => Math.sin(u * Math.PI / 2), camera: (_, u) => ({ eye: mix(far, look, u * .22), look }) });
+            this.cues.push({ time: shot.time, play: () => this.sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], 1) });
 
-            let from = shot.time + 120;
+            let from = leave;
             if (flight >= FLYBY_LEAST)
             {
                 const pass = shot.time + flight * .5;
@@ -168,7 +171,7 @@ export class Film {
                 const eye = ground(add(add(add(middle.tip, middle.direction, 1.6), across, 1.3), [0, -.15, 0]));
                 const to = pass + 260;
                 this.shots.push({ name: "flyby", real: Math.max(.9, Math.min(1.6, (to - from) / 1000 / .28)), from, to, camera: time => ({ eye, look: arrowAt(time).tip }) });
-                this.cues.push({ time: pass, play: () => this.world.sound("whoosh", eye, 1, .75) });
+                this.cues.push({ time: pass, play: () => this.sound("whoosh", eye, 1) });
                 from = to;
             }
             if (strike - 60 - from > 80)
@@ -188,18 +191,22 @@ export class Film {
         if (mode === "film") this.pushStrike(victim, at, start, strike, across, direction, ground);
         const strength = shot ? powerOf(shot.speed) : .6;
         this.cues.push({ time: strike, play: () => {
-            const rate = mode === "film" ? .75 : 1;
-            this.world.sound("body", at, 1, rate);
-            this.world.sound("kill", undefined, .6 + .4 * strength, rate);
-            this.world.sound("grunt", at, .9, rate + .05);
+            this.sound("body", at, 1);
+            this.sound("kill", undefined, .6 + .4 * strength);
+            this.sound("grunt", at, .9, 1.05);
+            // the heart, slow, as they go down
+            if (mode === "film") for (const late of [0, 900]) setTimeout(() => !this.done && this.sound("heartbeat", undefined, .7, .8), late);
         } });
         return this.finishStart(strike, shot, strength);
     }
 
     private pushStrike(victim: string, at: Vec, start: number, strike: number, across: Vec, direction: Vec, ground: (p: Vec, above?: number) => Vec) {
         const eye = ground(add(add(add(at, across, 1.55), direction, -.45), [0, .22, 0]), .25);
+        // on from where the last part ended (time never runs back, it would stand still), slowest at the hit
+        // and never faster than real time at the end
+        const last = this.shots[this.shots.length - 1];
         this.shots.push({
-            name: "strike", real: 2.8, from: Math.max(start, strike - 60), to: strike + 2000, ease: u => u ** 1.8,
+            name: "strike", real: 3.2, from: Math.max(start, strike - 60, last?.to ?? -Infinity), to: strike + 2000, ease: u => .15 * u + .85 * u ** 1.7,
             camera: (_, u) => {
                 // a slow turn around the hit
                 const turn = u * .4, c = Math.cos(turn), s = Math.sin(turn);
@@ -213,8 +220,18 @@ export class Film {
         });
     }
 
+    /** The kill cam's sounds go low and long with the slow motion; `watch` (real time) keeps them as they are. */
+    private sound(name: SoundName, at: Vec | undefined, volume: number, rate = 1) {
+        const slow = this.mode === "film" ? .55 + .4 * Math.min(1, this.rate) : 1;
+        this.world.sound(name, at, volume, rate * slow);
+    }
+
+    private mode: "film" | "watch" = "film";
+
     private finishStart(strike: number, shot: Shot | undefined, strength: number) {
         const { replay } = this.world;
+        // a slow swell as the film starts
+        if (this.mode === "film") this.cues.push({ time: this.shots[0].from, play: () => this.world.sound("whoosh", undefined, .5, .4) });
         // the drops of every hit in the film, as it happens
         for (const other of replay.hits.values())
         {
@@ -267,6 +284,11 @@ export class Film {
         const { eye, look } = shot.camera(this.time, u);
         aim(this.world.camera, eye, look);
         this.world.arrows.drawAt(this.time, this.world.replay.shots.values(), this.world.replay.hits, id => this.rigs.get(id) ?? null, eye);
+    }
+
+    /** Everyone holds this gun instead of a bow (see `Bodies.useGun`). */
+    useGun(...args: Parameters<Bodies["useGun"]>) {
+        this.bodies.useGun(...args);
     }
 
     destroy() {

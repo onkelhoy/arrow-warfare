@@ -1,6 +1,6 @@
 // core
 import "@papit/codeblock";
-import { loadText, RULES_DEFAULT, type Damage, type MapKind, type GameState, type MapSize, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
+import { loadText, RULES_DEFAULT, type Damage, type MapKind, type GameState, type MapSize, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
 import { Sound } from "@arrow-warfare/sound";
 import type { Zone } from "@arrow-warfare/archery";
 
@@ -17,6 +17,7 @@ if (seed) (form.elements.namedItem("seed") as HTMLInputElement).value = seed;
 const sound = new Sound();
 sound.unlockOnFirstTap();
 let play: ReturnType<typeof mountPlay> | null = null;
+let started = false;
 
 /** A new round with what the form says. Alone, nobody sends poses: the others stand at their spawns. */
 function start() {
@@ -24,8 +25,14 @@ function start() {
     const data = new FormData(form);
     const state = example();
     state.seed = Number(data.get("seed")) || 1;
+    // `?weapon=rifle` starts with a gun
+    const asked = new URLSearchParams(location.search).get("weapon");
+    if (asked && !started) (form.elements.namedItem("weapon") as HTMLSelectElement).value = asked;
+    started = true;
     state.rules = {
+        weapon: (new FormData(form).get("weapon") ?? "bow") as Weapon,
         arrows: Number(data.get("arrows")),
+        ammo: Number(data.get("ammo")),
         trees: data.get("trees") as TreeAmount,
         size: data.get("size") as MapSize,
         map: data.get("map") as MapKind,

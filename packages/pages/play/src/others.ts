@@ -167,6 +167,11 @@ export class Others {
         this.bodies.draw(this.hidden ? [] : [...shown, ...extra]);
     }
 
+    /** Everyone holds this gun instead of a bow (see `Bodies.useGun`). */
+    useGun(...args: Parameters<Bodies["useGun"]>) {
+        this.bodies.useGun(...args);
+    }
+
     destroy() {
         this.bodies.destroy();
         for (const other of this.others.values()) other.label.remove();

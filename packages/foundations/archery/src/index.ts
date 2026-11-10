@@ -3,3 +3,4 @@ export * from "./body";
 export * from "./flight";
 export * from "./round";
 export * from "./wounds";
+export * from "./guns";

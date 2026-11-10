@@ -72,6 +72,13 @@ const HOP_LENGTH = .55;
 const HOP_HEIGHT = .13;
 
 export class Rig {
+    /**
+     * Everyone holds a gun this round instead of the bow (one weapon a game): `fore` is where the other hand
+     * goes, in metres in the gun's frame (its origin at the trigger hand, -z out of the muzzle, y up). With
+     * a gun `draw` is how far it's raised to the eye to aim, and `bow` is the gun's frame.
+     */
+    static held: { fore: Vec } | null = null;
+
     readonly armature = new Armature();
     /** Rig space to the world. */
     readonly place = mat4();
@@ -187,8 +194,9 @@ export class Rig {
         const panting = input.stage === 3;
         this.heave = panting ? 1 + Math.sin(this.clock * 7) * .035 : 1;
         const lean = (input.dead ? 0 : input.pitch * .3 * (1 - r * .5)) + (panting ? -.12 : 0) - low * .12 + (sitting ? Math.sin(this.crawl) * .05 * Math.min(1, speed) : 0);
-        // drawn, an archer turns side on: the bow shoulder towards the target
-        const twist = -.45 * r * side;
+        const gun = Rig.held && this.armed ? Rig.held : null;
+        // drawn, an archer turns side on: the bow shoulder towards the target (a gun is held square)
+        const twist = gun ? 0 : -.45 * r * side;
         compose(this.torso, 0, 0, hipY, 0, twist, lean);
         const shoulderY = MEASURE.shoulder * this.heave;
         const neck = this.point(this.torso, 0, MEASURE.neck * this.heave, 0);
@@ -203,6 +211,13 @@ export class Rig {
         const roll = (-.2 * (1 - r) + (.6 - .48 * this.draw) * r) * side, tilt = -1.1 * (1 - r);
         compose(this.scratch2, 0, bx, by, bz, 0, tilt, roll);
         multiply(this.bow, this.scratch, this.scratch2);
+        if (gun)
+        {
+            // low in the trigger hand pointing ahead and down, raised: at the eye along where they look
+            const eye = this.point(this.torso, 0, MEASURE.neck * this.heave + .1, 0);
+            const gx = (.2 - .13 * r) * side, gy = middle[1] - .4 + (eye[1] - .07 - (middle[1] - .4)) * r, gz = -.22 - .16 * r;
+            compose(this.bow, 0, gx, gy, gz, .08 * side * (1 - r), -.55 * (1 - r) + input.pitch * r);
+        }
 
         // ------------------------------------------------------------ arms
         const [bowArm, stringArm] = side > 0 ? [this.arms[0], this.arms[1]] : [this.arms[1], this.arms[0]];
@@ -215,7 +230,9 @@ export class Rig {
             arm.pole.set([shoulder[0] + s * .45, shoulder[1] - .3, shoulder[2] + .4]);
             const hurt = (input.wounds & (i === 0 ? WOUND.leftArm : WOUND.rightArm)) !== 0;
             let target: Vec;
-            if (arm === bowArm && this.armed) target = this.point(this.bow, 0, 0, .03);
+            const triggerArm = side > 0 ? this.arms[1] : this.arms[0];
+            if (gun) target = arm === triggerArm ? this.point(this.bow, 0, 0, 0) : this.point(this.bow, gun.fore[0] * side, gun.fore[1], gun.fore[2]);
+            else if (arm === bowArm && this.armed) target = this.point(this.bow, 0, 0, .03);
             else if (arm === stringArm && this.armed && r > .05)
             {
                 // the string hand at the nock, coming from the side as the bow comes up

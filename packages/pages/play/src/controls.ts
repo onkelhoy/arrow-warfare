@@ -24,6 +24,9 @@ type Looker = { x: number; y: number; startX: number; startY: number; at: number
  * What the player asks for, from any device. Touch: the joystick on the left moves, dragging anywhere else
  * looks, holding the bow button draws (by time) and aims, letting go shoots (or cancels on the moved button), a tap picks up. Desktop: click to lock the mouse and look, WASD or
  * the arrows to walk, hold space to draw, click to pick up, E pulls an arrow out of myself.
+ * With a gun (`gun`): the bow button is the trigger (press fires, the thumb still aims) with a reload and an
+ * aim button beside it; on a computer a click or space fires (a click on what can be taken takes it), R
+ * reloads, the right button held or Q aims.
  */
 export class Controls {
     /** Looking turned this much since the last `look()`, in radians before sensitivity. */
@@ -45,6 +48,37 @@ export class Controls {
     private tapped: [number, number][] = [];
     /** Asked to pull an arrow out of myself (E, or the button) since the last `pulls()`. */
     private pulled = 0;
+    /** Trigger presses (a click with the mouse locked, the button, space), and reloads asked for (R, the button), since the last calls. */
+    private clicked = 0;
+    private reloaded = 0;
+    /** The prompt pressed since the last `takes()`. */
+    private taken = 0;
+    /** Clicks with the mouse locked and a gun: the game decides, taking what's looked at or firing. */
+    private mouseClicked = 0;
+
+    /** Clicks since the last call, see `mouseClicked`. */
+    mouseClicks() {
+        const clicked = this.mouseClicked;
+        this.mouseClicked = 0;
+        return clicked;
+    }
+    /** The reload button, touch only, shown with a gun. */
+    readonly reloadButton: HTMLButtonElement;
+    /** A gun instead of the bow: clicks fire rather than pick up. */
+    gun = false;
+    /** The aim button, touch only, with a gun: it switches aiming on and off. */
+    readonly aimButton: HTMLButtonElement;
+    /** Aiming: the right mouse button held, or the aim button switched on. */
+    get aiming() {
+        return this.rightHeld || this.aimOn;
+    }
+    private rightHeld = false;
+    private aimOn = false;
+    /** Aiming off (dead, reloading done by the game itself). */
+    stopAiming() {
+        this.aimOn = false;
+        this.aimButton.toggleAttribute("on", false);
+    }
 
     constructor(root: HTMLElement) {
         this.surface = document.createElement("div");
@@ -53,7 +87,31 @@ export class Controls {
         this.joystick.className = "aw-play-stick";
         this.bow = document.createElement("aw-bow-button") as BowButton;
         this.bow.className = "aw-play-bow";
-        root.append(this.surface, this.joystick, this.bow);
+        this.reloadButton = document.createElement("button");
+        this.reloadButton.type = "button";
+        this.reloadButton.className = "aw-play-reload";
+        this.reloadButton.hidden = true;
+        this.reloadButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>`;
+        this.reloadButton.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.reloaded++;
+        });
+        this.aimButton = document.createElement("button");
+        this.aimButton.type = "button";
+        this.aimButton.className = "aw-play-reload aw-play-aim";
+        this.aimButton.hidden = true;
+        this.aimButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/></svg>`;
+        this.aimButton.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.aimOn = !this.aimOn;
+            this.aimButton.toggleAttribute("on", this.aimOn);
+        });
+        root.append(this.surface, this.joystick, this.bow, this.reloadButton, this.aimButton);
+        this.surface.addEventListener("contextmenu", this.handlemenu);
+        document.addEventListener("mousedown", this.handlebutton);
+        document.addEventListener("mouseup", this.handlebutton);
 
         this.surface.addEventListener("pointerdown", this.handledown);
         this.surface.addEventListener("pointermove", this.handlemove);
@@ -75,6 +133,45 @@ export class Controls {
         this.bow.style.setProperty("--size", `${place.size}px`);
         this.bow.style.left = `calc(${place.x * 100}% - ${place.size / 2}px)`;
         this.bow.style.top = `calc(${place.y * 100}% - ${place.size / 2}px)`;
+        // the reload button beside the trigger towards the middle of the screen: under it when it's high up
+        const small = Math.round(place.size * .6);
+        this.reloadButton.style.setProperty("--size", `${small}px`);
+        this.reloadButton.style.left = `calc(${place.x * 100}% - ${place.size * (place.x > .5 ? .95 : -.35)}px)`;
+        this.reloadButton.style.top = place.y < .5
+            ? `calc(${place.y * 100}% + ${place.size * .5 + 12}px)`
+            : `calc(${place.y * 100}% - ${place.size * .5 + small + 12}px)`;
+        // the aim button level with the trigger, towards the middle
+        this.aimButton.style.setProperty("--size", `${small}px`);
+        this.aimButton.style.left = place.x > .5
+            ? `calc(${place.x * 100}% - ${place.size * .5 + small + 14}px)`
+            : `calc(${place.x * 100}% + ${place.size * .5 + 14}px)`;
+        this.aimButton.style.top = `calc(${place.y * 100}% - ${small / 2}px)`;
+    }
+
+    /** Trigger presses since the last call, with a gun. Counted, so a tap quicker than a frame still fires. */
+    triggers() {
+        const clicked = this.clicked;
+        this.clicked = 0;
+        return clicked;
+    }
+
+    /** Taking (F, or the prompt) since the last call. */
+    takes() {
+        const taken = this.taken;
+        this.taken = 0;
+        return taken;
+    }
+
+    /** The "pick up" prompt was pressed. */
+    take() {
+        this.taken++;
+    }
+
+    /** Reloads asked for since the last call. */
+    reloads() {
+        const reloaded = this.reloaded;
+        this.reloaded = 0;
+        return reloaded;
     }
 
     /** -1..1 each: x right, y forward. */
@@ -131,6 +228,11 @@ export class Controls {
         this.surface.remove();
         this.joystick.remove();
         this.bow.remove();
+        this.reloadButton.remove();
+        this.aimButton.remove();
+        this.surface.removeEventListener("contextmenu", this.handlemenu);
+        document.removeEventListener("mousedown", this.handlebutton);
+        document.removeEventListener("mouseup", this.handlebutton);
     }
 
     private handledown = (event: PointerEvent) => {
@@ -143,6 +245,7 @@ export class Controls {
                 return;
             }
             if (!this.locked) this.surface.requestPointerLock?.()?.catch?.(() => undefined);
+            else if (event.button === 0 && this.gun) this.mouseClicked++;
             else if (event.button === 0)
             {
                 const box = this.surface.getBoundingClientRect();
@@ -188,6 +291,7 @@ export class Controls {
     private handledraw = (event: Event) => {
         const { dx, dy, shoot } = (event as CustomEvent<DrawEvent>).detail;
         this.thumb = event.type !== "drawend";
+        if (event.type === "drawstart" && this.gun) this.clicked++;
         this.shoot = shoot;
         this.turnX += dx * TOUCH_TURN;
         this.turnY += dy * TOUCH_TURN;
@@ -204,10 +308,26 @@ export class Controls {
         if (event.code === "Space")
         {
             event.preventDefault();
+            if (event.type === "keydown" && !event.repeat && this.gun) this.clicked++;
             this.space = event.type === "keydown";
             return;
         }
         const key = event.key.toLowerCase();
+        if (key === "q")
+        {
+            // aiming on and off, for a mouse that can't hold the right button and click
+            if (event.type === "keydown" && !event.repeat && this.gun)
+            {
+                this.aimOn = !this.aimOn;
+                this.aimButton.toggleAttribute("on", this.aimOn);
+            }
+            return;
+        }
+        if (key === "r")
+        {
+            if (event.type === "keydown" && !event.repeat) this.reloaded++;
+            return;
+        }
         if (key === "e")
         {
             if (event.type === "keydown" && !event.repeat) this.pulled++;
@@ -223,10 +343,19 @@ export class Controls {
     release() {
         this.keys.clear();
         this.space = false;
+        this.rightHeld = false;
         this.joystick.reset();
     }
 
     private handleblur = () => this.release();
+
+    private handlemenu = (event: Event) => event.preventDefault();
+
+    /** The right mouse button held aims (with the mouse locked). */
+    private handlebutton = (event: MouseEvent) => {
+        if (event.button !== 2) return;
+        this.rightHeld = event.type === "mousedown" && this.locked;
+    }
 
     /** Typing in a box: its keyups never reach `handlekey`, so a held key would stick. */
     private handlefocus = (event: FocusEvent) => {
