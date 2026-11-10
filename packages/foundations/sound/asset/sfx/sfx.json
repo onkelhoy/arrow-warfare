@@ -53,6 +53,14 @@
     "whoosh-3.wav",
     "whoosh-4.wav"
   ],
+  "step": [
+    "step-1.wav",
+    "step-2.wav",
+    "step-3.wav",
+    "step-4.wav",
+    "step-5.wav",
+    "step-6.wav"
+  ],
   "hop": [
     "hop-1.wav",
     "hop-2.wav",
@@ -67,6 +75,14 @@
   "heartbeat": [
     "heartbeat-1.wav",
     "heartbeat-2.wav"
+  ],
+  "wetstep": [
+    "wetstep-1.wav",
+    "wetstep-2.wav",
+    "wetstep-3.wav",
+    "wetstep-4.wav",
+    "wetstep-5.wav",
+    "wetstep-6.wav"
   ],
   "frogs": [
     "frogs-1.wav"
@@ -85,36 +101,6 @@
   "thunder": [
     "thunder-1.wav",
     "thunder-2.wav"
-  ],
-  "step": [
-    "step-1.wav",
-    "step-2.wav",
-    "step-3.wav",
-    "step-4.wav",
-    "step-5.wav",
-    "step-6.wav",
-    "step-7.wav",
-    "step-8.wav"
-  ],
-  "stone": [
-    "stone-1.wav",
-    "stone-2.wav",
-    "stone-3.wav",
-    "stone-4.wav",
-    "stone-5.wav",
-    "stone-6.wav",
-    "stone-7.wav",
-    "stone-8.wav"
-  ],
-  "wetstep": [
-    "wetstep-1.wav",
-    "wetstep-2.wav",
-    "wetstep-3.wav",
-    "wetstep-4.wav",
-    "wetstep-5.wav",
-    "wetstep-6.wav",
-    "wetstep-7.wav",
-    "wetstep-8.wav"
   ],
   "crickets": [
     "crickets-1.wav"

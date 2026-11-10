@@ -165,8 +165,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const taverns = options.sound ? new Taverns(options.sound, field.models.filter(one => one.model === "buildings/tavern").map(one => [one.x, one.y + 1.6, one.z]), () => net.shared()) : null;
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
-    // splashing in a pond, rain or not; stone on the streets and squares, wet grass in the rain
-    const stepAt = (x: number, z: number): SfxName => field.depth(x, z) > .05 ? "wetstep" : field.paved(x, z) ? "stone" : raining ? "wetstep" : "step";
+    const footstep = raining ? "wetstep" : "step";
+    // splashing in a pond, rain or not
+    const stepAt = (x: number, z: number) => field.depth(x, z) > .05 ? "wetstep" : footstep;
     others.onStep = at => {
         const m = camera.worldMatrix;
         if (Math.hypot(at[0] - m[12], at[2] - m[14]) < STEPS) sound(stepAt(at[0], at[2]), at, .45, .92 + Math.random() * .16, STEPS);

@@ -156,9 +156,9 @@ const TARGET: Record<BirdKind, number> = { tiny: .22, crow: .35, owl: .35 };
 /** Metres a second in flight. */
 const SPEED: Record<BirdKind, number> = { tiny: 7, crow: 8, owl: 6 };
 /** Seconds between each one's calls, by day (crows and tiny birds) and night (the owl). */
-const CALLS: Record<BirdKind, [number, number]> = { tiny: [7, 26], crow: [14, 40], owl: [7, 20] };
+const CALLS: Record<BirdKind, [number, number]> = { tiny: [40, 110], crow: [14, 40], owl: [7, 20] };
 /** How lively the tiny birds sing at each time: a multiplier on how often. */
-const SONG: Record<BirdTime, number> = { dawn: 2.2, noon: 1, sunset: .8, night: 0 };
+const SONG: Record<BirdTime, number> = { dawn: 1.5, noon: 1, sunset: .8, night: 0 };
 
 export type BirdsSetting = { tiny?: number; crows?: number; owl?: boolean };
 
@@ -281,7 +281,7 @@ export class Birds {
             bird.nextCall = least + Math.random() * (most - least);
             // tiny birds in flight don't sing, crows caw in the air too
             if (bird.kind === "tiny" && bird.state === "fly") continue;
-            this.onCall(bird.kind === "tiny" ? "bird" : bird.kind, [bird.x, bird.y + .2, bird.z], bird.kind === "tiny" ? .45 + Math.random() * .35 : bird.kind === "crow" ? .7 : 1);
+            this.onCall(bird.kind === "tiny" ? "bird" : bird.kind, [bird.x, bird.y + .2, bird.z], bird.kind === "tiny" ? .15 + Math.random() * .12 : bird.kind === "crow" ? .7 : 1);
         }
         this.draw();
     }
