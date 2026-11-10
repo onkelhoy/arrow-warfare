@@ -4,7 +4,7 @@ Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models,
 
 ## Where we are
 
-Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splashes, lightning) and 28 (bullet hits). PR open, the owner tests and merges. Left: 21k and 21a-21g (to confirm), then `bots`.
+Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splashes, lightning) and 28 (bullet hits). PR open, the owner tests and merges. Left: 21k and 21a-21g (to confirm). Crickets now a cleaned recording (`bin/crickets.mjs`). Next: `bots`, 22 first.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 
@@ -14,15 +14,21 @@ Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splash
 
 ## Branch `guns` (F21)
 
-21j. [ ] **Kill cam: slow motion sounds and the buggy feel:** sounds in the kill cam slowed with the film (lower and stretched, a slow heartbeat/whoosh under it). Find what feels buggy (jumps between shots, camera snaps, bullets far too fast to follow) and fix it.
+21j. [x] **Kill cam: slow motion sounds and the buggy feel:** sounds in the kill cam slowed with the film (lower and stretched, a slow heartbeat/whoosh under it). Find what feels buggy (jumps between shots, camera snaps, bullets far too fast to follow) and fix it.
 21k. [ ] **The arrow leaves above the nocked arrow:** the flying arrow (and trail) starts above where the nocked one points. Make the shot leave exactly from the nocked arrow along its line.
 
 ## Branch `bots` (F22)
 
-22. [ ] **Rules:** bot count 0–100 and difficulty easy / normal / hard. The host runs the bots as fake players (own ids, colours, names), sending poses and events like a real player, so guests need no changes. Playing alone with bots must work.
-23. [ ] **Bot movement:** wander, take cover behind trees and buildings, pick a target, pick up arrows when low.
+Reviewed 2026-11-10. Missing from the first plan: guests *do* need changes (they drop shots, hits and poses not sent by their owner), bots must not be treated as peers, bots need a body the host simulates, the host judges hits on them.
+
+22. [ ] **Roster and rules:** lobby "Bots" 0–100 and difficulty easy / normal / hard, synced like the other rules. `Player.bot` set; the host adds them at the countdown (names, colours, skins, spread over the teams) and drops them after the round. Bots don't count toward `max`. Everything that treats players as peers skips them (state publish, poses, pings, ready, kick). Spawns spread for 100+. Results mark bots. Alone with bots starts and ends a round.
+22b. [ ] **Guests take bot messages from the host:** `shoot`, `hit`, `drop`, `stash` with a bot's id accepted when the host sent them. Bot poses in one batched fast packet (ids and poses).
+22c. [ ] **A bot's body on the host:** position, yaw, pitch, draw, wounds (`Wounds`, so hop, sit and crawl work), quiver or gun with ammo. Walks with `field.collide`/`height`. The host judges hits on bots, sends their deaths, drops and stashes, records them in the replay (kill cam works for bot kills). The play view uses real bots (count and difficulty) in place of its stand-ins.
+23. [ ] **Bot movement:** wander, take cover behind trees and buildings, pick a target in sight (a ray past trees and walls), pick up arrows when low. No ladders for now.
 24. [ ] **Bot aim:** lead the target and allow for drop, for the bow and both guns. Aim error, reaction time and draw time come from difficulty.
 25. [ ] **Performance:** cheaper bodies far away, staggered AI updates, fewer poses sent for distant bots. Find what a phone host manages. Warn above that in the lobby, the hard cap stays 100.
+
+Open (my defaults unless the owner says otherwise): bots stay the same through a match's rounds; the host leaving ends the game anyway, bots go with it.
 
 ## Branch `environment` (F23)
 
