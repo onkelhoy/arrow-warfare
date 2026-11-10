@@ -15,6 +15,8 @@ export type Player = {
     ping: number;
     /** Players they have no direct link to: what goes between them goes through the host. */
     gaps?: string[];
+    /** Played by the host's phone, not a peer: nothing is sent to them. */
+    bot?: boolean;
 };
 
 export type Idea = { id: string; by: string; text: string; votes: string[] };
@@ -33,6 +35,9 @@ export type TimeOfDay = "clock" | "night" | "dawn" | "noon" | "sunset";
 
 /** One weapon for everyone in a game. */
 export type Weapon = "bow" | "revolver" | "rifle";
+
+/** How well the bots aim, how quickly they react and draw. */
+export type Difficulty = "easy" | "normal" | "hard";
 
 export type Rules = {
     weapon: Weapon;
@@ -58,6 +63,9 @@ export type Rules = {
     friendly: boolean;
     /** Rain all round. */
     rain: boolean;
+    /** Bots the host plays, on top of the players. */
+    bots: number;
+    difficulty: Difficulty;
 };
 
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
@@ -69,9 +77,13 @@ export const MAP_KINDS: MapKind[] = ["field", "farm", "city"];
 
 export const DAMAGES: Damage[] = ["arcade", "injuries"];
 export const ROUNDS = [1, 3, 5];
+export const DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard"];
+/** Bot counts to choose from, up to `BOT_LIMIT`. */
+export const BOT_COUNTS = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100];
+export const BOT_LIMIT = 100;
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, rain: false };
+export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, rain: false, bots: 0, difficulty: "normal" };
 
 export type GameState = {
     host: string;
@@ -143,6 +155,14 @@ export function teamName(team: Team) {
     for (const idea of team.ideas) if (!best || idea.votes.length > best.votes.length) best = idea;
     return best?.text ?? "";
 }
+
+/** The real players, the ones on the network: everyone but the bots. */
+export function people<T extends { bot?: boolean }>(players: T[]) {
+    return players.filter(player => !player.bot);
+}
+
+/** Bots' names, given in turn (a number after them once they run out). */
+export const BOT_NAMES = ["Ada", "Bram", "Cora", "Dag", "Edda", "Finn", "Greta", "Hugo", "Ilse", "Jens", "Kaja", "Lars", "Maja", "Nils", "Olga", "Per", "Rut", "Sven", "Tova", "Ulf", "Vera", "Wim", "Yrsa", "Zeke"];
 
 /** The colour a player wears: their team's, else their own. */
 export function wears(state: GameState, player: Player) {

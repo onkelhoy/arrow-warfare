@@ -147,7 +147,15 @@
         "many": "Många"
       },
       "towersNote": "Gå in i ett torns stege för att klättra upp.",
-      "ammo": "Extra skott per spelare"
+      "ammo": "Extra skott per spelare",
+      "bots": "Bottar",
+      "botsNote": "Värdens telefon spelar dem. Många bottar kräver en stark telefon.",
+      "difficulty": "Bottarnas skicklighet",
+      "difficulties": {
+        "easy": "Lätt",
+        "normal": "Normal",
+        "hard": "Svår"
+      }
     },
     "colour": {
       "red": "röd",
@@ -169,7 +177,8 @@
       "weak": "svag anslutning",
       "relayed": "via värden",
       "force": "Tvinga redo",
-      "kick": "Sparka ut"
+      "kick": "Sparka ut",
+      "bot": "bott"
     },
     "teams": {
       "none": "Inga lag betyder alla mot alla.",

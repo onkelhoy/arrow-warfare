@@ -55,7 +55,7 @@ export function mountResults(root: HTMLElement, { state, me, host, onBack, onRem
                     const found = player(stats.id);
                     const rate = stats.shots ? Math.round(stats.hits / stats.shots * 100) : 0;
                     return `<tr class="${stats.won ? "won" : ""} ${stats.id === me ? "me" : ""}">
-                        <td>${found ? dot(wears(state, found)) : ""}${escape(found?.name ?? "?")}</td>
+                        <td>${found ? dot(wears(state, found)) : ""}${escape(found?.name ?? "?")}${found?.bot ? ` <span class="aw-results-bot">${t("players.bot")}</span>` : ""}</td>
                         <td>${stats.kills}</td><td>${stats.shots}</td><td>${stats.hits}</td><td>${rate}%</td>
                         <td>${stats.longest ? `${stats.longest.toFixed(1)} m` : "–"}</td><td>${stats.picked}</td><td>${stats.taken ?? 0}</td><td>${seconds(stats.alive)}</td>
                     </tr>`;

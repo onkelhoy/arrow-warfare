@@ -5,7 +5,7 @@ import { mountChat } from "@arrow-warfare/chat";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
 import { BALLISTICS, Draw, Gun, heading, isBullet, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
-import { adopt, CHAT_LENGTH, COLOURS, QUALITY, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
+import { adopt, CHAT_LENGTH, COLOURS, people, QUALITY, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
@@ -174,7 +174,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const deadToggle = deadChat.querySelector<HTMLButtonElement>("button")!;
     const deadPanel = deadChat.querySelector<HTMLElement>(".aw-play-dead-panel")!;
     const chat = mountChat(deadPanel, text => {
-        const to = [...new Set([...dead, me])];
+        const to = [...new Set([...dead, me])].filter(id => !player(id)?.bot);
         net.send(to, "deadchat", { text });
     }, { all: t("chat.dead") });
     deadToggle.addEventListener("click", () => {
@@ -255,7 +255,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     let ending: ReturnType<typeof setTimeout> | undefined;
     const taken = new Set<string>();
 
-    const everyone = () => state.players.map(other => other.id);
+    /** The players on the network, bots are on the host. */
+    const everyone = () => people(state.players).map(other => other.id);
     const broadcast = (type: string, payload: unknown) => net.send(everyone(), type, payload);
 
     /** `at` is placed in 3D, heard from the camera (`listen` each frame), without it it's in my head. */

@@ -147,7 +147,15 @@
         "many": "Many"
       },
       "towersNote": "Walk into a tower's ladder to climb it.",
-      "ammo": "Spare rounds per player"
+      "ammo": "Spare rounds per player",
+      "bots": "Bots",
+      "botsNote": "The host's phone plays them. Many bots need a strong phone.",
+      "difficulty": "Bot skill",
+      "difficulties": {
+        "easy": "Easy",
+        "normal": "Normal",
+        "hard": "Hard"
+      }
     },
     "colour": {
       "red": "red",
@@ -169,7 +177,8 @@
       "weak": "weak connection",
       "relayed": "via the host",
       "force": "Force ready",
-      "kick": "Kick"
+      "kick": "Kick",
+      "bot": "bot"
     },
     "teams": {
       "none": "No teams means free for all.",

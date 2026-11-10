@@ -1,4 +1,4 @@
-import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_KINDS, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, WEAPONS, AMMO, wears, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_KINDS, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, WEAPONS, AMMO, wears, people, BOT_NAMES, BOT_COUNTS, DIFFICULTIES, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
 import { forget, gameId, HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, newCode, RECONNECT, remember, Room, ROOM_MEDIA, touch, UNKNOWN_FOR, type Info, type Invite, type Lobby, type Registry } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
@@ -144,7 +144,7 @@ export class Session {
             if (this.kicked.has(sender) || this.kickedTokens.has(key)) return room.send(sender, "denied", { reason: "kicked" });
             if (key && this.rejoin(key, sender)) return;
             if (state.phase !== "open") return room.send(sender, "denied", { reason: "locked" });
-            if (state.players.length >= state.max) return room.send(sender, "denied", { reason: "full" });
+            if (people(state.players).length >= state.max) return room.send(sender, "denied", { reason: "full" });
             if (sender !== room.me && this.password && password !== this.password)
                 return room.send(sender, "denied", { reason: "password", wrong: typeof password === "string" });
 
@@ -183,7 +183,7 @@ export class Session {
             if (!found || !clean) return;
             const toTeam = team === true && !!found.team;
             const line: ChatLine = { from: sender, name: found.name, colour: wears(this.state!, found), text: clean, team: toTeam };
-            const to = this.state!.players.filter(other => !toTeam || other.team === found.team).map(other => other.id);
+            const to = people(this.state!.players).filter(other => !toTeam || other.team === found.team).map(other => other.id);
             room.sendAll(to, "said", line);
         });
 
@@ -284,7 +284,7 @@ export class Session {
     private publish() {
         const { room, state } = this;
         if (!room || !state || !this.isHost) return;
-        room.sendAll([...state.players, ...(state.waiting ?? [])].map(player => player.id).filter(id => id !== room.me), "state", state);
+        room.sendAll(people([...state.players, ...(state.waiting ?? [])]).map(player => player.id).filter(id => id !== room.me), "state", state);
         this.events.state(structuredClone(state));
     }
 
@@ -292,7 +292,7 @@ export class Session {
         const { room, state } = this;
         if (!room || !state) return;
         let changed = false;
-        for (const player of state.players)
+        for (const player of people(state.players))
         {
             const ping = room.pingOf(player.id);
             if (ping === undefined || player.id === room.me || (player.ping >= 0 && Math.abs(ping - player.ping) < 15)) continue;
@@ -306,6 +306,7 @@ export class Session {
     private maybeStart() {
         const { room, state } = this;
         if (!room || !state || state.phase !== "locked" || !state.players.length || state.players.some(player => !player.ready)) return;
+        this.fillBots();
         state.phase = "countdown";
         state.go = room.shared + COUNTDOWN;
         // a new meadow every round, the same on every phone
@@ -317,6 +318,33 @@ export class Session {
             state.phase = "play";
             this.publish();
         }, COUNTDOWN);
+    }
+
+    /** The rule's bots in the players: the ones there stay (through a match), more join, extra ones go. Spread over the teams. */
+    private fillBots() {
+        const state = this.state!;
+        const wanted = Math.max(0, Math.min(BOT_COUNTS[BOT_COUNTS.length - 1], state.rules.bots ?? 0));
+        const bots = state.players.filter(player => player.bot);
+        const extra = new Set(bots.slice(wanted).map(bot => bot.id));
+        state.players = state.players.filter(player => !extra.has(player.id));
+        for (let i = bots.length; i < wanted; i++)
+        {
+            // the team with fewest in it
+            const team = state.teams.length ? state.teams.map(team => ({ id: team.id, size: state.players.filter(player => player.team === team.id).length }))
+                .sort((a, b) => a.size - b.size)[0].id : null;
+            const name = BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? ` ${Math.floor(i / BOT_NAMES.length) + 1}` : "");
+            state.players.push({
+                id: `bot-${i + 1}`, name, bot: true, ready: true, team, ping: 0,
+                colour: pickUnused(COLOURS.length, state.players.map(player => player.colour)),
+                skin: Math.floor(Math.random() * SKINS.length),
+            });
+        }
+    }
+
+    /** Back in the lobby the bots go, they come again at the next countdown. */
+    private dropBots() {
+        const state = this.state!;
+        state.players = people(state.players);
     }
 
     // the host's own controls, from the lobby page
@@ -351,6 +379,8 @@ export class Session {
         if (change.rounds !== undefined && ROUNDS.includes(change.rounds)) state.rules.rounds = change.rounds;
         if (change.friendly !== undefined) state.rules.friendly = !!change.friendly;
         if (change.rain !== undefined) state.rules.rain = !!change.rain;
+        if (change.bots !== undefined && BOT_COUNTS.includes(change.bots)) state.rules.bots = change.bots;
+        if (change.difficulty && DIFFICULTIES.includes(change.difficulty)) state.rules.difficulty = change.difficulty;
         this.publish();
     }
 
@@ -448,6 +478,7 @@ export class Session {
         state.lockedAt = this.room!.shared;
         state.played = [];
         this.admitWaiting();
+        this.dropBots();
         for (const player of state.players) player.ready = false;
         this.publish();
     }
@@ -570,7 +601,7 @@ export class Session {
         let told = "";
         const gaps = setInterval(() => {
             if (room.closed || this.room !== room) return clearInterval(gaps);
-            const players = this.state?.players.map(player => player.id) ?? [];
+            const players = people(this.state?.players ?? []).map(player => player.id);
             const missing = room.gaps(players).sort();
             if (missing.join() === told) return;
             told = missing.join();
