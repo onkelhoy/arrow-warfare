@@ -76,6 +76,30 @@
     "heartbeat-1.wav",
     "heartbeat-2.wav"
   ],
+  "crickets": [
+    "crickets-1.wav"
+  ],
+  "wind": [
+    "wind-1.wav"
+  ],
+  "frogs": [
+    "frogs-1.wav"
+  ],
+  "crackle": [
+    "crackle-1.wav"
+  ],
+  "bird": [
+    "bird-1.wav",
+    "bird-2.wav",
+    "bird-3.wav",
+    "bird-4.wav",
+    "bird-5.wav",
+    "bird-6.wav"
+  ],
+  "owl": [
+    "owl-1.wav",
+    "owl-2.wav"
+  ],
   "gunshot": [
     "gunshot-1.mp3",
     "gunshot-2.mp3"

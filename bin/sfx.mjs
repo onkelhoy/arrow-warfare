@@ -66,21 +66,13 @@ const sounds = {
     hop: [3, .3, () => [noise(jit(1800), .8, .06, .3, 0, .01), tone("sine", jit(110), 60, .08, .3, .02)]],
     grunt: [4, .4, () => { const f = jit(130, .2); return [tone("saw", f, f * .7, .18, .25, 0, .03), tone("square", f * 2, f * 1.4, .12, .05, 0, .03), noise(jit(600), 2, .15, .2, 0, .03)]; }],
     heartbeat: [2, .8, () => [tone("sine", 60, 40, .08, .9, 0, .005), tone("sine", 55, 38, .1, .7, .22, .005)]],
-    fanfare: [1, 3.2, () => {
-        const v = [];
-        const horn = (f, at, len, vol) => { v.push(tone("saw", f, f, len, vol, at, .08), tone("square", f * 2, f * 2, len, vol * .15, at, .08)); };
-        horn(196, 0, 1.2, .18); horn(294, .1, 1.2, .15); // the horns rising
-        [[392, .6, .18], [392, .8, .12], [523, .95, .25], [494, 1.25, .12], [523, 1.4, .25], [659, 1.7, 1]].forEach(([f, at, len]) => { v.push(tone("square", f, f, len, .12, at, .015), tone("tri", f * 2, f * 2, len, .06, at, .015)); });
-        horn(262, 1.7, 1.2, .14); horn(392, 1.7, 1.2, .1);
-        return v;
-    }],
 };
 
-function wav(data) {
+function wav(data, rate = RATE) {
     const buffer = Buffer.alloc(44 + data.length * 2);
     buffer.write("RIFF", 0); buffer.writeUInt32LE(36 + data.length * 2, 4); buffer.write("WAVEfmt ", 8);
     buffer.writeUInt32LE(16, 16); buffer.writeUInt16LE(1, 20); buffer.writeUInt16LE(1, 22);
-    buffer.writeUInt32LE(RATE, 24); buffer.writeUInt32LE(RATE * 2, 28); buffer.writeUInt16LE(2, 32); buffer.writeUInt16LE(16, 34);
+    buffer.writeUInt32LE(rate, 24); buffer.writeUInt32LE(rate * 2, 28); buffer.writeUInt16LE(2, 32); buffer.writeUInt16LE(16, 34);
     buffer.write("data", 36); buffer.writeUInt32LE(data.length * 2, 40);
     data.forEach((x, i) => buffer.writeInt16LE(Math.round(Math.max(-1, Math.min(1, x)) * 32767), 44 + i * 2));
     return buffer;
@@ -92,6 +84,16 @@ for (const [name, [count, length, voices]] of Object.entries(sounds)) {
     for (let i = 1; i <= count; i++) {
         const file = `${name}-${i}.wav`;
         writeFileSync(join(out, file), wav(render(length, voices())));
+        list[name].push(file);
+    }
+}
+// the ambience: loops and calls, at a lower rate to keep them small (bin/ambience.mjs)
+const { AMBIENCE, AMBIENCE_RATE } = await import("./ambience.mjs");
+for (const [name, [count, make]] of Object.entries(AMBIENCE)) {
+    list[name] = [];
+    for (let i = 1; i <= count; i++) {
+        const file = `${name}-${i}.wav`;
+        writeFileSync(join(out, file), wav(make(i), AMBIENCE_RATE));
         list[name].push(file);
     }
 }
