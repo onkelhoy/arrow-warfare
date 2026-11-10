@@ -32,11 +32,6 @@ const TOWN_HOUSES: ModelName[] = [
     "buildings/brick-house", "buildings/brick-house-2", "buildings/stone-house", "buildings/stone-house-2", "buildings/tavern",
     "buildings/bakery", "buildings/general-store", "buildings/bank", "buildings/corner-house",
 ];
-/** The Buildings Pack's tall town houses, mixed in with the others in the city. */
-const CITY_HOUSES: ModelName[] = [
-    ...TOWN_HOUSES, "buildings/city-long", "buildings/city-narrow", "buildings/city-gable-long", "buildings/city-gable",
-    "buildings/city-brick", "buildings/city-brick-narrow", "buildings/city-manor",
-];
 /** Metres across a street, kerbs and all. */
 const STREET = 4.6;
 const FARM_PROPS: ModelName[] = [
@@ -278,7 +273,7 @@ function city(field: Field, random: Random, buildings: number, props: number) {
                     along += gap;
                     continue;
                 }
-                const fits = CITY_HOUSES.filter(model => sizeOf(model).width * .92 <= end - along);
+                const fits = TOWN_HOUSES.filter(model => sizeOf(model).width * .92 <= end - along);
                 if (!fits.length) break;
                 const model = pick(random, fits), size = sizeOf(model);
                 const width = size.width * .92, depth = size.depth;

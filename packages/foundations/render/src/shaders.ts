@@ -47,13 +47,19 @@ uniform vec3 uFogColour;
 uniform float uFogDensity;
 uniform float uEmissive;
 uniform float uFog;
+uniform float uSway;
 
 out vec4 fragColour;
 
 void main() {
     vec3 normal = normalize(vNormal);
-    // the back of a two sided face (grass, leaves) faces away sideways, but still gets the light from above
-    if (!gl_FrontFacing) normal.xz = -normal.xz;
+    // the back of a swaying face (grass, leaves) faces away sideways, but still gets the light from above;
+    // any other two sided face (a building's wrong way round triangle) just turns round
+    if (!gl_FrontFacing)
+    {
+        if (uSway > 0.0) normal.xz = -normal.xz;
+        else normal = -normal;
+    }
 
     // two wide soft steps of sun over a high floor of it, so neighbouring faces differ a little, never go dark
     float facing = dot(normal, uSunDirection);

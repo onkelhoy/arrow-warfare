@@ -2,7 +2,8 @@
 # vertex colours. No textures, no materials, no UVs, the ground at y 0 and the middle at x 0, z 0.
 #   Blender -b --factory-startup --python blender-glb.py -- <in> <out> <keep> <scale> [<in> <out> <keep> <scale> ...]
 # `keep` under 1 is the share of triangles to keep, over 1 how many (1 keeps them all), for the heavy ones on phones.
-# A .glb in keeps its vertex colours and place, only its inside-out faces get turned (the renderer culls back faces).
+# A .glb in keeps its vertex colours and place, only its inside-out faces get turned (the renderer culls back faces),
+# and with `keep` under 1 its flat faces of one colour merged.
 import sys
 import bpy
 import bmesh
@@ -60,12 +61,69 @@ def outward(model):
     return len(flip)
 
 
-def fix(source, target):
+def merge_flat(model):
+    """Merges neighbouring faces that lie flat in one plane and share a colour, then triangles again. The colours
+    go through materials for that (the dissolve keeps materials apart, not colours), and back."""
+    mesh = model.data
+    colours = mesh.color_attributes.active_color
+    if colours is None:
+        return
+    palette = {}
+    face_colour = []
+    for polygon in mesh.polygons:
+        c = tuple(round(v, 3) for v in colours.data[polygon.loop_indices[0]].color)
+        face_colour.append(palette.setdefault(c, len(palette)))
+    mesh.materials.clear()
+    for i in range(len(palette)):
+        mesh.materials.append(bpy.data.materials.new(f"c{i}"))
+    for polygon, index in zip(mesh.polygons, face_colour):
+        polygon.material_index = index
+    # the faces come apart (a vertex per corner), weld them so neighbours can merge
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
+    bm.to_mesh(mesh)
+    bm.free()
+    bpy.context.view_layer.objects.active = model
+    planar = model.modifiers.new("flat", "DECIMATE")
+    planar.decimate_type = "DISSOLVE"
+    planar.angle_limit = 0.0175
+    planar.delimit = {"MATERIAL"}
+    bpy.ops.object.modifier_apply(modifier=planar.name)
+    triangulate = model.modifiers.new("tri", "TRIANGULATE")
+    bpy.ops.object.modifier_apply(modifier=triangulate.name)
+    by_index = {i: c for c, i in palette.items()}
+    for attribute in list(mesh.color_attributes):
+        mesh.color_attributes.remove(attribute)
+    colours = mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
+    mesh.color_attributes.active_color = colours
+    for polygon in mesh.polygons:
+        for loop in polygon.loop_indices:
+            colours.data[loop].color = by_index[polygon.material_index]
+    mesh.materials.clear()
+
+
+def fix(source, target, merge):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=source)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    for o in meshes:
+        o.select_set(True)
     turned = sum(outward(o) for o in meshes)
-    print(f"blender-glb: {source.split('/')[-1]} turned {turned}")
+    before = sum(len(p.vertices) - 2 for o in meshes for p in o.data.polygons)
+    if merge < 1:
+        for o in meshes:
+            merge_flat(o)
+            # then edges collapse down to `merge` of what came in
+            now = sum(len(p.vertices) - 2 for p in o.data.polygons)
+            wanted = merge * before
+            if now > wanted:
+                bpy.context.view_layer.objects.active = o
+                decimate = o.modifiers.new("fewer", "DECIMATE")
+                decimate.ratio = wanted / now
+                bpy.ops.object.modifier_apply(modifier=decimate.name)
+    after = sum(len(p.vertices) - 2 for o in meshes for p in o.data.polygons)
+    print(f"blender-glb: {source.split('/')[-1]} turned {turned}, triangles {before} -> {after}")
     bpy.ops.object.select_all(action="DESELECT")
     for o in meshes:
         o.select_set(True)
@@ -159,6 +217,7 @@ def convert(source, target, keep, scale):
 pairs = sys.argv[sys.argv.index("--") + 1:]
 for i in range(0, len(pairs), 4):
     if pairs[i].lower().endswith(".glb"):
-        fix(pairs[i], pairs[i + 1])
+        # for a .glb, `keep` under 1 asks for the flat faces merged
+        fix(pairs[i], pairs[i + 1], float(pairs[i + 2]))
     else:
         convert(pairs[i], pairs[i + 1], float(pairs[i + 2]), float(pairs[i + 3]))
