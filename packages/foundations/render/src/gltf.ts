@@ -1,4 +1,4 @@
-import { loadGLTF, type GLTF, type GLTFNode, type Mesh } from "@papit/game-mesh";
+import { loadGLTF, rig, sample, type GLTF, type GLTFNode, type Mesh, type Rig } from "@papit/game-mesh";
 
 import { invert, mat4, multiply, type Mat4 } from "./math";
 import { STRIDE, type MeshData } from "./mesh";
@@ -69,6 +69,105 @@ export function fromGLTF(gltf: GLTF, setting: GLTFSetting = {}): MeshData {
     }
     if (flat) flatten(vertices, count);
     return { vertices, count };
+}
+
+/** One rigid piece of a skinned model: its triangles all follow the same joints by the same weights. */
+export type RiggedPart = { mesh: MeshData; joints: number[]; weights: number[] };
+
+/**
+ * A skinned glTF with rigid pieces (a gun: frame, hammer, drum, trigger, magazine) cut into one mesh per
+ * joint mix, so the renderer draws each piece with one matrix instead of skinning on the GPU. The pose comes
+ * from `@papit/game-mesh`'s `rig` and `sample`, the pieces' matrices are the same blend Blender's skinning
+ * makes (so a piece weighted half to its parent moves half way, as in the file).
+ */
+export class Rigged {
+    readonly parts: RiggedPart[] = [];
+    readonly rig: Rig;
+    /** The armature node and what's above it, which `rig` leaves out. */
+    private root = mat4();
+    private scratch = mat4();
+
+    constructor(readonly gltf: GLTF, setting: GLTFSetting = {}) {
+        this.rig = rig(gltf, 0);
+        const skin = gltf.skins[0];
+        // the root joint's ancestors
+        const parent = new Map<number, number>();
+        gltf.nodes.forEach((node, index) => node.children.forEach(child => parent.set(child, index)));
+        const chain: number[] = [];
+        for (let at = parent.get(skin.joints[0]); at !== undefined; at = parent.get(at)) chain.unshift(at);
+        for (const index of chain) multiply(this.root, this.root, local(gltf.nodes[index]));
+
+        const node = gltf.nodes.find(node => node.skin === 0 && node.mesh !== undefined)!;
+        const tint = setting.tint ?? 0;
+        const groups = new Map<string, { joints: number[]; weights: number[]; triangles: number[] }>();
+        for (const mesh of gltf.meshes[node.mesh!].primitives)
+        {
+            const { positions: p, colors: c, indices, joints = new Uint16Array(0), weights = new Float32Array(0) } = mesh;
+            const total = indices?.length ?? p.length / 3;
+            for (let k = 0; k < total; k += 3)
+            {
+                // a triangle goes with its first corner's mix
+                const first = indices ? indices[k] : k;
+                const mix: [number, number][] = [];
+                for (let w = 0; w < 4; w++) if (weights[first * 4 + w] > 1e-3) mix.push([joints[first * 4 + w], weights[first * 4 + w]]);
+                mix.sort((a, b) => a[0] - b[0]);
+                const key = mix.map(([j, w]) => `${j}:${w.toFixed(2)}`).join(",");
+                let group = groups.get(key);
+                if (!group) groups.set(key, group = { joints: mix.map(m => m[0]), weights: mix.map(m => m[1]), triangles: [] });
+                for (let v = 0; v < 3; v++)
+                {
+                    const i = indices ? indices[k + v] : k + v;
+                    group.triangles.push(p[i * 3], p[i * 3 + 1], p[i * 3 + 2], c ? toSRGB(c[i * 4]) : 1, c ? toSRGB(c[i * 4 + 1]) : 1, c ? toSRGB(c[i * 4 + 2]) : 1);
+                }
+            }
+        }
+        for (const { joints, weights, triangles } of groups.values())
+        {
+            const count = triangles.length / 6;
+            const vertices = new Float32Array(count * STRIDE);
+            for (let v = 0; v < count; v++)
+            {
+                const o = v * STRIDE, t = v * 6;
+                vertices[o] = triangles[t]; vertices[o + 1] = triangles[t + 1]; vertices[o + 2] = triangles[t + 2];
+                vertices[o + 6] = triangles[t + 3]; vertices[o + 7] = triangles[t + 4]; vertices[o + 8] = triangles[t + 5];
+                vertices[o + 9] = tint;
+            }
+            flatten(vertices, count);
+            this.parts.push({ mesh: { vertices, count }, joints, weights });
+        }
+        this.pose(null, 0);
+    }
+
+    /** The animation's length in seconds, 0 if there's none by that name. */
+    duration(name: string) {
+        return this.gltf.animations.find(animation => animation.name === name)?.duration ?? 0;
+    }
+
+    /** Poses the pieces `time` seconds into the animation `name`, or the first frame of the first one with `null`. */
+    pose(name: string | null, time: number) {
+        const animation = name === null ? this.gltf.animations[0] : this.gltf.animations.find(animation => animation.name === name);
+        if (animation) sample(animation, Math.max(0, Math.min(animation.duration, time)), this.rig, false);
+        this.rig.armature.update();
+        this.rig.update();
+    }
+
+    /** Piece `index`'s matrix in the model's space (the file's, armature node included) into `out`. */
+    matrix(out: Mat4, index: number) {
+        const { joints, weights } = this.parts[index];
+        const m = this.rig.matrices, s = this.scratch;
+        s.fill(0);
+        for (let k = 0; k < joints.length; k++)
+        {
+            const o = joints[k] * 16, w = weights[k];
+            for (let e = 0; e < 16; e++) s[e] += m[o + e] * w;
+        }
+        return multiply(out, this.root, s);
+    }
+}
+
+/** A skinned `.glb` from a url cut into rigid pieces, see `Rigged`. */
+export async function loadRigged(url: string, setting?: GLTFSetting) {
+    return new Rigged(await loadGLTF(url), setting);
 }
 
 /** Every triangle's three normals set to its face's. */

@@ -50,6 +50,7 @@ Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, 
 19. [ ] **Ammo and reload:** magazine size and reload time per gun, with a HUD count. Decide how pickups work with guns (probably no pickups, unlimited magazines).
 20. [ ] **Sounds:** copy `shot1`, `shot2`, `reload` and `fly1-5` (bullets passing close) from `~/Developer/games/cowboy/packages/game/asset/audio`.
 21. [ ] **Touch controls:** the bow button becomes a fire button (tap to fire, no draw), plus a reload button. Desktop: click or space to fire, R to reload.
+21a. [ ] **Name tags rule (unconfirmed, owner asked 2026-11-10):** a lobby option to hide other players' name tags, harder game ("hardcore" or "name tags: on / off"). Synced like the other rules. Owner to confirm and pick the branch.
 
 ## Branch `bots` (F22)
 22. [ ] **Rules:** bot count 0–100 and difficulty easy / normal / hard. The host runs the bots as fake players (own ids, colours, names), sending poses and events like a real player, so guests need no changes. Playing alone with bots must work.
