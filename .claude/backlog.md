@@ -214,8 +214,8 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] An arrow bag in the hand (later, a finesse thing)
 
 ### F18. Papit engine pieces
-- [ ] Audit game-mesh, vector/matrix (float64), gjk/rigidbody, game-engine against our own code
-- [ ] Load `.glb` (vertex colours) into our renderer, swap what's worth it
+- [x] Audit game-mesh, vector/matrix (float64), gjk/rigidbody, game-engine against our own code
+- [x] Load `.glb` (vertex colours) into our renderer, swap what's worth it
 
 ### F19. Maps and props
 - [ ] Blender pipeline: FBX/OBJ to untextured glb (nature pack, pap-adventure generated)
@@ -340,6 +340,21 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Views of UI packages in `pap-codeblock`s with the theme toggle.
 - Titles use Luminari (macOS), then Papyrus/Palatino/Georgia: no web font, Android gets a serif fallback.
 - The fanfare audio loads through `fetch` (`/audio/...`), so the static build's base path works. Not yet heard on a real phone.
+
+## Papit audit (F18, engine branch, for the owner to review)
+Papit as of `f5c098ac`. We use `game-engine` 0.2.0 (latest 0.2.1) and `armature` 0.0.1 (latest 0.0.2).
+
+- **`game-mesh` vs `render/mesh.ts`: swap the loading, keep our builder.** Its `loadGLTF` reads `.glb` with vertex colours (COLOR_0 times base colour, always filled), computes missing normals, skins to an armature rig, samples animations. Exactly what F19 to F21 need. Its `MeshBuilder` is ours grown up (plane, cone, smooth normals) but lacks what we lean on: the tint channel (player colours), `wobble`, `blade`. Its `Mesh` is separate arrays, maybe indexed; our renderer wants one interleaved array of 10 floats. So: a small `fromGLTF` in `render` that bakes node transforms and de-indexes into our `MeshData`, tint 0.
+- **`vector`/`matrix` vs `render/math.ts`: keep ours.** `Matrix4` is float64 with `toFloat32` at upload, fine, but `multiply` and `transpose` allocate a new array each call, there's no general inverse (only TRS, Gaussian "planned"), and nothing composes straight into an instance buffer at an offset. Ours is 115 lines, allocation free, built for the instance loop.
+- **`gjk`/`rigidbody` vs `field.collide` and `hitBody`: keep ours for now.** Circles against trees and segment against capsules are a few lines each on tuples; papit's intersection packages take `{ x, y, z }` points, so every call would convert. `rigidbody` is a whole simulation; we'd only want its static queries (`segmentCast`, `overlap`). Revisit in F19: buildings that block walking and arrows (boxes, ray vs box from `box-intersection`, or a static `rigidbody` world as the query structure) and F21 bullets.
+- **`game-engine`, unused:** `fixedUpdate`, `timeScale`, `camera.shake` (we shake in `walker`), input classes and controllers (ours are touch first; orbit is used in views only). Nothing worth swapping in. Bump to 0.2.1.
+- **Versions:** `game-mesh` pins `@papit/armature` at exactly `0.0.2`, our `rig` has `^0.0.1` (which means 0.0.1 only), so adding it would bundle two armatures. Bump `rig` to 0.0.2 with it.
+
+Papit gaps (reported, not patched):
+1. `game-mesh`: no helper for a whole scene, node world matrices baked into the meshes. Every static `.glb` user writes it.
+2. `game-mesh`: `@papit/armature` pinned exactly (`0.0.2`), not a range.
+3. `matrix`: `multiply`/`transpose` allocate per call, no general inverse, no compose into a buffer at an offset.
+4. Intersection packages and `game-mesh` use `{ x, y, z }` points, `game-engine` uses `Vector3`, many game codes use tuples: no shared cheap point form.
 
 ## Open questions
 - Torso hit: dead at once, or two torso hits? (milestone 4: dead at once)
