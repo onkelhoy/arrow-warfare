@@ -72,3 +72,15 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 
 ## pap-tabs: tall panel squeezes the tab list away (papit, reported)
 `pap-tabs` is a flex column and its `tablist` has `overflow-x: auto`, so its min height is 0. In a short box (lobby on a phone) a tall panel like Rules shrinks the tabs to nothing and there's no way back. Workaround: `.aw-lobby-tabs::part(tablist) { flex: none; }` in the lobby style. Fix belongs in papit (`flex: none` on the tablist).
+
+### Picking up loses to looking around
+- **What:** a touch is only a tap under 12px and 350ms, and the arrow has to be within 60px of it on screen, so trying to pick up often turns into a look.
+- **Fix planned:** plan.md task 1.
+
+### Stuck running sideways (suspected cause)
+- **What:** after pressing a lot (shooting), the player keeps strafing. The joystick ignores new touches while it still thinks a pointer is down, so one missed finger lift locks it.
+- **Fix planned:** plan.md task 2.
+
+### Shot cancels when the thumb doesn't move
+- **What:** hold the bow button and let go without moving: the shot cancels, though the X is far away. Cause not found by reading. Suspect the release arrives as pointercancel/lostpointercapture.
+- **Fix planned:** plan.md task 3 (log on the phone first).
