@@ -235,9 +235,9 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Bullet drop, ammo, reload, cowboy's gun sounds, touch fire and reload buttons
 
 ### F22. Bots
-- [ ] Rules: 0–100 bots, difficulty easy / normal / hard, run by the host as fake players
-- [ ] Movement, cover, targets, aim with lead and drop
-- [ ] Performance for many bots on a phone host
+- [x] Rules: 0–100 bots, difficulty easy / normal / hard, run by the host as fake players
+- [x] Movement, cover, targets, aim with lead and drop
+- [x] Performance for many bots on a phone host
 
 ### F23. Environment
 - [x] Sound on `@papit/audio`: buses, effects in 3D, a "Nature" volume

@@ -205,3 +205,61 @@ function circleExit(px: number, pz: number, dx: number, dz: number, radius: numb
     const disc = Math.max(0, b * b - 4 * a * c);
     return Math.max(0, Math.min(1, (-b + Math.sqrt(disc)) / (2 * a)));
 }
+
+/**
+ * Whether one can see from `from` to `to`: nothing in the field between (the ground on the way, trunks,
+ * walls, the forest wall), and with `soft` no bush either.
+ */
+export function clear(field: Field, from: Vec, to: Vec, soft = true) {
+    if (worldHit(field, from, to)) return false;
+    const dx = to[0] - from[0], dz = to[2] - from[2], flat = Math.hypot(dx, dz);
+    // hills between: the ground every few metres along
+    for (let d = 3; d < flat - 1; d += 3)
+    {
+        const k = d / flat, x = from[0] + dx * k, z = from[2] + dz * k;
+        if (from[1] + (to[1] - from[1]) * k < field.height(x, z)) return false;
+    }
+    if (!soft || flat < 1e-6) return true;
+    for (const obstacle of field.obstacles)
+    {
+        if (!obstacle.soft) continue;
+        const t = circleEntry(from[0] - obstacle.x, from[2] - obstacle.z, dx, dz, obstacle.radius);
+        if (t === null || t <= 0) continue;
+        const y = from[1] + (to[1] - from[1]) * t;
+        if (y < field.height(obstacle.x, obstacle.z) + obstacle.height) return false;
+    }
+    return true;
+}
+
+/**
+ * Which way to send a shot of `speed` from `from` so it comes down through `to`, allowing for the drop and
+ * the drag as `fly` flies it, and how long it takes (s). Null when it can't get there.
+ */
+export function solve(from: Vec, to: Vec, speed: number, kind: Projectile = "arrow"): { direction: Vec; time: number } | null {
+    const dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2], flat = Math.hypot(dx, dz);
+    if (flat < .05) return { direction: [0, Math.sign(dy) || 1, 0], time: Math.abs(dy) / speed };
+    const { drag } = BALLISTICS[kind] ?? BALLISTICS.arrow;
+    let pitch = Math.atan2(dy, flat), time = 0;
+    for (let i = 0; i < 6; i++)
+    {
+        // a point in the upright plane, flown as `fly` does until it's `flat` away
+        let x = 0, y = 0, vx = Math.cos(pitch) * speed, vy = Math.sin(pitch) * speed;
+        time = 0;
+        while (x < flat && time < 10 && vx > .1)
+        {
+            const slow = 1 - drag * Math.hypot(vx, vy) * STEP;
+            vx *= slow;
+            vy = vy * slow - GRAVITY * STEP;
+            const step = Math.min(1, (flat - x) / (vx * STEP));
+            x += vx * STEP * step;
+            y += vy * STEP * step;
+            time += STEP * step;
+        }
+        if (x < flat - .01) return null;
+        const miss = dy - y;
+        if (Math.abs(miss) < .01) break;
+        pitch += Math.atan2(miss, flat) * Math.cos(Math.atan2(dy, flat));
+        if (pitch > 1.1) return null;
+    }
+    return { direction: [Math.cos(pitch) * dx / flat, Math.sin(pitch), Math.cos(pitch) * dz / flat], time };
+}

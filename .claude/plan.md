@@ -4,7 +4,7 @@ Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models,
 
 ## Where we are
 
-Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splashes, lightning) and 28 (bullet hits). PR open, the owner tests and merges. Left: 21k and 21a-21g (to confirm). Crickets now a cleaned recording (`bin/crickets.mjs`). Next: `bots`, 22 first.
+Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splashes, lightning) and 28 (bullet hits). PR open, the owner tests and merges. Left: 21k and 21a-21g (to confirm). Crickets now a cleaned recording (`bin/crickets.mjs`). `bots`: 22-25 done, for the owner to test. 25b to confirm.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 
@@ -22,11 +22,15 @@ Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splash
 Reviewed 2026-11-10. Missing from the first plan: guests *do* need changes (they drop shots, hits and poses not sent by their owner), bots must not be treated as peers, bots need a body the host simulates, the host judges hits on them.
 
 22. [x] **Roster and rules:** lobby "Bots" 0–100 and difficulty easy / normal / hard, synced like the other rules. `Player.bot` set; the host adds them at the countdown (names, colours, skins, spread over the teams) and drops them after the round. Bots don't count toward `max`. Everything that treats players as peers skips them (state publish, poses, pings, ready, kick). Spawns spread for 100+. Results mark bots. Alone with bots starts and ends a round.
-22b. [ ] **Guests take bot messages from the host:** `shoot`, `hit`, `drop`, `stash` with a bot's id accepted when the host sent them. Bot poses in one batched fast packet (ids and poses).
-22c. [ ] **A bot's body on the host:** position, yaw, pitch, draw, wounds (`Wounds`, so hop, sit and crawl work), quiver or gun with ammo. Walks with `field.collide`/`height`. The host judges hits on bots, sends their deaths, drops and stashes, records them in the replay (kill cam works for bot kills). The play view uses real bots (count and difficulty) in place of its stand-ins.
-23. [ ] **Bot movement:** wander, take cover behind trees and buildings, pick a target in sight (a ray past trees and walls), pick up arrows when low. No ladders for now.
-24. [ ] **Bot aim:** lead the target and allow for drop, for the bow and both guns. Aim error, reaction time and draw time come from difficulty.
-25. [ ] **Performance:** cheaper bodies far away, staggered AI updates, fewer poses sent for distant bots. Find what a phone host manages. Warn above that in the lobby, the hard cap stays 100.
+22b. [x] **Guests take bot messages from the host:** `shoot`, `hit`, `drop`, `stash` with a bot's id accepted when the host sent them. Bot poses in one batched fast packet (ids and poses).
+22c. [x] **A bot's body on the host:** position, yaw, pitch, draw, wounds (`Wounds`, so hop, sit and crawl work), quiver or gun with ammo. Walks with `field.collide`/`height`. The host judges hits on bots, sends their deaths, drops and stashes, records them in the replay (kill cam works for bot kills). The play view uses real bots (count and difficulty) in place of its stand-ins.
+23. [x] **Bot movement:** wander, take cover behind trees and buildings, pick a target in sight (a ray past trees and walls), pick up arrows when low. No ladders for now.
+24. [x] **Bot aim:** lead the target and allow for drop, for the bow and both guns. Aim error, reaction time and draw time come from difficulty.
+25. [x] **Performance:** cheaper bodies far away, staggered AI updates, fewer poses sent for distant bots. Find what a phone host manages. Warn above that in the lobby, the hard cap stays 100.
+
+25b. [ ] **Bots played by the nearest player (nice to have, owner 2026-11-10):** each bot run by whoever is closest instead of the host, to spread the work. Needs an owner per bot that moves (handing over wounds, quiver, goal, target), the owner judging hits on it, and phones taking bot messages from the current owner. Measured first: 100 bots' thinking takes 0.8 ms a frame on a laptop (about 4 ms on a phone, a guess); drawing 100 bodies is likely the bigger cost.
+
+Done notes: bots tested in the play view (`?bots=8&skill=hard&weapon=rifle`), not yet between two phones. Hit rates in a small meadow: easy ~13%, normal ~15%, hard ~18% with the bow, normal rifle ~30%. Tuning is in `SKILL` (play/src/bots.ts). The lobby warns above 30 bots (`BOTS_WARN`), a guess until a phone host is tried.
 
 Open (my defaults unless the owner says otherwise): bots stay the same through a match's rounds; the host leaving ends the game anyway, bots go with it.
 

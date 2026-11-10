@@ -155,7 +155,8 @@
         "easy": "Easy",
         "normal": "Normal",
         "hard": "Hard"
-      }
+      },
+      "botsWarn": "More than {count} bots can make a phone host stutter, a laptop copes better."
     },
     "colour": {
       "red": "red",

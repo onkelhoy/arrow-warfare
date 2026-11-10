@@ -81,6 +81,8 @@ export const DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard"];
 /** Bot counts to choose from, up to `BOT_LIMIT`. */
 export const BOT_COUNTS = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100];
 export const BOT_LIMIT = 100;
+/** More bots than this may stutter on a phone that hosts: the lobby warns. */
+export const BOTS_WARN = 30;
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
 export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, rain: false, bots: 0, difficulty: "normal" };

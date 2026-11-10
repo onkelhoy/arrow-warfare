@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, WEAPONS, AMMO, wears, BOT_COUNTS, DIFFICULTIES, type Difficulty, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
+import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, WEAPONS, AMMO, wears, BOT_COUNTS, BOTS_WARN, DIFFICULTIES, type Difficulty, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -119,6 +119,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                         ${DIFFICULTIES.map(level => `<option value="${level}">${t(`rules.difficulties.${level}`)}</option>`).join("")}
                     </select></label>
                     <p class="aw-dim">${t("rules.botsNote")}</p>
+                    <p class="aw-bots-warn" role="status">⚠ ${t("rules.botsWarn", { count: String(BOTS_WARN) })}</p>
                 </div>
             </pap-tabpanel>
         </pap-tabs>
@@ -347,6 +348,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         set(bots, String(state.rules.bots ?? 0));
         set(difficulty, state.rules.difficulty ?? RULES_DEFAULT.difficulty);
         find(".aw-difficulty").style.display = state.rules.bots ? "" : "none";
+        find(".aw-bots-warn").style.display = (state.rules.bots ?? 0) > BOTS_WARN ? "" : "none";
 
         draw(".aw-players", players());
         draw(".aw-teams", teams());

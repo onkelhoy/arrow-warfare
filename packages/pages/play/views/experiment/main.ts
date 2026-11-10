@@ -1,6 +1,6 @@
 // core
 import "@papit/codeblock";
-import { loadText, RULES_DEFAULT, type Damage, type MapKind, type GameState, type MapSize, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
+import { COLOURS, loadText, RULES_DEFAULT, type Damage, type Difficulty, type MapKind, type GameState, type MapSize, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
 import { Sound } from "@arrow-warfare/sound";
 import type { Zone } from "@arrow-warfare/archery";
 
@@ -44,9 +44,23 @@ function start() {
         rounds: 1,
         friendly: true,
         rain: data.get("rain") === "on",
+        bots: Number(data.get("botCount")) || 0,
+        difficulty: (data.get("difficulty") ?? "normal") as Difficulty,
     };
+    // real bots in place of the stand-ins, played by this phone as the host (`?bots=20`)
+    const wanted = Number(new URLSearchParams(location.search).get("bots"));
+    if (wanted && !Number(data.get("botCount"))) state.rules.bots = wanted;
+    const skill = new URLSearchParams(location.search).get("skill");
+    if (skill && data.get("difficulty") === "normal") state.rules.difficulty = skill as Difficulty;
+    if (state.rules.bots)
+    {
+        state.teams = [];
+        state.players = [{ ...state.players[0], team: null }, ...Array.from({ length: state.rules.bots }, (_, i) => ({
+            id: `bot-${i + 1}`, name: `Bot ${i + 1}`, colour: (i + 1) % COLOURS.length, skin: i % 5, ready: true, team: null, ping: 0, bot: true,
+        }))];
+    }
     play = mountPlay(stage, {
-        state, me: "a", host: true, sound, bots: data.get("bots") === "on", contained: true, ruleArrows: true,
+        state, me: "a", host: true, sound, bots: !state.rules.bots && data.get("bots") === "on", contained: true, ruleArrows: true,
         onBack: () => alert("back to the lobby"),
         onEnd: results => console.log("round over", results),
     });

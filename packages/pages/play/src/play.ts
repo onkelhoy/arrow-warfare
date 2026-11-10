@@ -6,7 +6,7 @@ import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
 import { BALLISTICS, Draw, Gun, heading, isBullet, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
 import { adopt, CHAT_LENGTH, COLOURS, people, QUALITY, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
-import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
+import { BOTS_PER_PACKET, packBots, packPose, POSE_RATE, unpackBots, unpackPose, type Pose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
 import { Ambience, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
@@ -14,6 +14,7 @@ import { currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteNa
 
 import { Arrows } from "./arrows";
 import { Blood } from "./blood";
+import { Bots, type Target } from "./bots";
 import { Impacts } from "./impacts";
 import { aim, Film } from "./cinema";
 import { Controls } from "./controls";
@@ -76,6 +77,8 @@ const FINAL_SHOW = 15_000;
 const WALK_UP = 1.6;
 /** Seconds of the spirit leaving my body. */
 const SPIRIT = 1.5;
+/** Metres: bots further from a player are sent to them a third as often. */
+const FAR_BOTS = 45;
 /** The most arrows a dead player drops. */
 const MAX_DROP = 10;
 
@@ -258,6 +261,44 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     /** The players on the network, bots are on the host. */
     const everyone = () => people(state.players).map(other => other.id);
     const broadcast = (type: string, payload: unknown) => net.send(everyone(), type, payload);
+
+    /** The host settles a pick up: the first to ask gets the arrow. */
+    const settlePick = (id: string, by: string) => {
+        if (!host || over) return;
+        const arrow = arrows.all.get(id);
+        if (!arrow || !arrow.rest || arrow.gone || taken.has(id) || dead.has(by) || !player(by)) return;
+        taken.add(id);
+        broadcast("picked", { arrow: id, by });
+    };
+    /** The host settles who takes a fallen player's rounds. */
+    const settleLoot = (from: string, by: string) => {
+        if (!host || over || dead.has(by) || !player(by)) return;
+        const rounds = stashes.get(from);
+        if (!rounds) return;
+        stashes.delete(from);
+        broadcast("looted", { from, by, rounds });
+    };
+
+    /** Everyone standing, for the bots: refreshed once a frame. */
+    let targets: Target[] = [];
+    /** The host plays the bots (guests get them as poses and messages, like players). */
+    const bots = host && state.players.some(other => other.bot) ? new Bots(state, spawns, {
+        field,
+        now: () => net.shared(),
+        targets: () => targets,
+        loose: () => [...arrows.all.values()]
+            .filter(arrow => arrow.rest && arrow.rest.in !== "body" && !arrow.gone && !isBullet(arrow.shot) && !taken.has(arrow.shot.id) && arrow.y - field.height(arrow.x, arrow.z) < 1.6)
+            .map(arrow => ({ id: arrow.shot.id, x: arrow.x, y: arrow.y, z: arrow.z })),
+        stashes: () => [...stashes].flatMap(([id, rounds]) => {
+            const where = rounds > 0 ? rigOf(id)?.where : null;
+            return where ? [{ id, x: where.x, z: where.z }] : [];
+        }),
+        shoot: shot => broadcast("shoot", shot),
+        pick: (bot, arrow) => settlePick(arrow, bot),
+        loot: (bot, from) => settleLoot(from, bot),
+    }) : null;
+    /** Sent by the host for one of its bots. */
+    const forBot = (id: unknown, sender: string) => sender === state.host && typeof id === "string" && !!player(id)?.bot;
 
     /** `at` is placed in 3D, heard from the camera (`listen` each frame), without it it's in my head. */
     const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1) => {
@@ -557,6 +598,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     const unlisten = [
         net.onFast((data, sender) => {
+            // the host's bots, many to a packet
+            const batch = sender === state.host && sender !== me ? unpackBots(data) : null;
+            if (batch)
+            {
+                for (const { n, pose } of batch.bots)
+                {
+                    const id = `bot-${n}`;
+                    if (!player(id)?.bot) continue;
+                    others.receive(id, pose);
+                    if (!dead.has(id)) replay.pose(id, pose);
+                }
+                return;
+            }
             const pose = unpackPose(data);
             if (!pose || !player(sender)) return;
             others.receive(sender, pose);
@@ -564,15 +618,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         }),
 
         net.on("shoot", (shot: Shot, sender) => {
-            if (shot?.by !== sender || !player(sender) || ![shot.time, shot.x, shot.y, shot.z, shot.dx, shot.dy, shot.dz, shot.speed].every(Number.isFinite)) return;
+            if ((shot?.by !== sender && !forBot(shot?.by, sender)) || !player(shot.by) || ![shot.time, shot.x, shot.y, shot.z, shot.dx, shot.dy, shot.dz, shot.speed].every(Number.isFinite)) return;
             if (!arrows.add(shot)) return;
             replay.shot(shot);
-            tally.shot(sender);
-            if (sender !== me) sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], .8);
+            tally.shot(shot.by);
+            if (shot.by !== me) sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], .8);
         }),
 
         net.on("hit", (hit: Hit, sender) => {
-            if (!hit || (hit.victim !== sender && !options.bots) || !ZONES.includes(hit.zone) || typeof hit.part !== "string") return;
+            if (!hit || (hit.victim !== sender && !options.bots && !forBot(hit.victim, sender)) || !ZONES.includes(hit.zone) || typeof hit.part !== "string") return;
             const arrow = arrows.stick(hit.arrow, hit.victim, hit.part, hit.point, hit.direction);
             if (!arrow) return;
             // arcade: every hit kills. Injuries: the head and torso do, arms and legs wound
@@ -588,6 +642,14 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             sound("grunt", hit.at, lethal ? 1 : .7, .9 + Math.random() * .25);
             blood.spray(hit.at, heading(arrow), powerOf(arrow.shot.speed));
             const shooter = arrow.shot.by;
+            // a bot of mine: its wound, or it falls and drops what it had like a player does
+            const left = host ? bots?.hit(victim, hit.zone, shooter, [arrow.shot.x, arrow.shot.y, arrow.shot.z], lethal) : null;
+            if (left)
+            {
+                const way = heading(arrow), power = powerOf(arrow.shot.speed);
+                if (left.arrows > 0) broadcast("drop", { id: victim, x: left.x, y: left.y, z: left.z, count: Math.min(left.arrows, MAX_DROP), time, dx: way[0], dz: way[2], power });
+                if (left.rounds > 0) broadcast("stash", { id: victim, rounds: left.rounds });
+            }
             if (shooter === me && victim !== me)
             {
                 // a strong shot lands harder, a kill harder still
@@ -630,47 +692,39 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (deadPanel.hidden) deadToggle.classList.add("unread");
         }),
 
-        net.on("drop", ({ x, y, z, count, time, dx, dz, power }, sender) => {
-            if (!player(sender) || ![x, z, count].every(Number.isFinite)) return;
+        net.on("drop", ({ id, x, y, z, count, time, dx, dz, power }, sender) => {
+            const owner = forBot(id, sender) ? id as string : sender;
+            if (!player(owner) || ![x, z, count].every(Number.isFinite)) return;
             const blow = [dx, dz, power].every(Number.isFinite) ? { dx, dz, power: Math.max(0, Math.min(1, power)) } : undefined;
             const from = Number.isFinite(time) ? time : net.shared();
-            for (const shot of arrows.drop(sender, x, z, Math.max(0, Math.min(MAX_DROP, Math.floor(count))), from, blow, Number.isFinite(y) ? y : undefined)) replay.shot(shot);
+            for (const shot of arrows.drop(owner, x, z, Math.max(0, Math.min(MAX_DROP, Math.floor(count))), from, blow, Number.isFinite(y) ? y : undefined)) replay.shot(shot);
         }),
 
-                net.on("pick", ({ arrow: id }, sender) => {
-            if (!host || over) return;
-            const arrow = arrows.all.get(id);
-            if (!arrow || !arrow.rest || arrow.gone || taken.has(id) || dead.has(sender) || !player(sender)) return;
-            taken.add(id);
-            broadcast("picked", { arrow: id, by: sender });
-        }),
+                net.on("pick", ({ arrow: id }, sender) => settlePick(id, sender)),
 
         net.on("picked", ({ arrow: id, by }, sender) => {
             if (sender !== state.host) return;
             arrows.remove(id);
             tally.picked(by);
+            if (host) bots?.picked(by);
             if (by !== me) return;
             if (Number.isFinite(quiver)) quiver++;
             sound("pickup");
         }),
 
-        net.on("stash", ({ rounds }, sender) => {
-            if (!player(sender) || !Number.isFinite(rounds) || rounds <= 0) return;
-            stashes.set(sender, Math.min(999, Math.floor(rounds)));
+        net.on("stash", ({ id, rounds }, sender) => {
+            const owner = forBot(id, sender) ? id as string : sender;
+            if (!player(owner) || !Number.isFinite(rounds) || rounds <= 0) return;
+            stashes.set(owner, Math.min(999, Math.floor(rounds)));
         }),
 
-        net.on("loot", ({ from }, sender) => {
-            if (!host || over || dead.has(sender) || !player(sender)) return;
-            const rounds = stashes.get(from);
-            if (!rounds) return;
-            stashes.delete(from);
-            broadcast("looted", { from, by: sender, rounds });
-        }),
+        net.on("loot", ({ from }, sender) => settleLoot(from, sender)),
 
         net.on("looted", ({ from, by, rounds }, sender) => {
             if (sender !== state.host) return;
             stashes.delete(from);
             tally.picked(by);
+            if (host && Number.isFinite(rounds)) bots?.looted(by, rounds);
             if (by !== me || !gun || !Number.isFinite(rounds)) return;
             gun.spare += rounds;
             sound("pickup");
@@ -955,9 +1009,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, blow: myBlow, unarmed: over,
         });
 
+        if (bots) playBots(dt, now);
+
         // arrows, and the bodies my phone judges
         const judge = walker.alive ? [{ id: me, rig: myRig }] : [];
         if (options.bots) judge.push(...others.living.filter(other => !dead.has(other.id)));
+        // the host decides hits on its bots
+        else if (bots) judge.push(...others.living.filter(other => bots.has(other.id) && !dead.has(other.id)));
         const flown = arrows.update(now, judge, friendly ? undefined : (shooter, id) => {
             const team = state.players.find(player => player.id === shooter)?.team;
             return !!team && team === state.players.find(player => player.id === id)?.team;
@@ -991,6 +1049,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         }
         for (const { arrow, kind } of flown.landed)
         {
+            bots?.heard(arrow.shot.by, [arrow.shot.x, arrow.shot.y, arrow.shot.z], [arrow.x, arrow.y, arrow.z]);
             sound(kind === "ground" ? "ground" : "wood", [arrow.x, arrow.y, arrow.z]);
             // a bullet leaves a puff and a hole, an arrow stays in what it hit
             if (isBullet(arrow.shot)) impacts.hit([arrow.x, arrow.y, arrow.z], [arrow.shot.dx, arrow.shot.dy, arrow.shot.dz], kind);
@@ -1074,6 +1133,45 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             net.sendFast(everyone().filter(id => id !== me), packPose(pose));
         }
     };
+    let botsFed = 0, botsSent = 0, botTick = 0;
+    /**
+     * The host's bots, once a frame: they look round and act, their poses go to my own view of them and the
+     * replay, and out to the others, all of them in a packet. A bot far from someone goes to them less often.
+     */
+    const playBots = (dt: number, now: number) => {
+        if (!bots) return;
+        targets = [];
+        if (walker.alive && !dead.has(me) && mine) targets.push({ id: me, x: walker.x, y: walker.y, z: walker.z, team: mine.team, low: walker.posture === "sit" });
+        for (const other of state.players)
+        {
+            if (other.id === me || dead.has(other.id)) continue;
+            const pose = bots.has(other.id) ? bots.pose(other.id, now) : others.poseOf(other.id);
+            if (pose) targets.push({ id: other.id, x: pose.x, y: pose.y, z: pose.z, team: other.team, low: pose.resting || (pose.wounds & 12) === 12 });
+        }
+        if (!over) bots.update(dt);
+        if (now - botsFed >= 1000 / 30)
+        {
+            botsFed = now;
+            for (const bot of bots.living)
+            {
+                const pose = bots.pose(bot.id, now)!;
+                others.receive(bot.id, pose);
+                replay.pose(bot.id, pose);
+            }
+        }
+        if (now - botsSent < 1000 / POSE_RATE) return;
+        botsSent = now;
+        botTick++;
+        const living = bots.living.map(bot => ({ n: bot.n, x: bot.x, z: bot.z, pose: bots.pose(bot.id, now)! }));
+        for (const id of everyone())
+        {
+            if (id === me) continue;
+            const at: Pose | null = others.poseOf(id);
+            // near them every time, further away every third
+            const list = botTick % 3 === 0 || !at ? living : living.filter(bot => Math.hypot(bot.x - at.x, bot.z - at.z) < FAR_BOTS);
+            for (let i = 0; i < list.length; i += BOTS_PER_PACKET) net.sendFast([id], packBots(now, list.slice(i, i + BOTS_PER_PACKET)));
+        }
+    };
     engine.start();
 
     // phones play sideways, a fullscreen page can be held there
@@ -1081,7 +1179,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
     const debug: PlayDebug = {
-        walker, field, draw, arrows, others, hud, replay, film, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, gun, controls, get dead() { return [...dead]; },
+        walker, field, draw, arrows, others, hud, replay, film, bots, tally, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, gun, controls, get dead() { return [...dead]; },
         /** The view's "a bot shoots me": the nearest standing bot sends a strong arrow at my chest. */
         shootMe(by?: string, at = me) {
             const pose = (id: string) => others.poseOf(id);

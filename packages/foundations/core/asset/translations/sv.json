@@ -155,7 +155,8 @@
         "easy": "Lätt",
         "normal": "Normal",
         "hard": "Svår"
-      }
+      },
+      "botsWarn": "Fler än {count} bottar kan få en värdtelefon att hacka, en dator klarar det bättre."
     },
     "colour": {
       "red": "röd",
