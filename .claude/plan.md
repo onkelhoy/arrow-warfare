@@ -3,7 +3,7 @@
 Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models, F21 guns, F22 bots.
 
 ## Where we are
-Branch `bugs` confirmed by the owner and merged to `main`. Now on `engine`. Tasks 5 and 6 done, PR open for the owner to test. Next: branch `maps` once `engine` is merged.
+Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, so `models` is folded in). PR open for the owner to test. Next: branch `guns` once `maps` is merged.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 - One branch per group below so each can be reverted alone: `bugs`, `engine`, `maps`, `models`, `guns`, `bots`.
@@ -21,21 +21,21 @@ Branch `bugs` confirmed by the owner and merged to `main`. Now on `engine`. Task
 6. [x] **Do the swaps worth doing.** The first one is loading `.glb` (vertex colours, no textures) into our renderer, since F19 to F21 need it.
 
 ## Branch `maps` (F19)
-7. [ ] **Asset pipeline:** a script that runs Blender headless (`/Applications/Blender.app`) to turn FBX/OBJ into glb with vertex colours only, no textures. Sources:
+7. [x] **Asset pipeline:** a script that runs Blender headless (`/Applications/Blender.app`) to turn FBX/OBJ into glb with vertex colours only, no textures. Sources:
    - `~/Developer/3d/store/nature`: low poly, untextured. Skip every `_Snow` model and the winter/dead trees for now. It has Corn, Wheat, Lilypad, Rock_Moss, Willow, Birch, Bush and more.
    - `~/Developer/games/pap-adventure/packages/game/assets/asset/models/generated`: buildings (watchtower, farmhouse, cabin, towers, town houses), props, foliage, town.
    - Not the textured packs (Farm/Medieval/Nature MegaKit). Owner wants everything in the same low poly look.
    - Check sizes and triangle counts for phones.
-8. [ ] **Lobby options (Rules):** map field / farm / city; more props; buildings; watch towers. Synced like the other rules.
-9. [ ] **Collision:** buildings, towers, rocks and props block walking (`field.collide`) and arrows (`wall` landings), using boxes or convex shapes (gjk if F18 says so).
-10. [ ] **Field map:** today's meadow plus nature trees, rocks, bushes, and small ponds with lily pads.
-11. [ ] **Farm map:** farmhouse, barn-like buildings, fences, corn and wheat rows. Animals later (owner's call, Farm Animals by Quaternius is in store).
-12. [ ] **City map:** pap-adventure town buildings along streets and squares.
-13. [ ] **Watch towers** placed by the option: climbable, a high point to shoot from.
+8. [x] **Lobby options (Rules):** map field / farm / city; more props; buildings; watch towers. Synced like the other rules.
+9. [x] **Collision:** buildings, towers, rocks and props block walking (`field.collide`) and arrows (`wall` landings), using boxes or convex shapes (gjk if F18 says so).
+10. [x] **Field map:** today's meadow plus nature trees, rocks, bushes, and small ponds with lily pads.
+11. [x] **Farm map:** farmhouse, barn-like buildings, fences, corn and wheat rows. Animals later (owner's call, Farm Animals by Quaternius is in store).
+12. [x] **City map:** pap-adventure town buildings along streets and squares.
+13. [x] **Watch towers** placed by the option: climbable, a high point to shoot from.
 
 ## Branch `models` (F20)
-14. [ ] **Softer shading:** neighbouring faces step too dark. Raise the ambient/hemisphere floor and soften the sun bands (`render/src/shaders.ts:55`). Keep it subtle.
-15. [ ] **New players** in place of floating arms: nicer, same short silly style. First person arms plus the body others see, still rigid parts on the `@papit/armature` rig (D3), working with ragdoll, wounds and the kill cam.
+14. [x] **Softer shading:** neighbouring faces step too dark. Raise the ambient/hemisphere floor and soften the sun bands (`render/src/shaders.ts:55`). Keep it subtle.
+15. [x] **New players** in place of floating arms: nicer, same short silly style. First person arms plus the body others see, still rigid parts on the `@papit/armature` rig (D3), working with ragdoll, wounds and the kill cam.
 
 ## Branch `guns` (F21)
 16. [ ] **Weapon rule** in game setup: bow / revolver / rifle, one weapon for everyone per game.

@@ -84,3 +84,15 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 ### Shot cancels when the thumb doesn't move
 - **What:** hold the bow button and let go without moving: the shot cancels, though the X is far away. Cause not found by reading. Suspect the release arrives as pointercancel/lostpointercapture.
 - **Fixed (bugs branch, confirmed by the owner):** likely iOS taking a still thumb for a long press and cancelling the pointer. Now `touchstart` is prevented on the button, and a cancelled touch waits for the real lift, then only where it lifts decides. Also: a release under `MIN_SHOT` (about 135ms of hold) still lets the bow down without a shot, by design.
+
+### The gltf view never started its engine (fixed on maps)
+- **What:** `render/views/gltf` from the engine branch had no `engine.start()`, so it showed an empty canvas. Fixed, and the new `world/views/models` gallery starts it.
+
+### The rig view's camera looked from under the ground (fixed on maps)
+- **What:** it aimed at y 0.6 while the hills there are higher. It now aims at the ground's height.
+
+### Name tags show through buildings
+- **What:** labels are placed on screen with no test for what's in between, so in the town you can see where someone hides. Not fixed, ask the owner if it should be (a ray against `field.blocks`).
+
+### `preloadModels(Iterable)` broke the world build (the papit bundle-ts bug above)
+- **Workaround:** it takes an array.
