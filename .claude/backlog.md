@@ -251,13 +251,13 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 6. ✅ **Polish** (F16, quality, glb if wanted).
 7. ✅ **World design** (F17): softer, crisper colours after cowboy, lighter shadows, drawn sun and moon, clouds, the missing arm, dropped arrows. The arrow bag moved to later.
 9. ✅ **A connection that holds**: join by code through the lobby, the game survives a lost lobby, reconnects, relays. Owner tests on phones.
+8. ✅ **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
 10. **Bugs**: pickup, stuck strafing, shot cancelling, unlimited arrows default. Branch `bugs`.
 11. **Papit engine** (F18), branch `engine`.
 12. **Maps** (F19), branch `maps`.
 13. **Nicer models** (F20), branch `models`.
 14. **Guns** (F21), branch `guns`.
 15. **Bots** (F22), branch `bots`.
-8. ✅ **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
 
 ---
 
