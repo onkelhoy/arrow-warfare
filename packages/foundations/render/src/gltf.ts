@@ -11,7 +11,12 @@ export type GLTFSetting = {
     tint?: number;
     /** Only the nodes with these names (and what's under them). */
     nodes?: string[];
+    /** One normal per triangle, the low poly look (default). Off keeps the file's (or the loader's smooth) normals. */
+    flat?: boolean;
 };
+
+/** glTF vertex colours are linear, ours (and `MeshBuilder`'s) are sRGB as written. */
+const toSRGB = (value: number) => Math.pow(Math.max(0, Math.min(1, value)), 1 / 2.2);
 
 /** A `.glb` or `.gltf` from a url as one mesh, see `fromGLTF`. */
 export async function loadModel(url: string, setting?: GLTFSetting): Promise<MeshData> {
@@ -37,6 +42,7 @@ export function fromGLTF(gltf: GLTF, setting: GLTFSetting = {}): MeshData {
     const count = parts.reduce((sum, { mesh }) => sum + (mesh.indices?.length ?? mesh.positions.length / 3), 0);
     const vertices = new Float32Array(count * STRIDE);
     const tint = setting.tint ?? 0;
+    const flat = setting.flat ?? true;
     let o = 0;
     for (const { mesh, matrix: m } of parts)
     {
@@ -54,14 +60,32 @@ export function fromGLTF(gltf: GLTF, setting: GLTFSetting = {}): MeshData {
             const wx = n[0] * nx + n[4] * ny + n[8] * nz, wy = n[1] * nx + n[5] * ny + n[9] * nz, wz = n[2] * nx + n[6] * ny + n[10] * nz;
             const length = Math.hypot(wx, wy, wz) || 1;
             vertices[o + 3] = wx / length; vertices[o + 4] = wy / length; vertices[o + 5] = wz / length;
-            vertices[o + 6] = c ? c[i * 4] : 1;
-            vertices[o + 7] = c ? c[i * 4 + 1] : 1;
-            vertices[o + 8] = c ? c[i * 4 + 2] : 1;
+            vertices[o + 6] = c ? toSRGB(c[i * 4]) : 1;
+            vertices[o + 7] = c ? toSRGB(c[i * 4 + 1]) : 1;
+            vertices[o + 8] = c ? toSRGB(c[i * 4 + 2]) : 1;
             vertices[o + 9] = tint;
             o += STRIDE;
         }
     }
+    if (flat) flatten(vertices, count);
     return { vertices, count };
+}
+
+/** Every triangle's three normals set to its face's. */
+function flatten(v: Float32Array, count: number) {
+    for (let t = 0; t < count; t += 3)
+    {
+        const a = t * STRIDE, b = a + STRIDE, c = b + STRIDE;
+        const ux = v[b] - v[a], uy = v[b + 1] - v[a + 1], uz = v[b + 2] - v[a + 2];
+        const wx = v[c] - v[a], wy = v[c + 1] - v[a + 1], wz = v[c + 2] - v[a + 2];
+        let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+        const length = Math.hypot(nx, ny, nz) || 1;
+        nx /= length; ny /= length; nz /= length;
+        for (const o of [a, b, c])
+        {
+            v[o + 3] = nx; v[o + 4] = ny; v[o + 5] = nz;
+        }
+    }
 }
 
 /** A node's own matrix: the file's, or translation, rotation (quaternion) and scale. */

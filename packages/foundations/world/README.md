@@ -25,3 +25,11 @@ engine.add(new Meadow(renderer, field, { palette: currentPalette() }));
 | Models | `roundTree`, `pineTree`, `birchTree`, `grassTuft`, `flower` (petals take the tint), `mushroom`, `stone`, `log`, `stump`, and the stand-in player: `body()` in the clothes tint and `head()` in the skin tint, with `NECK` and `BODY` measures |
 
 Units are metres, y is up, the middle of the meadow is 0, 0. A yaw of 0 faces -z.
+
+## Models from files
+
+`node bin/models.mjs` (add `--force` to redo all) turns the low poly packs into `asset/models/<group>/<name>.glb`, vertex colours only, and writes `src/catalog.ts` with each one's bounds, triangles and size:
+- Quaternius' nature pack (`~/Developer/3d/store/nature/OBJ`): through Blender headless (`bin/blender-glb.py`), the material colour of each face baked into vertex colours, centred, standing on y 0, heavy trees decimated. No snow, dead or winter ones.
+- pap-adventure's generated buildings, props and street tiles: already vertex colour glb, copied.
+
+The textured packs are left out on purpose, everything keeps the same flat look. `BLENDER=/path/to/blender` if it's not in `/Applications`.
