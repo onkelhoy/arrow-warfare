@@ -30,7 +30,7 @@ export function mountKillCam(stage: HTMLElement, sound?: Sound) {
     const camera = new Camera({ fov: 1.1, near: .05, far: 320 });
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
-    const field = new Field({ seed: 3, size: "large", trees: "none" });
+    const field = new Field({ seed: 3, size: "large", trees: "none", buildings: "none", props: "none", towers: "none" });
     engine.add(new Meadow(renderer, field, { palette: "noon", grass: .5 }));
 
     const sfx = sound ? new Sfx(sound) : null;

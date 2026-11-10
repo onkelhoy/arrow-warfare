@@ -79,8 +79,9 @@ function meadow(field: Field, random: Random, scale: number, buildings: number) 
     for (let i = 0, count = Math.max(1, Math.round(1.5 * scale)); i < count; i++)
     {
         const radius = 3 + random() * 2.5;
+        // never in the middle, the views and the first steps are there
         const spot = space(field, random, field.radius - radius - 4, radius + 2);
-        if (spot) pond(field, random, spot[0], spot[1], radius);
+        if (spot && Math.hypot(spot[0], spot[1]) > radius + 6) pond(field, random, spot[0], spot[1], radius);
     }
     for (let i = 0, count = Math.round(buildings * 2 * scale); i < count; i++)
     {

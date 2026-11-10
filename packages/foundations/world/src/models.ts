@@ -140,6 +140,9 @@ export function head(dead = false): MeshData {
     const builder = new MeshBuilder()
         .ball("#ffffff", { at: [0, .22, 0], scale: .24, tint: 1 }, 1)
         .ball("#ffffff", { at: [0, .2, -.24], scale: [.06, .05, .06], tint: 1 }, 0);
+    // ears, and brows over the eyes
+    for (const x of [-.235, .235]) builder.ball("#ffffff", { at: [x, .21, .01], scale: [.035, .055, .045], tint: 1 }, 0);
+    if (!dead) for (const x of [-.08, .08]) builder.box("#4a3322", { at: [x, .335, -.205], roll: x * .8, pitch: -.3, scale: [.07, .018, .02] });
     for (const x of [-.08, .08])
     {
         // a dead one has crossed out eyes
@@ -203,9 +206,12 @@ export function arrow(): MeshData {
     return builder.build();
 }
 
-/** A round hand, the skin from the tint. */
+/** A round hand with a thumb, the skin from the tint. */
 export function hand(): MeshData {
-    return new MeshBuilder().ball("#ffffff", { scale: [.045, .05, .055], tint: 1 }, 1).build();
+    return new MeshBuilder()
+        .ball("#ffffff", { scale: [.045, .05, .055], tint: 1 }, 1)
+        .ball("#ffffff", { at: [.03, .02, -.03], scale: [.018, .018, .026], tint: 1 }, 0)
+        .build();
 }
 
 /** A soft darker grass spot on the grass under a tree or a player, 1 m across. Shadows on the cheap. */

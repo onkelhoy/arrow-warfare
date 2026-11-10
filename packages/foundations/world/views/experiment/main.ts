@@ -36,7 +36,7 @@ function build() {
     if (view === "models")
     {
         // every model side by side on a plain field without trees
-        const field = new Field({ seed: 3, size: "small", trees: "none" });
+        const field = new Field({ seed: 3, size: "small", trees: "none", buildings: "none", props: "none", towers: "none" });
         meadow = engine.add(new Meadow(renderer, field, { palette, grass: .15 }));
         const row = [roundTree(1), roundTree(2), pineTree(1), birchTree(1), log(), stump(), stone(1), mushroom(), flower(), grassTuft(1)];
         row.forEach((mesh, i) => {

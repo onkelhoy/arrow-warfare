@@ -12,7 +12,7 @@ const layer = engine.layers.main;
 const renderer = engine.add(new Renderer(layer));
 const form = document.querySelector("form")!;
 
-const field = new Field({ seed: 3, size: "small", trees: "none" });
+const field = new Field({ seed: 3, size: "small", trees: "none", buildings: "none", props: "none", towers: "none" });
 engine.add(new Meadow(renderer, field, { palette: "noon", grass: .2 }));
 const ground = (x: number, z: number) => field.height(x, z);
 const bodies = new Bodies(renderer);
@@ -81,7 +81,8 @@ engine.add(new class extends GameObject {
 // `?yaw=3&distance=4&x=0&z=-3` to look from elsewhere
 const search = new URLSearchParams(location.search);
 const number = (name: string, fallback: number) => Number(search.get(name) ?? fallback);
-const target = { position: { x: number("x", 0), y: number("y", .6), z: number("z", -1) } };
+const target = { position: { x: number("x", 0), y: 0, z: number("z", -1) } };
+target.position.y = field.height(target.position.x, target.position.z) + number("y", .6);
 layer.camera = new Camera({ far: 400, controllers: [orbit({ target, distance: number("distance", 7), pitch: number("pitch", .35), yaw: number("yaw", .4), max: 30 })] });
 for (const [key, value] of search) {
     const field = form.elements.namedItem(key) as HTMLInputElement | null;
