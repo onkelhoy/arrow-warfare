@@ -75,23 +75,68 @@ function frogs() {
     return normalize(data, .8);
 }
 
-/** Lanterns and fires: small pops, some bigger cracks, and a soft roar under them. */
+/** The fire's own rate: clicks need the highs. */
+export const FIRE_RATE = 32000;
+
+/**
+ * A wood fire: sharp irregular clicks, often in little clusters, a louder snap now and then with a short
+ * woody ring, a faint hiss and a soft breath under it. Its own random numbers, so the other sounds stay as they are.
+ */
 function crackle() {
-    const seconds = 6, fade = .8, data = new Float32Array(seconds * R);
-    const pop = (at, length, volume, freq) => {
-        const band = bandpass(freq, 1.2);
-        stamp(data, at, length, (t, u) => band(white()) * Math.exp(-7 * u) * volume);
+    const F = FIRE_RATE, seconds = 8, data = new Float32Array(seconds * F);
+    let s = 4242;
+    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const noise = () => r() * 2 - 1;
+    const at = (t, length, fn) => {
+        const start = Math.round(t * F), count = Math.max(1, Math.round(length * F));
+        for (let j = 0; j < count; j++) data[(start + j) % data.length] += fn(j / count);
     };
-    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 22) pop(t, between(.002, .006), rnd() ** 3, between(2000, 6000));
-    for (let t = 0; t < seconds; t += -Math.log(1 - rnd()) / 1.6) pop(t, between(.01, .03), between(.5, 1), between(900, 2500));
-    const roar = new Float32Array((seconds + fade) * R), low = lowpass(), lower = lowpass();
-    for (let i = 0; i < roar.length; i++) {
-        const t = i / R;
-        roar[i] = lower(low(white(), 400), 300) * (.7 + .3 * Math.sin(TAU * t * 1.3) * Math.sin(TAU * t * .37)) * 1.6;
+    /** A click: a few ms of noise, its lows taken out, falling fast. */
+    const click = (t, volume, length) => {
+        let low = 0;
+        at(t, length, u => {
+            const x = noise();
+            low += .25 * (x - low);
+            return (x - low) * Math.exp(-9 * u) * volume;
+        });
+    };
+    /** A snap: a click and a short ring of the wood, two resonances. */
+    const snap = (t, volume) => {
+        click(t, volume, .004);
+        const f1 = 1400 + r() * 1600, f2 = f1 * (1.6 + r() * .5), decay = 60 + r() * 60;
+        at(t, .06, u => {
+            const time = u * .06;
+            return (Math.sin(Math.PI * 2 * f1 * time) + .5 * Math.sin(Math.PI * 2 * f2 * time)) * Math.exp(-decay * time) * volume * .35 * (1 + noise() * .3);
+        });
+    };
+    // single clicks, quiet mostly, a few loud
+    for (let t = 0; t < seconds; t += -Math.log(1 - r()) / 9) click(t, .15 + r() ** 3 * .7, .0006 + r() * .0015);
+    // clusters: a handful of clicks within a tenth of a second, as a log splits
+    for (let t = r(); t < seconds; t += -Math.log(1 - r()) / 1.3)
+    {
+        const count = 3 + Math.floor(r() * 7), volume = .3 + r() * .5;
+        for (let k = 0, c = t; k < count; k++, c += .005 + r() * .025) click(c, volume * (.4 + r() * .6), .0005 + r() * .001);
     }
-    const under = loopify(roar, seconds, fade);
-    for (let i = 0; i < data.length; i++) data[i] += under[i];
-    return normalize(data, .8);
+    for (let t = r() * 2; t < seconds; t += 1 + -Math.log(1 - r()) * 1.2) snap(t, .7 + r() * .3);
+    // the hiss and the breath, slowly coming and going, made seamless by wrapping their start into their end
+    let high = 0, low = 0, lower = 0;
+    const bed = new Float32Array(data.length);
+    for (let pass = 0; pass < 2; pass++)
+        for (let i = 0; i < data.length; i++)
+        {
+            const x = noise(), time = i / F;
+            high += .5 * (x - high);
+            low += .02 * (x - low);
+            lower += .02 * (low - lower);
+            const swell = .7 + .3 * Math.sin(Math.PI * 2 * time / 4) * Math.sin(Math.PI * 2 * time / 1.6);
+            // the second pass runs on warm filters, so its start joins the end
+            if (pass) bed[i] = ((x - high) * .035 + lower * 1.4) * swell;
+        }
+    for (let i = 0; i < data.length; i++) data[i] += bed[i];
+    let top = 0;
+    for (const x of data) top = Math.max(top, Math.abs(x));
+    for (let i = 0; i < data.length; i++) data[i] *= .85 / top;
+    return data;
 }
 
 /** One sine call: `notes` of [start, length, from Hz, to Hz, volume], with a soft 2nd harmonic. */
@@ -166,7 +211,7 @@ function thunder(version) {
 
 export const AMBIENCE = {
     frogs: [1, frogs],
-    crackle: [1, crackle],
+    crackle: [1, crackle, FIRE_RATE],
     bird: [6, bird],
     thunder: [2, thunder],
 };

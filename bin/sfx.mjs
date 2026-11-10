@@ -91,11 +91,11 @@ for (const [name, [count, length, voices]] of Object.entries(sounds)) {
 }
 // the ambience: loops and calls, at a lower rate to keep them small (bin/ambience.mjs)
 const { AMBIENCE, AMBIENCE_RATE } = await import("./ambience.mjs");
-for (const [name, [count, make]] of Object.entries(AMBIENCE)) {
+for (const [name, [count, make, rate = AMBIENCE_RATE]] of Object.entries(AMBIENCE)) {
     list[name] = [];
     for (let i = 1; i <= count; i++) {
         const file = `${name}-${i}.wav`;
-        writeFileSync(join(out, file), wav(make(i), AMBIENCE_RATE));
+        writeFileSync(join(out, file), wav(make(i), rate));
         list[name].push(file);
     }
 }
