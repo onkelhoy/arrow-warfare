@@ -2,11 +2,11 @@ import type { Voice } from "@papit/audio";
 import type { Sound, Vec } from "./sound";
 
 /** Metres: a tavern's song starts to be heard here. */
-const REACH = 36;
-/** The first metres in: the game's music drops fast to about half, the tavern comes in a little louder. */
-const EDGE = 5;
-/** Closer than this it's the tavern alone. */
-const INSIDE = 3;
+const REACH = 9;
+/** The first eighth of the reach: the game's music drops fast to about half, the tavern comes in a little louder. */
+const EDGE = REACH / 8;
+/** Closer than this it's the tavern alone: about the tavern's walls (3.5 m from its middle at most). */
+const INSIDE = 4;
 /** How much of the game's music is left past the edge, and how loud the tavern is there. */
 const HALF_MUSIC = .5, EDGE_TAVERN = .6;
 /** Seconds between looking for the nearest tavern. */
