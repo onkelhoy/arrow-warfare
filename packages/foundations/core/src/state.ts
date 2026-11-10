@@ -31,7 +31,11 @@ export type Damage = "arcade" | "injuries";
 /** The light: each player's own clock, or the same hour for everyone. */
 export type TimeOfDay = "clock" | "night" | "dawn" | "noon" | "sunset";
 
+/** One weapon for everyone in a game. */
+export type Weapon = "bow" | "revolver" | "rifle";
+
 export type Rules = {
+    weapon: Weapon;
     /** Arrows per player, 0 is unlimited. */
     arrows: number;
     /** Trees in the meadow, the forest wall is always there. */
@@ -54,13 +58,14 @@ export type Rules = {
 
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
 export const MAP_SIZES: MapSize[] = ["small", "medium", "large"];
+export const WEAPONS: Weapon[] = ["bow", "revolver", "rifle"];
 export const MAP_KINDS: MapKind[] = ["field", "farm", "city"];
 
 export const DAMAGES: Damage[] = ["arcade", "injuries"];
 export const ROUNDS = [1, 3, 5];
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { arrows: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true };
+export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true };
 
 export type GameState = {
     host: string;

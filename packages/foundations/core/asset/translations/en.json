@@ -121,6 +121,13 @@
       "friendly": "Friendly fire",
       "friendlyOn": "On",
       "friendlyOff": "Off: arrows fly through teammates",
+      "weapon": "Weapon",
+      "weapons": {
+        "bow": "Bow",
+        "revolver": "Revolver",
+        "rifle": "Rifle"
+      },
+      "weaponNote": "Everyone gets the same one. Guns have unlimited magazines, no pickups.",
       "mapKind": "Map",
       "maps": {
         "field": "Meadow",

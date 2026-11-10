@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
+import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, WEAPONS, wears, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -74,7 +74,11 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
             </pap-tabpanel>
             <pap-tabpanel value="rules">
                 <div class="aw-form">
-                    <label>${t("rules.arrows")} <select name="arrows">
+                    <label>${t("rules.weapon")} <select name="weapon">
+                        ${WEAPONS.map(weapon => `<option value="${weapon}">${t(`rules.weapons.${weapon}`)}</option>`).join("")}
+                    </select></label>
+                    <p class="aw-dim">${t("rules.weaponNote")}</p>
+                    <label class="aw-arrows">${t("rules.arrows")} <select name="arrows">
                         ${Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("")}
                         <option value="0">${t("rules.unlimited")}</option>
                     </select></label>
@@ -136,6 +140,8 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     const password = find<Field>("pap-input[name=password]");
     const max = find<HTMLSelectElement>("select[name=max]");
     const arrows = find<HTMLSelectElement>("select[name=arrows]");
+    const weapon = find<HTMLSelectElement>("select[name=weapon]");
+    weapon.addEventListener("change", () => actions.rules({ weapon: weapon.value as Weapon }));
     gameName.addEventListener("change", () => actions.game({ name: gameName.value ?? "" }));
     gameName.addEventListener("input", () => actions.game({ name: gameName.value ?? "" }));
     password.addEventListener("input", () => actions.game({ password: password.value ?? "" }));
@@ -300,11 +306,14 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         showTab("invite", !locked);
         showTab("teams", locked);
 
-        for (const field of [gameName, password, max, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly]) field.toggleAttribute("disabled", !host);
+        for (const field of [gameName, password, max, weapon, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly]) field.toggleAttribute("disabled", !host);
         set(gameName, state.name);
         if (!host) set(password, state.password ? "••••" : "");
         set(max, String(state.max));
+        set(weapon, state.rules.weapon ?? RULES_DEFAULT.weapon);
         set(arrows, String(state.rules.arrows ?? ARROWS_DEFAULT));
+        // arrows only count with the bow
+        find(".aw-arrows").style.display = (state.rules.weapon ?? "bow") === "bow" ? "" : "none";
         set(trees, state.rules.trees ?? RULES_DEFAULT.trees);
         set(size, state.rules.size ?? RULES_DEFAULT.size);
         set(map, state.rules.map ?? RULES_DEFAULT.map);

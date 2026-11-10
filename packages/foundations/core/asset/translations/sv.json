@@ -121,6 +121,13 @@
       "friendly": "Vådabeskjutning",
       "friendlyOn": "På",
       "friendlyOff": "Av: pilar flyger genom lagkamrater",
+      "weapon": "Vapen",
+      "weapons": {
+        "bow": "Pilbåge",
+        "revolver": "Revolver",
+        "rifle": "Gevär"
+      },
+      "weaponNote": "Alla får samma. Vapnen har obegränsat med magasin, inget att plocka upp.",
       "mapKind": "Karta",
       "maps": {
         "field": "Äng",
