@@ -54,6 +54,8 @@ Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, 
 21b. [ ] **Shoot through tower railings (unconfirmed, owner 2026-11-10):** the watch tower's fence/railing boxes stop arrows; let shots pass between the rails (thinner blocks, or the railing walk-only).
 21c. [ ] **Walk into ponds (unconfirmed):** ponds are shallow, they shouldn't block walking. Maybe slower and lower in the water.
 21d. [ ] **Bushes block walking (unconfirmed):** today you can stand inside a bush and hide. Bushes block walking (arrows still go through, `soft`).
+21e. [ ] **More Plant_1 and Plant_4 (unconfirmed, owner 2026-11-10):** Plant_4 barely shows up today, more of both.
+21f. [ ] **Lily pads above the water (unconfirmed):** the water covers the leaves (owner's screenshot on the Desktop). Raise them to the water's surface.
 
 ## Branch `bots` (F22)
 22. [ ] **Rules:** bot count 0–100 and difficulty easy / normal / hard. The host runs the bots as fake players (own ids, colours, names), sending poses and events like a real player, so guests need no changes. Playing alone with bots must work.
