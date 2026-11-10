@@ -38,6 +38,8 @@ export type Rules = {
     weapon: Weapon;
     /** Arrows per player, 0 is unlimited. */
     arrows: number;
+    /** With a gun: spare rounds per player on top of a full gun, 0 is unlimited. */
+    ammo: number;
     /** Trees in the meadow, the forest wall is always there. */
     trees: TreeAmount;
     size: MapSize;
@@ -59,13 +61,15 @@ export type Rules = {
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
 export const MAP_SIZES: MapSize[] = ["small", "medium", "large"];
 export const WEAPONS: Weapon[] = ["bow", "revolver", "rifle"];
+/** Spare rounds to choose from, 0 is unlimited. */
+export const AMMO = [0, 6, 12, 24, 48];
 export const MAP_KINDS: MapKind[] = ["field", "farm", "city"];
 
 export const DAMAGES: Damage[] = ["arcade", "injuries"];
 export const ROUNDS = [1, 3, 5];
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true };
+export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true };
 
 export type GameState = {
     host: string;

@@ -207,7 +207,11 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const local = ["localhost", "127.0.0.1"].includes(location.hostname) && !options.ruleArrows;
     // a gun for everyone instead of the bow: unlimited magazines, no arrows at all
     const weapon = state.rules.weapon ?? "bow";
-    const gun = weapon === "bow" ? null : new Gun(weapon);
+    const gun = weapon === "bow" ? null : new Gun(weapon, local ? 0 : state.rules.ammo ?? 0);
+    /** Rounds the fallen left on them, by player, for anyone to take (limited ammo only). */
+    const stashes = new Map<string, number>();
+    /** The stashes I asked the host for, not asked again. */
+    const asked = new Set<string>();
     let quiver = gun ? 0 : state.rules.arrows > 0 && !local ? state.rules.arrows : Infinity;
     // how others hold it: the other hand on the rifle's fore end, cupping the revolver's grip
     Rig.held = gun ? { fore: gun.kind === "rifle" ? [0, -.006, -.4] : [-.03, -.04, .01] } : null;
@@ -641,6 +645,30 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             sound("pickup");
         }),
 
+        net.on("stash", ({ rounds }, sender) => {
+            if (!player(sender) || !Number.isFinite(rounds) || rounds <= 0) return;
+            stashes.set(sender, Math.min(999, Math.floor(rounds)));
+        }),
+
+        net.on("loot", ({ from }, sender) => {
+            if (!host || over || dead.has(sender) || !player(sender)) return;
+            const rounds = stashes.get(from);
+            if (!rounds) return;
+            stashes.delete(from);
+            broadcast("looted", { from, by: sender, rounds });
+        }),
+
+        net.on("looted", ({ from, by, rounds }, sender) => {
+            if (sender !== state.host) return;
+            stashes.delete(from);
+            tally.picked(by);
+            if (by !== me || !gun || !Number.isFinite(rounds)) return;
+            gun.spare += rounds;
+            sound("pickup");
+            // an empty gun loads straight away
+            if (gun.rounds <= 0 && gun.reload()) sound("reload", undefined, .8);
+        }),
+
         net.on("over", ({ winner: won, last }, sender) => {
             if (sender !== state.host || over) return;
             over = true;
@@ -743,6 +771,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const killer = arrows.all.get(hit.arrow);
         const way = killer ? heading(killer) : [0, 0, 0];
         const time = Number.isFinite(hit.time) ? hit.time : net.shared();
+        if (gun && Number.isFinite(gun.spare) && gun.total > 0) broadcast("stash", { rounds: gun.total });
         if (left > 0) broadcast("drop", { x: walker.x, y: walker.y, z: walker.z, count: Math.min(left, MAX_DROP), time, dx: way[0], dz: way[2], power: killer ? powerOf(killer.shot.speed) : 0 });
         quiver = 0;
         walker.alive = false;
@@ -770,6 +799,29 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         sound("pant", undefined, .5);
     };
     hud.onPull = pullOut;
+
+    /** The nearest fallen player in reach with rounds on them, and where they are on screen (limited ammo only). */
+    const lootInReach = () => {
+        if (!gun || !Number.isFinite(gun.spare) || !walker.alive || over || view !== "play") return null;
+        let found: { id: string; screen: [number, number] | null } | null = null, best = 2.2;
+        for (const [id, rounds] of stashes)
+        {
+            const body = rigOf(id)?.where;
+            if (!rounds || !body || asked.has(id)) continue;
+            const distance = Math.hypot(body.x - walker.x, body.z - walker.z);
+            if (distance >= best) continue;
+            best = distance;
+            found = { id, screen: onScreen([body.x, body.y + .3, body.z]) };
+        }
+        return found;
+    };
+    /** Asks the host for a fallen player's rounds, once. */
+    const take = (id: string) => {
+        if (asked.has(id)) return;
+        asked.add(id);
+        net.send([state.host], "loot", { from: id });
+    };
+    hud.onPrompt = () => controls.take();
 
     // ------------------------------------------------------------------ every frame
 
@@ -815,7 +867,14 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const want = alive && (controls.thumb || controls.space);
         if (gun)
         {
+            // a click on a fallen player's rounds takes them, any other fires
             let pulls = controls.triggers();
+            for (let i = controls.mouseClicks(); i > 0; i--)
+            {
+                const looked = lootInReach();
+                if (looked && looked.screen && Math.hypot(looked.screen[0] - play.clientWidth / 2, looked.screen[1] - play.clientHeight / 2) < Math.max(60, play.clientHeight * .14)) take(looked.id);
+                else pulls++;
+            }
             const reloads = controls.reloads();
             if (!alive) pulls = 0;
             for (; pulls > 0; pulls--)
@@ -825,7 +884,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 else if (event === "empty")
                 {
                     sound("empty");
-                    sound("reload", undefined, .8);
+                    if (gun.reloading > 0) sound("reload", undefined, .8);
                 }
             }
             if (alive && reloads && gun.reload()) sound("reload", undefined, .8);
@@ -938,6 +997,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (view !== "play" && taps.length) tapped();
         for (const [x, y] of taps)
         {
+            // a tap on a fallen player with rounds on them
+            const looked = gun ? lootInReach() : null;
+            if (looked?.screen && Math.hypot(looked.screen[0] - x, looked.screen[1] - y) < radius) take(looked.id);
             if (!canPick) continue;
             const id = arrows.pickable(x, y, radius, walker.body, now, camera, width, height, rigOf);
             if (id) net.send([state.host], "pick", { arrow: id });
@@ -945,8 +1007,20 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         hud.pickable(!gun && canPick && controls.locked && !!arrows.pickable(width / 2, height / 2, radius * .6, walker.body, now, camera, width, height, rigOf));
         for (let i = controls.pulls(); i > 0; i--) pullOut();
 
+        // what's in reach to pick up, shown as a prompt: a fallen player's rounds, or an arrow at my feet.
+        // With unlimited rounds or arrows there's nothing to pick up
+        const loot = lootInReach()?.id ?? null;
+        let arrowNear: string | null = null;
+        if (canPick && !gun && Number.isFinite(quiver)) arrowNear = arrows.pickable(width / 2, height, 0, walker.body, now, camera, width, height, rigOf);
+        hud.prompt(loot ? t("hud.pickAmmo") : arrowNear ? t("hud.pickArrow") : "");
+        for (let i = controls.takes(); i > 0; i--)
+        {
+            if (loot) take(loot);
+            else if (arrowNear) net.send([state.host], "pick", { arrow: arrowNear });
+        }
+
         deadChat.hidden = walker.alive;
-        if (gun) hud.rounds(gun.rounds, gun.spec.magazine, gun.reloading > 0);
+        if (gun) hud.rounds(gun.rounds, gun.spec.magazine, gun.reloading > 0, gun.spare);
         else hud.arrows(quiver);
         hud.kills(kills);
         hud.tired(draw.tunnel);
@@ -991,7 +1065,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
     const debug: PlayDebug = {
-        walker, field, draw, arrows, others, hud, replay, film, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
+        walker, field, draw, arrows, others, hud, replay, film, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, gun, controls, get dead() { return [...dead]; },
         /** The view's "a bot shoots me": the nearest standing bot sends a strong arrow at my chest. */
         shootMe(by?: string, at = me) {
             const pose = (id: string) => others.poseOf(id);
@@ -1011,6 +1085,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             replay.shot(shot);
             tally.shot(bot);
             sound(gun ? "gunshot" : "twang", start, .8);
+        },
+        /** The view: rounds left on a fallen stand-in, as a player leaves them when they die. */
+        stash(id: string, rounds: number) {
+            stashes.set(id, rounds);
         },
         /** The view's "injure me": a wound as if an arrow went in, or `null` heals everything. */
         injure(zone: Zone | null) {

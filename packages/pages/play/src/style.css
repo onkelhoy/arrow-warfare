@@ -264,6 +264,26 @@
     cursor: pointer;
 }
 
+.aw-hud-prompt {
+    position: absolute;
+    inset: auto auto calc(max(14px, env(safe-area-inset-bottom)) + 84px) 50%;
+    translate: -50% 0;
+    pointer-events: auto;
+    padding: 6px 14px;
+    border: 0;
+    background: none;
+    color: white;
+    font: inherit;
+    font-size: 1.1em;
+    text-shadow: 0 1px 4px rgb(0 0 0 / 70%);
+    cursor: pointer;
+    animation: aw-prompt 1.6s ease-in-out infinite;
+}
+
+@keyframes aw-prompt {
+    50% { opacity: .75; }
+}
+
 .aw-hud-marker {
     position: absolute;
     inset: 50% auto auto 50%;

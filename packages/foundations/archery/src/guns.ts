@@ -3,8 +3,8 @@ export type GunKind = "revolver" | "rifle";
 
 /**
  * Rounds in a full gun, seconds to reload (the length of the model's reload), the least seconds between
- * shots (the hammer, the bolt), and the kick up the view gives (radians). Magazines are unlimited: a reload
- * always fills the gun, there's nothing to pick up.
+ * shots (the hammer, the bolt), and the kick up the view gives (radians). Spare rounds are unlimited unless
+ * the rule says (`Gun.spare`): then a reload takes what's left, and a fallen player's rounds can be taken.
  */
 export const GUNS: Record<GunKind, { magazine: number; reload: number; interval: number; kick: number }> = {
     revolver: { magazine: 6, reload: 1.9, interval: .4, kick: .035 },
@@ -16,13 +16,22 @@ export type GunEvent = "shot" | "empty" | "reloaded" | null;
 /** One player's gun: the rounds in it, a reload under way, the hammer or bolt between shots. */
 export class Gun {
     rounds: number;
+    /** Rounds to reload from, `Infinity` for unlimited. */
+    spare: number;
     /** Seconds left of a reload, 0 when not reloading. */
     reloading = 0;
     /** Seconds until the next shot can go. */
     private wait = 0;
 
-    constructor(readonly kind: GunKind) {
+    /** `spare` rounds on top of a full gun, 0 is unlimited. */
+    constructor(readonly kind: GunKind, spare = 0) {
         this.rounds = GUNS[kind].magazine;
+        this.spare = spare > 0 ? spare : Infinity;
+    }
+
+    /** Every round I have, loaded or not (what I leave behind). */
+    get total() {
+        return this.rounds + this.spare;
     }
 
     get spec() {
@@ -40,6 +49,7 @@ export class Gun {
         if (this.rounds <= 0)
         {
             this.reload();
+            this.wait = .25;
             return "empty";
         }
         this.rounds--;
@@ -49,7 +59,7 @@ export class Gun {
 
     /** Starts a reload unless the gun is full or one's under way. Returns whether it started. */
     reload() {
-        if (this.reloading > 0 || this.rounds >= this.spec.magazine) return false;
+        if (this.reloading > 0 || this.rounds >= this.spec.magazine || this.spare <= 0) return false;
         this.reloading = this.spec.reload;
         return true;
     }
@@ -65,7 +75,9 @@ export class Gun {
         this.reloading -= dt;
         if (this.reloading > 0) return null;
         this.reloading = 0;
-        this.rounds = this.spec.magazine;
+        const take = Math.min(this.spec.magazine - this.rounds, this.spare);
+        this.rounds += take;
+        this.spare -= take;
         return "reloaded";
     }
 }

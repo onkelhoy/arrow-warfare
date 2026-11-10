@@ -26,6 +26,7 @@ export class Hud {
     private figure: HTMLElement;
     private energyBar: HTMLElement;
     private pullButton: HTMLButtonElement;
+    private promptButton: HTMLButtonElement;
     private shown = { arrows: "", left: "", tunnel: -1, damage: -1, wounds: -1, energy: -1, pull: -1, kills: -1, watch: "" };
 
     constructor(root: HTMLElement) {
@@ -53,6 +54,7 @@ export class Hud {
                 <div class="aw-hud-energy" role="meter" aria-label="${t("hud.energy")}"><i></i></div>
             </div>
             <button class="aw-hud-pull" type="button" hidden></button>
+            <button class="aw-hud-prompt" type="button" hidden></button>
             <div class="aw-hud-banner" role="status" hidden></div>
         `;
         root.append(this.element);
@@ -72,10 +74,26 @@ export class Hud {
         this.energyBar = find(".aw-hud-energy");
         this.pullButton = find(".aw-hud-pull") as HTMLButtonElement;
         this.pullButton.addEventListener("click", () => this.onPull?.());
+        this.promptButton = find(".aw-hud-prompt") as HTMLButtonElement;
+        this.promptButton.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.onPrompt?.();
+        });
     }
 
     /** The pull out button was pressed. */
     onPull: (() => void) | null = null;
+    /** The "pick up" prompt was pressed. */
+    onPrompt: (() => void) | null = null;
+
+    /** "Pick up arrow" or "Pick up ammo" when there's one in reach, empty hides it. */
+    prompt(text: string) {
+        const shown = text ? text + (matchMedia("(pointer: coarse)").matches ? "" : ` · ${t("hud.pickClick")}`) : "";
+        if (shown === this.promptButton.textContent && this.promptButton.hidden === !text) return;
+        this.promptButton.hidden = !text;
+        this.promptButton.textContent = shown;
+    }
 
     /** Hits taken: the edges darken a little more with each, and redden. */
     damage(hits: number) {
@@ -127,9 +145,11 @@ export class Hud {
     }
 
     /** A gun's rounds out of a full one, or that it's reloading. Empty asks for a reload. */
-    rounds(count: number, magazine: number, reloading: boolean) {
+    rounds(count: number, magazine: number, reloading: boolean, spare = Infinity) {
         const coarse = matchMedia("(pointer: coarse)").matches;
-        const text = reloading ? t("hud.reloading") : `<b>${count}</b>/${magazine} ${t("hud.rounds")}${count === 0 && !coarse ? ` · ${t("hud.reloadKey")}` : ""}`;
+        const extra = Number.isFinite(spare) ? ` · ${t("hud.ammo", { count: String(spare) })}` : "";
+        const out = count === 0 && spare <= 0;
+        const text = reloading ? t("hud.reloading") : out ? t("hud.noAmmo") : `<b>${count}</b>/${magazine} ${t("hud.rounds")}${extra}${count === 0 && !coarse ? ` · ${t("hud.reloadKey")}` : ""}`;
         if (text === this.shown.arrows) return;
         this.shown.arrows = text;
         this.quiver.innerHTML = text;

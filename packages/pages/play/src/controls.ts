@@ -24,8 +24,9 @@ type Looker = { x: number; y: number; startX: number; startY: number; at: number
  * What the player asks for, from any device. Touch: the joystick on the left moves, dragging anywhere else
  * looks, holding the bow button draws (by time) and aims, letting go shoots (or cancels on the moved button), a tap picks up. Desktop: click to lock the mouse and look, WASD or
  * the arrows to walk, hold space to draw, click to pick up, E pulls an arrow out of myself.
- * With a gun (`gun`): the bow button is the trigger (press fires, the thumb still aims) with a reload button
- * above it; on a computer a click or space fires and R reloads.
+ * With a gun (`gun`): the bow button is the trigger (press fires, the thumb still aims) with a reload and an
+ * aim button beside it; on a computer a click or space fires (a click on what can be taken takes it), R
+ * reloads, the right button held or Q aims.
  */
 export class Controls {
     /** Looking turned this much since the last `look()`, in radians before sensitivity. */
@@ -50,6 +51,17 @@ export class Controls {
     /** Trigger presses (a click with the mouse locked, the button, space), and reloads asked for (R, the button), since the last calls. */
     private clicked = 0;
     private reloaded = 0;
+    /** The prompt pressed since the last `takes()`. */
+    private taken = 0;
+    /** Clicks with the mouse locked and a gun: the game decides, taking what's looked at or firing. */
+    private mouseClicked = 0;
+
+    /** Clicks since the last call, see `mouseClicked`. */
+    mouseClicks() {
+        const clicked = this.mouseClicked;
+        this.mouseClicked = 0;
+        return clicked;
+    }
     /** The reload button, touch only, shown with a gun. */
     readonly reloadButton: HTMLButtonElement;
     /** A gun instead of the bow: clicks fire rather than pick up. */
@@ -143,6 +155,18 @@ export class Controls {
         return clicked;
     }
 
+    /** Taking (F, or the prompt) since the last call. */
+    takes() {
+        const taken = this.taken;
+        this.taken = 0;
+        return taken;
+    }
+
+    /** The "pick up" prompt was pressed. */
+    take() {
+        this.taken++;
+    }
+
     /** Reloads asked for since the last call. */
     reloads() {
         const reloaded = this.reloaded;
@@ -221,7 +245,7 @@ export class Controls {
                 return;
             }
             if (!this.locked) this.surface.requestPointerLock?.()?.catch?.(() => undefined);
-            else if (event.button === 0 && this.gun) this.clicked++;
+            else if (event.button === 0 && this.gun) this.mouseClicked++;
             else if (event.button === 0)
             {
                 const box = this.surface.getBoundingClientRect();
@@ -289,6 +313,16 @@ export class Controls {
             return;
         }
         const key = event.key.toLowerCase();
+        if (key === "q")
+        {
+            // aiming on and off, for a mouse that can't hold the right button and click
+            if (event.type === "keydown" && !event.repeat && this.gun)
+            {
+                this.aimOn = !this.aimOn;
+                this.aimButton.toggleAttribute("on", this.aimOn);
+            }
+            return;
+        }
         if (key === "r")
         {
             if (event.type === "keydown" && !event.repeat) this.reloaded++;

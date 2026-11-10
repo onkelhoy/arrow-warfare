@@ -32,6 +32,7 @@ function start() {
     state.rules = {
         weapon: (new FormData(form).get("weapon") ?? "bow") as Weapon,
         arrows: Number(data.get("arrows")),
+        ammo: Number(data.get("ammo")),
         trees: data.get("trees") as TreeAmount,
         size: data.get("size") as MapSize,
         map: data.get("map") as MapKind,
