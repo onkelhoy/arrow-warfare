@@ -118,6 +118,15 @@ export function layout(field: Field, random: Random, setting: FieldSetting) {
 
 // ------------------------------------------------------------------ the maps
 
+function hasTavern(field: Field) {
+    return field.models.some(one => one.model === "buildings/tavern");
+}
+
+/** Out in the country, often one tavern among the houses (the first house, if there isn't one yet). */
+function countryTavern(field: Field, random: Random): ModelName | null {
+    return !hasTavern(field) && random() < .45 ? "buildings/tavern" : null;
+}
+
 /** The meadow with ponds and lily pads, and a few cottages if buildings are on. */
 function meadow(field: Field, random: Random, scale: number, buildings: number) {
     for (let i = 0, count = Math.max(1, Math.round(1.5 * scale)); i < count; i++)
@@ -130,7 +139,7 @@ function meadow(field: Field, random: Random, scale: number, buildings: number) 
     for (let i = 0, count = Math.round(buildings * 2 * scale); i < count; i++)
     {
         const spot = space(field, random, field.radius - 8, 5);
-        if (spot) house(field, random, pick(random, COUNTRY_HOUSES), spot[0], spot[1], random() * Math.PI * 2);
+        if (spot) house(field, random, countryTavern(field, random) ?? pick(random, COUNTRY_HOUSES), spot[0], spot[1], random() * Math.PI * 2);
     }
 }
 
@@ -172,7 +181,7 @@ function farm(field: Field, random: Random, scale: number, buildings: number) {
     for (let i = 0, count = Math.round(buildings * 1.5 * scale); i < count; i++)
     {
         const spot = space(field, random, field.radius - 8, 5);
-        if (spot) house(field, random, pick(random, [...BARNS, ...COUNTRY_HOUSES]), spot[0], spot[1], turn + Math.round(random() * 4) * Math.PI / 2);
+        if (spot) house(field, random, countryTavern(field, random) ?? pick(random, [...BARNS, ...COUNTRY_HOUSES]), spot[0], spot[1], turn + Math.round(random() * 4) * Math.PI / 2);
     }
 }
 
@@ -295,7 +304,9 @@ function city(field: Field, random: Random, buildings: number, props: number) {
                 }
                 const fits = TOWN_HOUSES.filter(model => sizeOf(model).width * .92 <= end - along);
                 if (!fits.length) break;
-                const model = pick(random, fits), size = sizeOf(model);
+                // a tavern in most towns: its music plays from it
+                const tavern = fits.includes("buildings/tavern") && !hasTavern(field) && random() < .6;
+                const model = tavern ? "buildings/tavern" : pick(random, fits), size = sizeOf(model);
                 const width = size.width * .92, depth = size.depth;
                 const back = half + .5 + depth / 2;
                 const x = px + ux * (along + width / 2) + nx * back, z = pz + uz * (along + width / 2) + nz * back;

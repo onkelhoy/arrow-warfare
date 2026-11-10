@@ -23,7 +23,7 @@ export type FieldSetting = {
 /** Metres from the middle to the forest edge. */
 /** Metres between sides on a spawn ring, at least. */
 const SPACING = 7;
-export const RADIUS: Record<MapSize, number> = { small: 28, medium: 42, large: 60 };
+export const RADIUS: Record<MapSize, number> = { small: 28, medium: 42, large: 80 };
 /** Meadow trees per square metre. */
 const TREES: Record<TreeAmount, number> = { none: 0, few: .0025, many: .008 };
 /** How deep the forest wall is. */
