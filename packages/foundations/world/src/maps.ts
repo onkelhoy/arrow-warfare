@@ -416,6 +416,8 @@ function bush(field: Field, random: Random, x: number, z: number) {
 }
 
 function tree(field: Field, random: Random, x: number, z: number, model = pick(random, TREES)) {
+    if (field.crowded(x, z)) return;
+    field.treeSpots.push({ x, z });
     const scale = 1.35 + random() * .4;
     place(field, model, x, z, random() * Math.PI * 2, scale, field.height(x, z) - .1, NATURE_BRIGHT);
     field.obstacles.push({ x, z, radius: .22 * scale, height: sizeOf(model).height * scale * .7 });

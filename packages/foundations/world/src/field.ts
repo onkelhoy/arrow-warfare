@@ -88,6 +88,8 @@ export class Field {
     readonly patches: Patch[] = [];
     readonly streets: Street[] = [];
     readonly junctions: Junction[] = [];
+    /** Where the maps' model trees stand, so no tree grows into another. */
+    readonly treeSpots: { x: number; z: number }[] = [];
     /** Places taken by something big (buildings, ponds, streets), so the small things keep out. */
     readonly taken: { x: number; z: number; radius: number }[] = [];
     /** How rolling the ground is, 1 is the meadow. */
@@ -111,7 +113,7 @@ export class Field {
         for (let tries = 0; this.trees.length < wanted && tries < wanted * 30; tries++)
         {
             const [x, z] = inDisc(random, r - 3);
-            if (this.trees.some(tree => (tree.x - x) ** 2 + (tree.z - z) ** 2 < 25) || !this.open(x, z, 1.5)) continue;
+            if (this.crowded(x, z) || !this.open(x, z, 1.5)) continue;
             this.trees.push(this.tree(random, x, z));
         }
 
@@ -242,6 +244,11 @@ export class Field {
         for (const pond of this.ponds) if ((pond.x - x) ** 2 + (pond.z - z) ** 2 < (pond.radius + space) ** 2) return false;
         for (const block of this.blocks) if (inside(block, x, z, space)) return false;
         return true;
+    }
+
+    /** Whether a tree at `x, z` would stand closer than 5 m to another, the meadow's or a model. */
+    crowded(x: number, z: number) {
+        return [...this.trees, ...this.treeSpots].some(tree => (tree.x - x) ** 2 + (tree.z - z) ** 2 < 25);
     }
 
     /** The colour of a dirt patch at `x, z`, or null for the meadow's own. */

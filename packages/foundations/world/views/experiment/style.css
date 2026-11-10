@@ -44,3 +44,13 @@ canvas {
         inline-size: 6rem;
     }
 }
+
+.tip {
+    position: fixed;
+    pointer-events: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: oklch(20% 0 0 / .8);
+    color: white;
+    font: 12px ui-monospace, monospace;
+}

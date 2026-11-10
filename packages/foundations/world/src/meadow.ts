@@ -93,7 +93,7 @@ export class Meadow extends GameObject {
         this.ready = Promise.all([...byModel].map(async ([model, all]) => {
             const mesh = await fileModel(model);
             if (!mesh || this.gone) return;
-            const batch = renderer.batch(mesh, { capacity: all.length, sway: /Corn|Wheat/.test(model) ? .04 : 0, twoSided: model.startsWith("buildings/") });
+            const batch = renderer.batch(mesh, { capacity: all.length, sway: /Corn|Wheat/.test(model) ? .04 : 0, twoSided: true });
             for (const one of all) batch.add(one.x, one.y, one.z, one.yaw, one.scale, WHITE, one.bright ?? 1);
             this.batches.push(batch);
         })).then(() => undefined);

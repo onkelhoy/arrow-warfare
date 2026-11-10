@@ -200,7 +200,6 @@ def convert(source, target, keep, scale):
         v.co.y -= shift[1]
         v.co.z -= shift[2]
 
-    print(f"blender-glb: {source.split('/')[-1]} turned {outward(model)}")
     bpy.ops.export_scene.gltf(
         filepath=target,
         export_format="GLB",
