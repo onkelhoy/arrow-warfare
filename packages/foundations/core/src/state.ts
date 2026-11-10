@@ -23,6 +23,8 @@ export type Team = { id: string; colour: number; ideas: Idea[] };
 
 export type TreeAmount = "none" | "few" | "many";
 export type MapSize = "small" | "medium" | "large";
+/** The kind of place: the meadow, a farm with fields and barns, or a town of streets. */
+export type MapKind = "field" | "farm" | "city";
 
 /** Arcade: any hit kills. Injuries: the head and torso kill, arms and legs wound. */
 export type Damage = "arcade" | "injuries";
@@ -35,6 +37,13 @@ export type Rules = {
     /** Trees in the meadow, the forest wall is always there. */
     trees: TreeAmount;
     size: MapSize;
+    map: MapKind;
+    /** Rocks, bushes, carts, barrels: cover to hide behind. */
+    props: TreeAmount;
+    /** Houses and barns, on top of what the map has of its own. */
+    buildings: TreeAmount;
+    /** Climbable watch towers to shoot down from. */
+    towers: TreeAmount;
     damage: Damage;
     time: TimeOfDay;
     /** Rounds in a match: 1, or best of 3 or 5. */
@@ -45,12 +54,13 @@ export type Rules = {
 
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
 export const MAP_SIZES: MapSize[] = ["small", "medium", "large"];
+export const MAP_KINDS: MapKind[] = ["field", "farm", "city"];
 
 export const DAMAGES: Damage[] = ["arcade", "injuries"];
 export const ROUNDS = [1, 3, 5];
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { arrows: 0, trees: "few", size: "medium", damage: "injuries", time: "clock", rounds: 1, friendly: true };
+export const RULES_DEFAULT: Rules = { arrows: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true };
 
 export type GameState = {
     host: string;

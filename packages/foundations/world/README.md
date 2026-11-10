@@ -20,8 +20,19 @@ engine.add(new Meadow(renderer, field, { palette: currentPalette() }));
 | Part | What it does |
 | --- | --- |
 | `Field` | Circular meadow of `RADIUS[size]` metres, forest wall around it. `height(x, z)`, `collide(x, z, radius)` pushes a circle out of trunks, logs and stumps and back inside the edge, `spawns(players)` gives each player a start spread on a ring, teams together, facing in. Lists of `trees`, `wall`, `grass`, `flowers`, `mushrooms`, `stones`, `logs`, `stumps`, `obstacles` |
+| Maps (`maps.ts`) | `map: "field" \| "farm" \| "city"` with `props`, `buildings`, `towers` (none, few, many). Meadow: ponds with lily pads, cottages. Farm: a yard with the farmhouse, a barn and a well, fenced corn and wheat on dirt. Town: cobbled streets in a grid, houses facing them, a square with stalls. Everything from files is in `models` (`Placed`), drawn by `Meadow` once loaded |
+| Blocks, floors, ladders | `blocks` are turned boxes that stop walking (`collide(x, z, radius, y)`, skipped when under the feet or over the head) and arrows. `floor(x, z, y)` is the ground or a platform to stand on. `ladders`: climb a watch tower by walking into it. `flats` level the ground under buildings, `ponds` dig bowls |
+| `fileModel(name)`, `preloadModels`, `CATALOG` | Models from `asset/models`, loaded once |
 | `Meadow` | A game object: the ground and every model as batches, the light of a palette, fireflies at night. `destroy` (or `engine.remove`) takes it all off the renderer |
 | `PALETTES`, `paletteAt(hour)`, `currentPalette()` | Night, dawn, noon and sunset, picked by the player's own clock like cowboy. `?palette=sunset` picks one |
 | Models | `roundTree`, `pineTree`, `birchTree`, `grassTuft`, `flower` (petals take the tint), `mushroom`, `stone`, `log`, `stump`, and the stand-in player: `body()` in the clothes tint and `head()` in the skin tint, with `NECK` and `BODY` measures |
 
 Units are metres, y is up, the middle of the meadow is 0, 0. A yaw of 0 faces -z.
+
+## Models from files
+
+`node bin/models.mjs` (add `--force` to redo all) turns the low poly packs into `asset/models/<group>/<name>.glb`, vertex colours only, and writes `src/catalog.ts` with each one's bounds, triangles and size:
+- Quaternius' nature pack (`~/Developer/3d/store/nature/OBJ`): through Blender headless (`bin/blender-glb.py`), the material colour of each face baked into vertex colours, centred, standing on y 0, heavy trees decimated. No snow, dead or winter ones.
+- pap-adventure's generated buildings, props and street tiles: already vertex colour glb, copied.
+
+The textured packs are left out on purpose, everything keeps the same flat look. `BLENDER=/path/to/blender` if it's not in `/Applications`.

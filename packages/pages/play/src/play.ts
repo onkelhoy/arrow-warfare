@@ -26,6 +26,7 @@ const WIDE = 1.6;
 import { Replay } from "./replay";
 import { Walker } from "./walker";
 import sheet from "./style.css" with { type: "css" };
+import { footing } from "./footing";
 
 /** What play needs from the network. Without it (the view) everything stays on this phone. */
 export type PlayNet = {
@@ -123,7 +124,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
 
-    const field = new Field({ seed: state.seed, size: state.rules.size, trees: state.rules.trees });
+    const field = new Field({ seed: state.seed, ...state.rules });
     const coarse = matchMedia("(pointer: coarse)").matches;
     // the rule's time of day, or my own clock
     const time = state.rules.time;
@@ -139,7 +140,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const friendly = state.rules.friendly !== false;
     const wounds = new Wounds();
     // my own body, never drawn: hits on me are judged against it, as others see it
-    const myRig = new Rig((x, z) => field.height(x, z));
+    const myRig = footing(field);
     const rigOf = (id: string) => id === me ? myRig : others.rigOf(id);
 
     const player = (id: string) => state.players.find(other => other.id === id);
@@ -589,11 +590,11 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (deadPanel.hidden) deadToggle.classList.add("unread");
         }),
 
-        net.on("drop", ({ x, z, count, time, dx, dz, power }, sender) => {
+        net.on("drop", ({ x, y, z, count, time, dx, dz, power }, sender) => {
             if (!player(sender) || ![x, z, count].every(Number.isFinite)) return;
             const blow = [dx, dz, power].every(Number.isFinite) ? { dx, dz, power: Math.max(0, Math.min(1, power)) } : undefined;
             const from = Number.isFinite(time) ? time : net.shared();
-            for (const shot of arrows.drop(sender, x, z, Math.max(0, Math.min(MAX_DROP, Math.floor(count))), from, blow)) replay.shot(shot);
+            for (const shot of arrows.drop(sender, x, z, Math.max(0, Math.min(MAX_DROP, Math.floor(count))), from, blow, Number.isFinite(y) ? y : undefined)) replay.shot(shot);
         }),
 
                 net.on("pick", ({ arrow: id }, sender) => {
@@ -693,7 +694,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const killer = arrows.all.get(hit.arrow);
         const way = killer ? heading(killer) : [0, 0, 0];
         const time = Number.isFinite(hit.time) ? hit.time : net.shared();
-        if (left > 0) broadcast("drop", { x: walker.x, z: walker.z, count: Math.min(left, MAX_DROP), time, dx: way[0], dz: way[2], power: killer ? powerOf(killer.shot.speed) : 0 });
+        if (left > 0) broadcast("drop", { x: walker.x, y: walker.y, z: walker.z, count: Math.min(left, MAX_DROP), time, dx: way[0], dz: way[2], power: killer ? powerOf(killer.shot.speed) : 0 });
         quiver = 0;
         walker.alive = false;
         draw.cancel();
@@ -894,7 +895,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
     const debug: PlayDebug = {
-        walker, draw, arrows, others, hud, replay, film, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
+        walker, field, draw, arrows, others, hud, replay, film, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, get dead() { return [...dead]; },
         /** The view's "a bot shoots me": the nearest standing bot sends a strong arrow at my chest. */
         shootMe(by?: string, at = me) {
             const pose = (id: string) => others.poseOf(id);

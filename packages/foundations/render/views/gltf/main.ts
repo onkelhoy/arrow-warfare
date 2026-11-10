@@ -32,3 +32,4 @@ catch (error)
 }
 
 layer.camera = new Camera({ controllers: [orbit({ distance: 9, pitch: .35, yaw: .6, max: 40 })] });
+engine.start();

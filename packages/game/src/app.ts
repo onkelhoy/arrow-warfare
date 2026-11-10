@@ -5,7 +5,7 @@ import { mountCorner } from "@arrow-warfare/corner";
 import { mountLobby } from "@arrow-warfare/lobby";
 import { mountMenu } from "@arrow-warfare/menu";
 import { ANCHORS, APP, BEACON, HANDSHAKE_TIMEOUT, httpUrl, Lobby, LOBBY_NAME, parseInvite, Registry, remembered, RESCAN, RTC, signalUrl, withoutInvite } from "@arrow-warfare/net";
-import { mountPlay } from "@arrow-warfare/play";
+import { mountPlay, preloadRound } from "@arrow-warfare/play";
 import { mountResults } from "@arrow-warfare/results";
 import { Sound } from "@arrow-warfare/sound";
 
@@ -164,7 +164,11 @@ export async function startApp(root: HTMLElement = document.body) {
                     else page.invite.text(t(session.isHost ? "invite.connecting" : "invite.onlyHost"));
                 }
                 page.update(state);
-                if (state.phase === "countdown" && phase !== "countdown") page.countdown(session.local(state.go), score(state));
+                if (state.phase === "countdown" && phase !== "countdown")
+                {
+                    page.countdown(session.local(state.go), score(state));
+                    preloadRound(state);
+                }
                 if (state.phase === "play" && !playing && inGame)
                 {
                     playing = mountPlay(screen, {

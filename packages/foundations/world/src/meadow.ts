@@ -3,8 +3,11 @@ import { MeshBuilder, seeded, type Batch, type MeshData, type Renderer, type Vec
 
 import { CLOUDS, PALETTES, type PaletteName } from "./atmosphere";
 import { Backdrop } from "./backdrop";
-import { Field, STONES, VARIANTS } from "./field";
+import { Field, STONES, VARIANTS, type Placed } from "./field";
+import { fileModel, type ModelName } from "./files";
 import { blob, cloud, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
+
+const WHITE: Vec3 = [1, 1, 1];
 
 /** How far past the field the clouds go before they come round again, and how fast they drift (m/s). */
 const CLOUD_REACH = 90;
@@ -31,6 +34,9 @@ export class Meadow extends GameObject {
     private clouds: Batch[] = [];
     private backdrop: Backdrop;
     private sky: { batch: number; index: number; x: number; y: number; z: number; yaw: number; scale: number }[] = [];
+    private gone = false;
+    /** Resolves once every model from a file is on screen (or failed). */
+    readonly ready: Promise<void>;
 
     constructor(readonly renderer: Renderer, readonly field: Field, setting: MeadowSetting = {}) {
         super();
@@ -47,6 +53,7 @@ export class Meadow extends GameObject {
         };
 
         this.batches.push(addGround(renderer, field));
+        if (field.streets.length || field.junctions.length) this.batches.push(addStreets(renderer, field));
 
         // trees: one batch per kind and look, the meadow's and the wall's together
         const trees = [...field.trees, ...field.wall];
@@ -71,6 +78,25 @@ export class Meadow extends GameObject {
         const grass = field.grass.slice(0, Math.round(field.grass.length * share));
         const tufts = [grassTuft(field.seed), grassTuft(field.seed + 1), grassTuft(field.seed + 2)];
         tufts.forEach((tuft, i) => add(tuft, grass.filter((_, g) => g % tufts.length === i), { sway: .12 }));
+
+        // water: a flat disc a touch inside each pond's rim
+        if (field.ponds.length)
+        {
+            const water = renderer.batch(new MeshBuilder().cylinder("#5f9fc4", { scale: [2, .02, 2] }, 18).build(), { capacity: field.ponds.length, emissive: .15 });
+            for (const pond of field.ponds) water.add(pond.x, pond.level, pond.z, 0, pond.radius * .97);
+            this.batches.push(water);
+        }
+
+        // the models from files, one batch each, added as they load
+        const byModel = new Map<ModelName, Placed[]>();
+        for (const one of field.models) byModel.set(one.model, [...(byModel.get(one.model) ?? []), one]);
+        this.ready = Promise.all([...byModel].map(async ([model, all]) => {
+            const mesh = await fileModel(model);
+            if (!mesh || this.gone) return;
+            const batch = renderer.batch(mesh, { capacity: all.length, sway: /Corn|Wheat/.test(model) ? .04 : 0, twoSided: true });
+            for (const one of all) batch.add(one.x, one.y, one.z, one.yaw, one.scale, WHITE, one.bright ?? 1);
+            this.batches.push(batch);
+        })).then(() => undefined);
 
         this.backdrop = new Backdrop(renderer, field.radius, field.seed, name);
         this.addClouds(name);
@@ -115,6 +141,7 @@ export class Meadow extends GameObject {
 
     /** Takes every batch off the renderer. */
     override destroy() {
+        this.gone = true;
         for (const batch of this.batches) this.renderer.removeBatch(batch);
         this.batches.length = 0;
         if (this.fireflies) this.renderer.removeBatch(this.fireflies);
@@ -159,6 +186,83 @@ export class Meadow extends GameObject {
     }
 }
 
+/** Cobble greys, a stone picks one. */
+const COBBLES: Vec3[] = [[.6, .58, .54], [.55, .53, .5], [.66, .63, .58], [.5, .49, .47]];
+const KERB: Vec3 = [.44, .42, .4];
+/** How high the cobbles lie over the ground, so it never shows through. */
+const OVER = .06;
+
+/** The streets and where they meet, on the ground: rows of stones, a kerb along each side. */
+function addStreets(renderer: Renderer, field: Field) {
+    const random = seeded(field.seed ^ 0x51f3);
+    const stones = new MeshBuilder();
+    const point = (x: number, z: number, lift = 0): Vec3 => [x, field.height(x, z) + OVER + lift, z];
+    // a face turned up, whichever way its corners came
+    const flat = (a: Vec3, b: Vec3, c: Vec3, colour: Vec3) => {
+        const up = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+        if (up > 0) stones.triangle(a, b, c, colour);
+        else stones.triangle(a, c, b, colour);
+    };
+    const cobble = () => COBBLES[Math.floor(random() * COBBLES.length)];
+
+    for (const street of field.streets)
+    {
+        const dx = street.bx - street.ax, dz = street.bz - street.az;
+        const length = Math.hypot(dx, dz);
+        if (length < .1) continue;
+        const ux = dx / length, uz = dz / length, nx = -uz, nz = ux;
+        const half = street.width / 2, KERB_WIDTH = .3;
+        const rows = 3, steps = Math.max(1, Math.round(length / 1.2));
+        const at = (t: number, across: number, lift = 0) => point(street.ax + ux * t + nx * across, street.az + uz * t + nz * across, lift);
+        for (let i = 0; i < steps; i++)
+        {
+            const t0 = i / steps * length, t1 = (i + 1) / steps * length;
+            for (let r = 0; r < rows; r++)
+            {
+                const a0 = -half + KERB_WIDTH + r / rows * (street.width - KERB_WIDTH * 2);
+                const a1 = -half + KERB_WIDTH + (r + 1) / rows * (street.width - KERB_WIDTH * 2);
+                const colour = cobble();
+                flat(at(t0, a0), at(t1, a0), at(t1, a1), colour);
+                flat(at(t0, a0), at(t1, a1), at(t0, a1), colour);
+            }
+            for (const side of [-1, 1])
+            {
+                const inner = side * (half - KERB_WIDTH), outer = side * half;
+                flat(at(t0, inner, .1), at(t1, inner, .1), at(t1, outer, .1), KERB);
+                flat(at(t0, inner, .1), at(t1, outer, .1), at(t0, outer, .1), KERB);
+                // the kerb's side down to the ground, facing out
+                const a = at(t0, outer, .1), b = at(t1, outer, .1), c = at(t1, outer, -OVER - .05), d = at(t0, outer, -OVER - .05);
+                if (side > 0) stones.quad(a, d, c, b, KERB);
+                else stones.quad(a, b, c, d, KERB);
+            }
+        }
+    }
+    // where streets meet: a round of stones a touch higher, so it lies over their ends
+    for (const junction of field.junctions)
+    {
+        const sides = Math.max(10, Math.round(junction.radius * 3));
+        const middle = point(junction.x, junction.z, .015);
+        for (let i = 0; i < sides; i++)
+        {
+            const a0 = i / sides * Math.PI * 2, a1 = (i + 1) / sides * Math.PI * 2;
+            for (const [r0, r1] of [[0, .5], [.5, 1]])
+            {
+                const p = (r: number, a: number) => point(junction.x + Math.cos(a) * r * junction.radius, junction.z + Math.sin(a) * r * junction.radius, .015);
+                const colour = cobble();
+                if (r0 === 0) flat(middle, p(r1, a0), p(r1, a1), colour);
+                else
+                {
+                    flat(p(r0, a0), p(r1, a0), p(r1, a1), colour);
+                    flat(p(r0, a0), p(r1, a1), p(r0, a1), colour);
+                }
+            }
+        }
+    }
+    const batch = renderer.batch(stones.build(), { capacity: 1 });
+    batch.add(0, 0, 0);
+    return batch;
+}
+
 /** The ground: a grid over the field and a bit into the forest, flat shaded, meadow colours in patches. */
 function addGround(renderer: Renderer, field: Field) {
     const reach = field.radius + 26;
@@ -183,6 +287,8 @@ function addGround(renderer: Renderer, field: Field) {
     const ground = new MeshBuilder();
     const colourAt = (p: Vec3): Vec3 => {
         const distance = Math.hypot(p[0], p[2]);
+        const dirt = field.patchColour(p[0], p[2]);
+        if (dirt) return dirt;
         const patch = meadow[Math.min(meadow.length - 1, Math.floor(field.patch(p[0], p[2]) * meadow.length))];
         const into = Math.max(0, Math.min(1, (distance - field.radius) / 4));
         return [patch[0] + (forest[0] - patch[0]) * into, patch[1] + (forest[1] - patch[1]) * into, patch[2] + (forest[2] - patch[2]) * into];

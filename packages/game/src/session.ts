@@ -1,4 +1,4 @@
-import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_KINDS, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, wears, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
 import { forget, gameId, HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, newCode, RECONNECT, remember, Room, ROOM_MEDIA, touch, UNKNOWN_FOR, type Info, type Invite, type Lobby, type Registry } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
@@ -340,6 +340,10 @@ export class Session {
         if (change.arrows !== undefined) state.rules.arrows = Math.max(0, Math.min(10, Math.round(change.arrows)));
         if (change.trees && TREE_AMOUNTS.includes(change.trees)) state.rules.trees = change.trees;
         if (change.size && MAP_SIZES.includes(change.size)) state.rules.size = change.size;
+        if (change.map && MAP_KINDS.includes(change.map)) state.rules.map = change.map;
+        if (change.props && TREE_AMOUNTS.includes(change.props)) state.rules.props = change.props;
+        if (change.buildings && TREE_AMOUNTS.includes(change.buildings)) state.rules.buildings = change.buildings;
+        if (change.towers && TREE_AMOUNTS.includes(change.towers)) state.rules.towers = change.towers;
         if (change.damage && DAMAGES.includes(change.damage)) state.rules.damage = change.damage;
         if (change.time && TIMES.includes(change.time)) state.rules.time = change.time;
         if (change.rounds !== undefined && ROUNDS.includes(change.rounds)) state.rules.rounds = change.rounds;

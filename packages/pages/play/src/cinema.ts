@@ -8,6 +8,7 @@ import type { Camera } from "@papit/game-engine";
 import type { Arrows } from "./arrows";
 import type { Blood } from "./blood";
 import type { HitRecord, Replay } from "./replay";
+import { footing } from "./footing";
 
 /** A flight shorter than this (ms) has no flyby. */
 const FLYBY_LEAST = 380;
@@ -289,13 +290,13 @@ export class Film {
             const fresh = !rig;
             if (!rig)
             {
-                rig = new Rig((x, z) => this.world.field.height(x, z));
+                rig = footing(this.world.field);
                 this.rigs.set(id, rig);
             }
             // they're thrown from where they were hit
-            if (dead) pose = { ...pose, x: end.place.x, z: end.place.z, yaw: end.place.yaw, draw: 0 };
+            if (dead) pose = { ...pose, x: end.place.x, y: end.place.y, z: end.place.z, yaw: end.place.yaw, draw: 0 };
             rig.update(Math.max(dt, 1e-4), {
-                x: pose.x, y: this.world.field.height(pose.x, pose.z), z: pose.z, yaw: pose.yaw, pitch: pose.pitch,
+                x: pose.x, y: pose.y, z: pose.z, yaw: pose.yaw, pitch: pose.pitch,
                 draw: dead ? 0 : pose.draw, left: pose.left, stage: pose.stage, wounds: pose.wounds, resting: pose.resting,
                 dead, blow: end?.blow ?? null,
             });

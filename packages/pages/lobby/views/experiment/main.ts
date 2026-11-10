@@ -1,6 +1,6 @@
 import "@papit/codeblock";
 import "@arrow-warfare/backdrop";
-import { loadText, useTheme } from "@arrow-warfare/core";
+import { loadText, RULES_DEFAULT, useTheme } from "@arrow-warfare/core";
 import { mountLobby } from "@arrow-warfare/lobby";
 import type { GameState } from "@arrow-warfare/core";
 
@@ -32,7 +32,7 @@ lobby.update(state);
 function example(): GameState {
     return {
         host: "a", name: "Friday arrows", password: false, max: 10, phase: "locked", lockedAt: -20_000, go: 0, seed: 1,
-        rules: { arrows: 4, trees: "few", size: "medium", damage: "injuries", time: "clock" },
+        rules: { ...RULES_DEFAULT, arrows: 4 },
         players: [
             { id: "a", name: "henry", colour: 0, skin: 1, ready: false, team: "t1", ping: 0 },
             { id: "b", name: "anna", colour: 1, skin: 3, ready: true, team: "t1", ping: 42 },

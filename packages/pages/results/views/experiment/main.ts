@@ -1,6 +1,6 @@
 import "@papit/codeblock";
 import "@arrow-warfare/backdrop";
-import { loadText, type GameState, useTheme } from "@arrow-warfare/core";
+import { loadText, RULES_DEFAULT, type GameState, useTheme } from "@arrow-warfare/core";
 import { mountResults } from "@arrow-warfare/results";
 
 await loadText();
@@ -16,7 +16,7 @@ mountResults(document.querySelector<HTMLElement>("#draw")!, { state: draw, me: "
 function example(): GameState {
     return {
         host: "a", name: "Friday arrows", password: false, max: 10, phase: "results", lockedAt: 0, go: 0, seed: 1,
-        rules: { arrows: 4, trees: "few", size: "medium", damage: "injuries", time: "clock" },
+        rules: { ...RULES_DEFAULT, arrows: 4 },
         players: [
             { id: "a", name: "henry", colour: 0, skin: 1, ready: false, team: "t1", ping: 0 },
             { id: "b", name: "anna", colour: 1, skin: 3, ready: false, team: "t1", ping: 42 },

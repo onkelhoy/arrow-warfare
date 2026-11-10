@@ -1,6 +1,6 @@
 // core
 import "@papit/codeblock";
-import { loadText, type Damage, type GameState, type MapSize, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
+import { loadText, RULES_DEFAULT, type Damage, type MapKind, type GameState, type MapSize, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
 import { Sound } from "@arrow-warfare/sound";
 import type { Zone } from "@arrow-warfare/archery";
 
@@ -28,8 +28,14 @@ function start() {
         arrows: Number(data.get("arrows")),
         trees: data.get("trees") as TreeAmount,
         size: data.get("size") as MapSize,
+        map: data.get("map") as MapKind,
+        props: data.get("props") as TreeAmount,
+        buildings: data.get("buildings") as TreeAmount,
+        towers: data.get("towers") as TreeAmount,
         damage: data.get("damage") as Damage,
         time: data.get("time") as TimeOfDay,
+        rounds: 1,
+        friendly: true,
     };
     play = mountPlay(stage, {
         state, me: "a", host: true, sound, bots: data.get("bots") === "on", contained: true, ruleArrows: true,
@@ -61,7 +67,7 @@ start();
 function example(): GameState {
     return {
         host: "a", name: "Friday arrows", password: false, max: 10, phase: "locked", lockedAt: -20_000, go: 0, seed: 1,
-        rules: { arrows: 4, trees: "few", size: "medium", damage: "injuries", time: "clock" },
+        rules: { ...RULES_DEFAULT, arrows: 4 },
         players: [
             { id: "a", name: "henry", colour: 0, skin: 1, ready: false, team: "t1", ping: 0 },
             { id: "b", name: "anna", colour: 1, skin: 3, ready: true, team: "t1", ping: 42 },

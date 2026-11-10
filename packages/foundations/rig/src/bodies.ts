@@ -9,13 +9,26 @@ const TROUSERS = "#3b3a4a";
 const BOOTS = "#2c2a25";
 const BELT = "#5a3a22";
 
-/** The big torso, the hips at 0. */
+const SHIRT = "#efe3c8";
+const LEATHER = "#7a4a26";
+
+/** The big torso, the hips at 0, facing -z: a tunic with round shoulders, a belt, a quiver on the back. */
 export function torso(): MeshData {
-    return new MeshBuilder()
+    const builder = new MeshBuilder()
         .cylinder("#ffffff", { at: [0, -.07, 0], scale: [.62, .73, .5], tint: 1 }, 8, .5, .42)
+        // the shirt's collar showing at the neck, round shoulders in the tunic's colour
+        .cylinder(SHIRT, { at: [0, .6, 0], scale: [.3, .07, .26] }, 8, .5, .42)
+        .ball("#ffffff", { at: [-.27, .55, 0], scale: [.13, .1, .13], tint: 1 }, 1)
+        .ball("#ffffff", { at: [.27, .55, 0], scale: [.13, .1, .13], tint: 1 }, 1)
         .box(BELT, { at: [0, .17, 0], scale: [.6, .07, .46] })
+        .box("#d8b44a", { at: [0, .17, -.235], scale: [.08, .06, .02] })
         .ball(TROUSERS, { at: [0, -.03, 0], scale: [.28, .12, .22] }, 1)
-        .build();
+        // the quiver's strap across the chest, the quiver leaning on the back with feathers out of it
+        .box(LEATHER, { at: [0, .42, -.215], roll: .75, scale: [.05, .6, .02] })
+        .cylinder(LEATHER, { at: [.08, .18, .27], roll: .3, scale: [.13, .55, .13] }, 6);
+    for (let i = 0; i < 3; i++)
+        builder.box(i === 1 ? "#d84a3a" : "#f2efe6", { at: [-.06 + i * .04 - .1, .78 + i * .015, .27 + (i - 1) * .025], roll: .3, scale: [.012, .1, .04] });
+    return builder.build();
 }
 
 /** A limb from 0 to 1 along +x, stretched to the bone's length. */
@@ -25,8 +38,12 @@ export function limb(colour: string, radius: number, tint = 0): MeshData {
         .build();
 }
 
+/** A hand: a round palm and a thumb. */
 export function palm(): MeshData {
-    return new MeshBuilder().ball("#ffffff", { scale: [.055, .06, .06], tint: 1 }, 1).build();
+    return new MeshBuilder()
+        .ball("#ffffff", { scale: [.055, .06, .06], tint: 1 }, 1)
+        .ball("#ffffff", { at: [.035, .02, -.035], scale: [.022, .022, .03], tint: 1 }, 0)
+        .build();
 }
 
 /** A boot, the ankle at 0, toes along -z. */

@@ -132,7 +132,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Shadows: blob shadows under trees and players (no shadow maps)
 - [x] Grass sway in the vertex shader
 - [x] Quality setting (low, medium, high: resolution scale, grass density)
-- [ ] Later: `.glb` loader (left out of milestone 6)
+- [x] `.glb` loader (F18)
 
 ### F8. World
 - [x] Meadow ground (gentle heightmap), forest wall at the edge, scattered trees by setting
@@ -218,16 +218,16 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Load `.glb` (vertex colours) into our renderer, swap what's worth it
 
 ### F19. Maps and props
-- [ ] Blender pipeline: FBX/OBJ to untextured glb (nature pack, pap-adventure generated)
-- [ ] Rules: map field / farm / city, more props, buildings, watch towers
-- [ ] Buildings and props block walking and arrows
-- [ ] Field with ponds and lily pads, farm, city, climbable watch towers
-- [ ] Unlimited arrows by default
+- [x] Blender pipeline: FBX/OBJ to untextured glb (nature pack, pap-adventure generated)
+- [x] Rules: map field / farm / city, more props, buildings, watch towers
+- [x] Buildings and props block walking and arrows
+- [x] Field with ponds and lily pads, farm, city, climbable watch towers
+- [x] Unlimited arrows by default
 - [ ] Animals on the farm (later)
 
 ### F20. Nicer models
-- [ ] Softer shading between faces, more ambient
-- [ ] New player bodies in place of floating arms, same style
+- [x] Softer shading between faces, more ambient
+- [x] New player bodies in place of floating arms, same style
 
 ### F21. Guns
 - [ ] Weapon rule: bow / revolver / rifle, one per game
@@ -254,8 +254,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 8. ✅ **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
 10. **Bugs**: pickup, stuck strafing, shot cancelling, unlimited arrows default. Branch `bugs`.
 11. **Papit engine** (F18), branch `engine`.
-12. **Maps** (F19), branch `maps`.
-13. **Nicer models** (F20), branch `models`.
+12. **Maps** (F19) and **Nicer models** (F20), both on branch `maps`.
 14. **Guns** (F21), branch `guns`.
 15. **Bots** (F22), branch `bots`.
 
@@ -355,6 +354,18 @@ Papit gaps (reported, not patched):
 2. `game-mesh`: `@papit/armature` pinned exactly (`0.0.2`), not a range.
 3. `matrix`: `multiply`/`transpose` allocate per call, no general inverse, no compose into a buffer at an offset.
 4. Intersection packages and `game-mesh` use `{ x, y, z }` points, `game-engine` uses `Vector3`, many game codes use tuples: no shared cheap point form.
+
+## Notes from the maps branch (F19, F20, for the owner to review)
+- **Pipeline:** `node bin/models.mjs` in `world` (Blender 5.2 headless). 102 models, 3.5 MB of glb: 52 from the nature pack (trees decimated to half, crops to 40%), 50 from pap-adventure (copied, already vertex colours). The heaviest are town houses, 3–7k triangles each. Linear glTF colours are turned to our sRGB, faces are flat shaded.
+- **Rules:** map (meadow, farm, town), props, buildings, watch towers (none, few, many). "Meadow size" is now "Map size". Defaults: meadow, few props, few buildings, no towers.
+- **Maps:** meadow: 1–3 ponds with lily pads, reeds and willows, cottages. Farm: gentler hills, a yard (farmhouse, barn, well, hay, carts) and fenced fields of corn (tall, hides you) and wheat on dirt. Town: nearly flat, cobbled streets in a 20 m grid, houses facing them, a square with a well and four stalls, a chapel at the edge. Corn, wheat and bushes hide you but stop nothing.
+- **Collision:** turned boxes (`field.blocks`) for buildings, props, fences and tower parts, our own code (segment against box slabs for arrows, circle against box for walking), no gjk needed. Walking is done in steps of 15 cm so a slow frame can't go through a rail. Arrows stick in buildings as wood.
+- **Towers:** the pap-adventure watchtower, platform at 5.1 m. Walk into the ladder pushing towards the tower to climb, away to climb down. Rails round the platform, open at the ladder. Poses already carried height: others, rigs (feet on the platform), kill cams and dropped arrows now use it.
+- **Loading:** models load while the 3 2 1 runs (`preloadRound`); a slow phone may see a building pop in.
+- **Performance (headless, software GL):** meadow ~125k triangles, town ~180k, farm ~210k. Test the farm on a phone, crops are the most instances.
+- **Shading:** the light floor is higher and the sun steps wider, subtle.
+- **Players:** quiver with feathers on the back, collar, round shoulders, buckle, ears, brows, thumbs. First person: the bow arm in two parts bent at the elbow with a shirt cuff. The drawing hand stays hidden: at a full draw it's at the eye and covers the view (tried).
+- **Not done:** building fronts are guessed (+z of each model faces the street), no doors to go in. Names show through walls.
 
 ## Open questions
 - Torso hit: dead at once, or two torso hits? (milestone 4: dead at once)

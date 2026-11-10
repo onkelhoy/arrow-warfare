@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type Damage, type GameState, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
+import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, wears, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -78,12 +78,19 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                         ${Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("")}
                         <option value="0">${t("rules.unlimited")}</option>
                     </select></label>
+                    <label>${t("rules.mapKind")} <select name="map">
+                        ${MAP_KINDS.map(kind => `<option value="${kind}">${t(`rules.maps.${kind}`)}</option>`).join("")}
+                    </select></label>
                     <label>${t("rules.trees")} <select name="trees">
                         ${TREE_AMOUNTS.map(amount => `<option value="${amount}">${t(`rules.tree.${amount}`)}</option>`).join("")}
                     </select></label>
                     <label>${t("rules.size")} <select name="size">
                         ${MAP_SIZES.map(size => `<option value="${size}">${t(`rules.map.${size}`)}</option>`).join("")}
                     </select></label>
+                    ${(["props", "buildings", "towers"] as const).map(rule => `<label>${t(`rules.${rule}`)} <select name="${rule}">
+                        ${TREE_AMOUNTS.map(amount => `<option value="${amount}">${t(`rules.amount.${amount}`)}</option>`).join("")}
+                    </select></label>`).join("")}
+                    <p class="aw-dim">${t("rules.towersNote")}</p>
                     <label>${t("rules.damage")} <select name="damage">
                         ${DAMAGES.map(damage => `<option value="${damage}">${t(`rules.damages.${damage}`)}</option>`).join("")}
                     </select></label>
@@ -138,6 +145,13 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     const size = find<HTMLSelectElement>("select[name=size]");
     trees.addEventListener("change", () => actions.rules({ trees: trees.value as TreeAmount }));
     size.addEventListener("change", () => actions.rules({ size: size.value as MapSize }));
+    const map = find<HTMLSelectElement>("select[name=map]");
+    map.addEventListener("change", () => actions.rules({ map: map.value as MapKind }));
+    const amounts = (["props", "buildings", "towers"] as const).map(rule => {
+        const select = find<HTMLSelectElement>(`select[name=${rule}]`);
+        select.addEventListener("change", () => actions.rules({ [rule]: select.value as TreeAmount }));
+        return { rule, select };
+    });
     const damage = find<HTMLSelectElement>("select[name=damage]");
     const time = find<HTMLSelectElement>("select[name=time]");
     damage.addEventListener("change", () => actions.rules({ damage: damage.value as Damage }));
@@ -286,13 +300,15 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         showTab("invite", !locked);
         showTab("teams", locked);
 
-        for (const field of [gameName, password, max, arrows, trees, size, damage, time, rounds, friendly]) field.toggleAttribute("disabled", !host);
+        for (const field of [gameName, password, max, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly]) field.toggleAttribute("disabled", !host);
         set(gameName, state.name);
         if (!host) set(password, state.password ? "••••" : "");
         set(max, String(state.max));
         set(arrows, String(state.rules.arrows ?? ARROWS_DEFAULT));
         set(trees, state.rules.trees ?? RULES_DEFAULT.trees);
         set(size, state.rules.size ?? RULES_DEFAULT.size);
+        set(map, state.rules.map ?? RULES_DEFAULT.map);
+        for (const { rule, select } of amounts) set(select, state.rules[rule] ?? RULES_DEFAULT[rule]);
         set(damage, state.rules.damage ?? RULES_DEFAULT.damage);
         set(time, state.rules.time ?? RULES_DEFAULT.time);
         set(rounds, String(state.rules.rounds ?? 1));

@@ -14,6 +14,10 @@ const CONVERGE = 30;
 const PULL = .2;
 /** Where the bow arm comes from, for a right handed archer: low on the right, like the bow. */
 const SHOULDER: Vec3 = [.3, -.68, -.4];
+/** Upper arm and forearm in camera space, a little longer than the body's so they reach. */
+const UPPER = .34, FOREARM = .32;
+/** The shirt's cuff at the wrist. */
+const CUFF: Vec3 = [.94, .89, .78];
 
 /**
  * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
@@ -34,12 +38,12 @@ export class FirstPerson {
     private cameraMatrix: ArrayLike<number> = mat4();
 
     constructor(private renderer: Renderer, private skin: Vec3, private clothes: Vec3, private feathers: Vec3) {
-        const front = { capacity: 2, dynamic: true, front: true };
+        const front = { capacity: 6, dynamic: true, front: true };
         this.bow = renderer.batch(bow(), front);
         this.string = renderer.batch(beam(3), front);
         this.arrow = renderer.batch(arrow(), front);
         this.hands = renderer.batch(hand(), front);
-        this.arms = renderer.batch(beam(5), front);
+        this.arms = renderer.batch(beam(6), front);
     }
 
     /** Not drawn: the camera is somewhere else (the kill cam, watching someone). */
@@ -123,13 +127,40 @@ export class FirstPerson {
         else this.release = null;
         this.arrow.count = nocked ? 1 : 0;
 
-        // the left hand on the grip, the right on the string when drawing
+        // the bow hand on the grip, its arm from low at the side, bent at the elbow
         const hold = inBow(.01 * side, 0, .02);
         this.place(this.hands, 0, hold, this.skin);
-        this.beam(this.arms, 0, [SHOULDER[0] * side, SHOULDER[1], SHOULDER[2]], hold, .055, this.clothes);
-        this.arms.count = 1;
-        // the right hand on the string is right at the eye, too close to show
-        this.hands.count = 1;
+        const arms = this.limb(0, [SHOULDER[0] * side, SHOULDER[1], SHOULDER[2]], hold, [side, -1, .3]);
+        const hands = 1;
+        // the other hand on the string is right at the eye when drawn, too close to show
+        this.arms.count = arms;
+        this.hands.count = hands;
+    }
+
+    /**
+     * An arm from `shoulder` to `hand` in camera space: upper arm and forearm in the clothes, a cuff at the
+     * wrist, the elbow pushed towards `pole`. Returns the next free arm index.
+     */
+    private limb(index: number, shoulder: Vec3, hand: Vec3, pole: Vec3) {
+        const dx = hand[0] - shoulder[0], dy = hand[1] - shoulder[1], dz = hand[2] - shoulder[2];
+        const reach = Math.hypot(dx, dy, dz) || 1e-6;
+        const along = Math.min(reach, UPPER + FOREARM - 1e-3);
+        // how far along and how far out the elbow is, from the two lengths
+        const a = (UPPER * UPPER - FOREARM * FOREARM + along * along) / (2 * along);
+        const out = Math.sqrt(Math.max(0, UPPER * UPPER - a * a));
+        const u: Vec3 = [dx / reach, dy / reach, dz / reach];
+        const dot = pole[0] * u[0] + pole[1] * u[1] + pole[2] * u[2];
+        const side: Vec3 = [pole[0] - u[0] * dot, pole[1] - u[1] * dot, pole[2] - u[2] * dot];
+        const length = Math.hypot(...side) || 1;
+        const elbow: Vec3 = [
+            shoulder[0] + u[0] * a + side[0] / length * out,
+            shoulder[1] + u[1] * a + side[1] / length * out,
+            shoulder[2] + u[2] * a + side[2] / length * out,
+        ];
+        this.beam(this.arms, index++, shoulder, elbow, .066, this.clothes);
+        this.beam(this.arms, index++, elbow, hand, .052, this.clothes);
+        this.beam(this.arms, index++, lerp(elbow, hand, .8), lerp(elbow, hand, .9), .06, CUFF);
+        return index;
     }
 
     destroy() {
@@ -154,6 +185,10 @@ export class FirstPerson {
         batch.tint(index, tint);
     }
 
+}
+
+function lerp(a: Vec3, b: Vec3, t: number): Vec3 {
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
 /** A point through a matrix. */

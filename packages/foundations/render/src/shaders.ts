@@ -47,19 +47,25 @@ uniform vec3 uFogColour;
 uniform float uFogDensity;
 uniform float uEmissive;
 uniform float uFog;
+uniform float uSway;
 
 out vec4 fragColour;
 
 void main() {
     vec3 normal = normalize(vNormal);
-    // the back of a two sided face (grass, leaves) faces away sideways, but still gets the light from above
-    if (!gl_FrontFacing) normal.xz = -normal.xz;
+    // the back of a swaying face (grass, leaves) faces away sideways, but still gets the light from above;
+    // any other two sided face (a building's wrong way round triangle) just turns round
+    if (!gl_FrontFacing)
+    {
+        if (uSway > 0.0) normal.xz = -normal.xz;
+        else normal = -normal;
+    }
 
-    // two soft steps of sun over a floor of it, so faces read as light and shade without going dark
+    // two wide soft steps of sun over a high floor of it, so neighbouring faces differ a little, never go dark
     float facing = dot(normal, uSunDirection);
-    float sun = 0.35 + smoothstep(0.0, 0.08, facing) * 0.4 + smoothstep(0.4, 0.55, facing) * 0.25;
-    // the sky reaches the sides too, only faces turned down get the ground's bounce
-    vec3 hemisphere = mix(uGround, uSky, smoothstep(-0.8, 0.4, normal.y));
+    float sun = 0.5 + smoothstep(-0.15, 0.25, facing) * 0.3 + smoothstep(0.3, 0.75, facing) * 0.2;
+    // the sky reaches the sides too, faces turned down still get some of it over the ground's bounce
+    vec3 hemisphere = mix(mix(uGround, uSky, 0.3), uSky, smoothstep(-0.9, 0.5, normal.y));
     vec3 light = hemisphere + uSunColour * sun;
     vec3 colour = vColour * mix(light, vec3(1.0), uEmissive);
 

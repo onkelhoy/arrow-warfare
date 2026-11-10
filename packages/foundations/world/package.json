@@ -43,12 +43,13 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@arrow-warfare/render": "*",
     "@papit/game-engine": "*",
-    "@arrow-warfare/render": "*"
+    "@papit/irregular-grid": "^0.0.1"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
-    "@papit/theme": "*"
+    "@papit/theme": "*",
+    "typescript": "5.9.3"
   },
   "browserslist": [
     "defaults",

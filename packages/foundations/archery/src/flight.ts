@@ -1,4 +1,4 @@
-import type { Field } from "@arrow-warfare/world";
+import type { Block, Field } from "@arrow-warfare/world";
 
 import type { Vec } from "./body";
 
@@ -117,12 +117,20 @@ function worldHit(field: Field, from: Vec, to: Vec): [number, "ground" | "wood" 
     {
         for (const obstacle of field.obstacles)
         {
+            if (obstacle.soft) continue;
             const t = circleEntry(from[0] - obstacle.x, from[2] - obstacle.z, dx, dz, obstacle.radius);
             if (t === null || (best && t >= best[0])) continue;
             const y = from[1] + (to[1] - from[1]) * t;
             const ground = field.height(obstacle.x, obstacle.z);
             if (y < ground - .2 || y > ground + obstacle.height) continue;
             best = [t, "wood"];
+        }
+
+        // buildings, props, a tower's legs and platform: boxes
+        for (const block of field.blocks)
+        {
+            const t = boxEntry(block, from, to);
+            if (t !== null && (!best || t < best[0])) best = [t, "wood"];
         }
 
         // the forest wall: the inside of a big circle
@@ -137,6 +145,31 @@ function worldHit(field: Field, from: Vec, to: Vec): [number, "ground" | "wood" 
         }
     }
     return best;
+}
+
+/** When the segment enters a turned box (slabs in the box's own axes), 0..1, or null. */
+function boxEntry(box: Block, from: Vec, to: Vec) {
+    const c = Math.cos(box.yaw), s = Math.sin(box.yaw);
+    const fx = from[0] - box.x, fz = from[2] - box.z;
+    const dx = to[0] - from[0], dz = to[2] - from[2];
+    const start = [fx * c - fz * s, from[1] - (box.bottom + box.top) / 2, fx * s + fz * c];
+    const move = [dx * c - dz * s, to[1] - from[1], dx * s + dz * c];
+    const half = [box.hx, (box.top - box.bottom) / 2, box.hz];
+    let enter = 0, leave = 1;
+    for (let k = 0; k < 3; k++)
+    {
+        if (Math.abs(move[k]) < 1e-9)
+        {
+            if (Math.abs(start[k]) > half[k]) return null;
+            continue;
+        }
+        let a = (-half[k] - start[k]) / move[k], b = (half[k] - start[k]) / move[k];
+        if (a > b) [a, b] = [b, a];
+        enter = Math.max(enter, a);
+        leave = Math.min(leave, b);
+        if (enter > leave) return null;
+    }
+    return enter;
 }
 
 /** When a point at `px, pz` moving by `dx, dz` enters a circle at the origin, 0..1, or null. */

@@ -16,6 +16,9 @@ const STEPS = .85;
 const DEAD_EYE = .35;
 /** Sitting, rested or with both legs hurt. */
 const SIT_EYE = .66;
+/** Metres per second up or down a ladder, and falling. */
+const CLIMB = 2.4;
+const GRAVITY = 18;
 /** Metres per hop, and how high. */
 const HOP = { length: .55, height: .12 };
 
@@ -37,6 +40,9 @@ export class Walker {
     limit = 1;
     private low = 0;
     hop = 0;
+    /** On a ladder now. */
+    climbing = false;
+    private vy = 0;
     private vx = 0;
     private vz = 0;
     /** Look the thumb or mouse asked for that the view hasn't followed yet (heavy while drawn). */
@@ -56,7 +62,7 @@ export class Walker {
         this.x = spawn.x;
         this.z = spawn.z;
         this.yaw = spawn.yaw;
-        this.y = field.height(this.x, this.z);
+        this.y = field.floor(this.x, this.z);
     }
 
     update(dt: number, controls: Controls, sensitivity: number, draw: Draw) {
@@ -86,13 +92,52 @@ export class Walker {
         this.vz += (wantZ - this.vz) * grip;
 
         const fromX = this.x, fromZ = this.z;
-        [this.x, this.z] = this.field.collide(this.x + this.vx * dt, this.z + this.vz * dt, BODY.radius);
+        // in steps of at most 15 cm, so a slow frame doesn't go through a thin rail
+        const steps = Math.max(1, Math.ceil(Math.hypot(this.vx, this.vz) * dt / .15));
+        for (let i = 0; i < steps; i++) [this.x, this.z] = this.field.collide(this.x + this.vx * dt / steps, this.z + this.vz * dt / steps, BODY.radius, this.y);
+        this.upDown(dt, wantX, wantZ, fromX, fromZ);
         // what the obstacles let through is the real speed, so walking into a tree doesn't bob
         const moved = Math.hypot(this.x - fromX, this.z - fromZ);
         this.speed = dt > 0 ? moved / dt : 0;
         this.stride += moved * STEPS * Math.PI;
         this.hop += moved / HOP.length * Math.PI;
-        this.y = this.field.height(this.x, this.z);
+    }
+
+    /**
+     * Height: on the ground or a floor, falling off an edge, or on a ladder. On a ladder, pushing towards the
+     * tower climbs, away from it climbs down, and nobody steps off it sideways halfway up.
+     */
+    private upDown(dt: number, wantX: number, wantZ: number, fromX: number, fromZ: number) {
+        const floor = this.field.floor(this.x, this.z, this.y);
+        const ladder = this.alive && this.posture !== "sit" ? this.field.ladderAt(this.x, this.z) : null;
+        this.climbing = false;
+        if (ladder)
+        {
+            // how much the stick points at the tower: -1 away, 1 straight at it, sideways does nothing
+            const want = Math.hypot(wantX, wantZ), away = Math.hypot(ladder.tx - this.x, ladder.tz - this.z) || 1;
+            const toward = want > .5 ? (wantX * (ladder.tx - this.x) + wantZ * (ladder.tz - this.z)) / (want * away) : 0;
+            if (Math.abs(toward) > .35) this.y += Math.sign(toward) * CLIMB * dt;
+            this.y = Math.max(floor, Math.min(ladder.top, this.y));
+            this.vy = 0;
+            this.climbing = this.y > floor + .05 && this.y < ladder.top - .05;
+            // halfway up, the feet stay on the rungs
+            if (this.climbing)
+            {
+                [this.x, this.z] = [fromX, fromZ];
+                this.vx = this.vz = 0;
+            }
+            return;
+        }
+        if (this.y > floor + .02)
+        {
+            this.vy -= GRAVITY * dt;
+            this.y = Math.max(floor, this.y + this.vy * dt);
+        }
+        else
+        {
+            this.y = floor;
+            this.vy = 0;
+        }
     }
 
     /** A jolt of the view, `size` in radians, for `length` seconds. */

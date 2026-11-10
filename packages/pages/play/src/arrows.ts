@@ -71,7 +71,7 @@ export class Arrows {
      * their id, the ids are `<player>:drop<n>`, and they fly from `time`. They hurt nobody, and once down
      * anyone can pick them up. Returns their shots, for the replay.
      */
-    drop(by: string, x: number, z: number, count: number, time: number, blow: { dx: number; dz: number; power: number } = { dx: 0, dz: 0, power: 0 }) {
+    drop(by: string, x: number, z: number, count: number, time: number, blow: { dx: number; dz: number; power: number } = { dx: 0, dz: 0, power: 0 }, y = this.field.floor(x, z)) {
         const random = seeded([...by].reduce((hash, c) => hash * 31 + c.charCodeAt(0) | 0, 7) ^ Math.round(x * 100) ^ Math.round(z * 100) << 8);
         const flat = Math.hypot(blow.dx, blow.dz);
         const fx = flat ? blow.dx / flat : 0, fz = flat ? blow.dz / flat : 0;
@@ -86,7 +86,7 @@ export class Arrows {
             const vx = fx * push + Math.cos(angle) * spread, vz = fz * push + Math.sin(angle) * spread;
             const vy = 2 + random() * 2.5 + blow.power;
             const speed = Math.hypot(vx, vy, vz);
-            const shot: Shot = { id, by, time, x, y: this.field.height(x, z) + .7, z, dx: vx / speed, dy: vy / speed, dz: vz / speed, speed };
+            const shot: Shot = { id, by, time, x, y: y + .7, z, dx: vx / speed, dy: vy / speed, dz: vz / speed, speed };
             this.all.set(id, launch(shot));
             this.colours.set(id, this.colourOf(by));
             shots.push(shot);
