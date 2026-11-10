@@ -50,7 +50,7 @@ export const DAMAGES: Damage[] = ["arcade", "injuries"];
 export const ROUNDS = [1, 3, 5];
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { arrows: 4, trees: "few", size: "medium", damage: "injuries", time: "clock", rounds: 1, friendly: true };
+export const RULES_DEFAULT: Rules = { arrows: 0, trees: "few", size: "medium", damage: "injuries", time: "clock", rounds: 1, friendly: true };
 
 export type GameState = {
     host: string;
