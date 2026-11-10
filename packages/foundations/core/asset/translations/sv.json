@@ -58,6 +58,7 @@
       "back": "Tillbaka till lobbyn",
       "waitHost": "Väntar på att värden går tillbaka till lobbyn.",
       "hint": "Klicka för att se dig om, WASD för att gå, håll mellanslag för att spänna",
+      "hintGun": "Klicka för att se dig om, WASD för att gå, klicka eller mellanslag för att skjuta, R för att ladda om",
       "turn": "Vänd telefonen på sidan 🔄"
     },
     "lobby": {
@@ -240,7 +241,10 @@
       "kill": "fälld",
       "kills": "fällda",
       "watching": "Du följer {name}",
-      "switch": "tryck för att byta"
+      "switch": "tryck för att byta",
+      "rounds": "skott",
+      "reloading": "Laddar om…",
+      "reloadKey": "R för att ladda om"
     },
     "results": {
       "title": "Rundan är slut",

@@ -72,3 +72,21 @@ svg {
     opacity: .3;
     transition: opacity 250ms, scale 120ms;
 }
+
+.sight {
+    display: none;
+}
+
+:host([gun]) .bow,
+:host([gun][active]) .cancel {
+    display: none;
+}
+
+:host([gun]) .sight {
+    display: block;
+}
+
+:host([gun][active]) .button {
+    background: conic-gradient(rgb(255 255 255 / 45%) calc(var(--pull, 0) * 360deg), rgb(255 255 255 / 28%) 0);
+    scale: .94;
+}

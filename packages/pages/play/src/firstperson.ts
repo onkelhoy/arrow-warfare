@@ -1,7 +1,7 @@
 import type { Camera } from "@papit/game-engine";
 import type { Draw } from "@arrow-warfare/archery";
-import { compose, mat4, multiply, type Batch, type Renderer, type Vec3 } from "@arrow-warfare/render";
-import { arrow, ARROW_LENGTH, beam, bow, BOW, hand } from "@arrow-warfare/world";
+import { compose, mat4, multiply, type Batch, type Renderer, type Rigged, type Vec3 } from "@arrow-warfare/render";
+import { arrow, ARROW_LENGTH, beam, bow, BOW, GUN_FILES, hand, type GunKind } from "@arrow-warfare/world";
 
 /** Camera space: x right, y up, -z ahead. Where the grip is held, lowered and up for a shot. */
 const LOW = { at: [.24, -.36, -.5] as Vec3, yaw: .35, pitch: .1, roll: -1.05 };
@@ -18,6 +18,15 @@ const SHOULDER: Vec3 = [.3, -.68, -.4];
 const UPPER = .34, FOREARM = .32;
 /** The shirt's cuff at the wrist. */
 const CUFF: Vec3 = [.94, .89, .78];
+/**
+ * Camera space, where a gun's grip is held: the revolver out in front in both hands, the rifle's butt in the
+ * shoulder. `low` is the drop while walking and after dying. Both aim at `GUN_CONVERGE` ahead in the middle.
+ */
+const GUN_HOLD: Record<GunKind, { at: Vec3; second: Vec3 }> = {
+    revolver: { at: [.17, -.23, -.47], second: [.14, -.28, -.45] },
+    rifle: { at: [.13, -.19, -.2], second: [0, 0, 0] },
+};
+const GUN_CONVERGE = 40;
 
 /**
  * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
@@ -36,6 +45,10 @@ export class FirstPerson {
     private world = mat4();
     /** The camera this frame. */
     private cameraMatrix: ArrayLike<number> = mat4();
+    /** With a gun instead of the bow: its pieces, one batch each. */
+    private gun: { kind: GunKind; model: Rigged; batches: Batch[]; fired: number; reloading: number } | null = null;
+    private piece = mat4();
+    private gunMatrix = mat4();
 
     constructor(private renderer: Renderer, private skin: Vec3, private clothes: Vec3, private feathers: Vec3) {
         const front = { capacity: 6, dynamic: true, front: true };
@@ -52,13 +65,96 @@ export class FirstPerson {
     /** Where the nocked arrow's tip is and where it points, in the world, while drawing. */
     release: { from: Vec3; direction: Vec3 } | null = null;
 
-    /** The string snaps forward and the bow jumps. */
+    /** The string snaps forward and the bow jumps (or the gun kicks and plays its shot). */
     shot() {
         this.kick = 1;
+        if (this.gun) this.gun.fired = 0;
+    }
+
+    /** A gun instead of the bow, once its model is in. */
+    arm(kind: GunKind, model: Rigged) {
+        const front = { capacity: 1, dynamic: true, front: true };
+        this.gun = { kind, model, batches: model.parts.map(part => this.renderer.batch(part.mesh, front)), fired: Infinity, reloading: -1 };
+        for (const batch of this.gun.batches) batch.tint(0, [1, 1, 1]);
+    }
+
+    /** 0..1 through a reload (the model plays it), -1 when not reloading. */
+    reloading(progress: number) {
+        if (this.gun) this.gun.reloading = progress;
+    }
+
+    /** Where a gun's bullet leaves from and where it goes, in the world. */
+    muzzle: { from: Vec3; direction: Vec3 } | null = null;
+
+    private updateGun(dt: number, camera: Camera, walk: { speed: number; stride: number; alive: boolean }, left: boolean) {
+        const gun = this.gun!;
+        const side = left ? -1 : 1;
+        const spec = GUN_FILES[gun.kind];
+        const hold = GUN_HOLD[gun.kind];
+        const all = [this.bow, this.string, this.arrow, this.hands, this.arms];
+        for (const batch of [this.bow, this.string, this.arrow]) batch.count = 0;
+        // dead: the gun drops out of view
+        this.raise += ((walk.alive ? 0 : -1) - this.raise) * (1 - Math.exp(-dt * 6));
+        this.kick = Math.max(0, this.kick - dt * 5);
+        gun.fired += dt;
+        if (this.raise < -.6 || this.hidden)
+        {
+            for (const batch of [...all, ...gun.batches]) batch.count = 0;
+            this.muzzle = null;
+            return;
+        }
+        const bob = Math.min(1, walk.speed / 4);
+        // a reload takes the gun down and in a little
+        const down = gun.reloading >= 0 ? Math.sin(Math.min(1, gun.reloading) * Math.PI) : 0;
+        const at: Vec3 = [
+            hold.at[0] * side + Math.cos(walk.stride) * .01 * bob - down * .04 * side,
+            hold.at[1] - Math.abs(Math.sin(walk.stride)) * .014 * bob + Math.min(0, this.raise) * .4 - down * .05,
+            hold.at[2] + this.kick * this.kick * .06,
+        ];
+        // the muzzle at the middle of the view, far ahead; the kick tips it up
+        const scale = spec.scale;
+        const grip = spec.grip, muzzle = spec.muzzle;
+        const aimYaw = Math.atan2(at[0], GUN_CONVERGE), aimPitch = Math.atan2(-at[1], GUN_CONVERGE);
+        const yaw = aimYaw, pitch = aimPitch + this.kick * this.kick * .25 + down * .5, roll = down * -.6 * side;
+        // place: the grip point at `at`
+        compose(this.local, 0, 0, 0, 0, yaw, pitch, roll, scale);
+        const gx = this.local[0] * grip[0] + this.local[4] * grip[1] + this.local[8] * grip[2];
+        const gy = this.local[1] * grip[0] + this.local[5] * grip[1] + this.local[9] * grip[2];
+        const gz = this.local[2] * grip[0] + this.local[6] * grip[1] + this.local[10] * grip[2];
+        compose(this.local, 0, at[0] - gx, at[1] - gy, at[2] - gz, yaw, pitch, roll, scale);
+        this.cameraMatrix = camera.worldMatrix;
+        multiply(this.gunMatrix, this.cameraMatrix, this.local);
+
+        // the model's own animation: its shot, played over the time between shots, or the reload
+        const duration = (name: string) => gun.model.duration(name);
+        if (gun.reloading >= 0) gun.model.pose(spec.reload, gun.reloading * duration(spec.reload));
+        else if (gun.fired < duration(spec.fire)) gun.model.pose(spec.fire, gun.fired * (gun.kind === "rifle" ? 2 : 1));
+        else gun.model.pose(null, 0);
+        gun.batches.forEach((batch, i) => {
+            batch.matrix(0, multiply(this.world, this.gunMatrix, gun.model.matrix(this.piece, i)));
+            batch.count = 1;
+        });
+
+        const inGun = (p: readonly number[]): Vec3 => point(this.local, [p[0], p[1], p[2]]);
+        const from = point(this.cameraMatrix, inGun(muzzle));
+        const to = point(this.cameraMatrix, [0, 0, -GUN_CONVERGE]);
+        const reach = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]) || 1;
+        this.muzzle = { from, direction: [(to[0] - from[0]) / reach, (to[1] - from[1]) / reach, (to[2] - from[2]) / reach] };
+
+        // the trigger hand on the grip, the other under it (revolver) or on the fore end (rifle)
+        const trigger = inGun(grip);
+        const other: Vec3 = spec.fore ? inGun(spec.fore) : [hold.second[0] * side + (at[0] - hold.at[0] * side), hold.second[1] + (at[1] - hold.at[1]), hold.second[2] + (at[2] - hold.at[2])];
+        this.place(this.hands, 0, trigger, this.skin);
+        this.place(this.hands, 1, other, this.skin);
+        let arms = this.limb(0, [SHOULDER[0] * side, SHOULDER[1], SHOULDER[2]], trigger, [side, -1, .3]);
+        arms = this.limb(arms, [-SHOULDER[0] * side, SHOULDER[1], SHOULDER[2]], other, [-side, -1, .3]);
+        this.hands.count = 2;
+        this.arms.count = arms;
     }
 
     /** `left`: left handed, the bow in the right hand, everything mirrored. */
     update(dt: number, camera: Camera, draw: Draw, walk: { speed: number; stride: number; alive: boolean }, arrows: number, left = false) {
+        if (this.gun) return this.updateGun(dt, camera, walk, left);
         const side = left ? -1 : 1;
         this.clock += dt;
         const drawing = draw.phase === "drawing";
@@ -164,7 +260,7 @@ export class FirstPerson {
     }
 
     destroy() {
-        for (const batch of [this.bow, this.string, this.arrow, this.hands, this.arms]) this.renderer.removeBatch(batch);
+        for (const batch of [this.bow, this.string, this.arrow, this.hands, this.arms, ...(this.gun?.batches ?? [])]) this.renderer.removeBatch(batch);
     }
 
     private place(batch: Batch, index: number, at: Vec3, tint: Vec3) {

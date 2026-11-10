@@ -15,6 +15,8 @@ import type { DrawEvent } from "./types";
  *
  * @property {boolean} active a thumb is on it (reflected)
  * @property {boolean} disabled can't draw now, shown dimmed (reflected). It still tells about the thumb
+ * @property {boolean} gun a fire button instead (reflected): press fires, the thumb still aims, it stays put
+ * and there's no cancel. `--pull` then shows the reload going round.
  *
  * @fires drawstart {DrawEvent} the thumb went down on it
  * @fires drawmove {DrawEvent} the thumb moved
@@ -25,6 +27,7 @@ export class BowButton extends CustomElement {
 
     @property({ type: Boolean, reflect: true }) active: boolean = false;
     @property({ type: Boolean, reflect: true }) disabled: boolean = false;
+    @property({ type: Boolean, reflect: true }) gun: boolean = false;
 
     /** Letting go now shoots (the thumb is not on the cancel button). */
     shoot = false;
@@ -68,6 +71,7 @@ export class BowButton extends CustomElement {
     }
 
     private check(x: number, y: number) {
+        if (this.gun) return;
         const on = this.onButton(x, y);
         this.shoot = !on;
         this.toggleAttribute("over", on);
@@ -88,7 +92,7 @@ export class BowButton extends CustomElement {
         this.setPointerCapture(event.pointerId);
         this.lastX = event.clientX;
         this.lastY = event.clientY;
-        this.moveAside();
+        if (!this.gun) this.moveAside();
         this.shoot = true;
         this.active = true;
         this.fire("drawstart", 0, 0);
@@ -187,6 +191,10 @@ export class BowButton extends CustomElement {
                     <path d="M6 3c5 3 5 15 0 18" />
                     <path d="M6 3v18" class="cord" />
                     <path d="M3 12h16m-3-3 3 3-3 3" />
+                </svg>
+                <svg class="sight" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="7" />
+                    <path d="M12 2v6m0 8v6M2 12h6m8 0h6" />
                 </svg>
                 <svg class="cancel" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M6 6l12 12M18 6 6 18" />

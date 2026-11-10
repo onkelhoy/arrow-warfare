@@ -24,6 +24,8 @@ type Looker = { x: number; y: number; startX: number; startY: number; at: number
  * What the player asks for, from any device. Touch: the joystick on the left moves, dragging anywhere else
  * looks, holding the bow button draws (by time) and aims, letting go shoots (or cancels on the moved button), a tap picks up. Desktop: click to lock the mouse and look, WASD or
  * the arrows to walk, hold space to draw, click to pick up, E pulls an arrow out of myself.
+ * With a gun (`gun`): the bow button is the trigger (press fires, the thumb still aims) with a reload button
+ * above it; on a computer a click or space fires and R reloads.
  */
 export class Controls {
     /** Looking turned this much since the last `look()`, in radians before sensitivity. */
@@ -45,6 +47,13 @@ export class Controls {
     private tapped: [number, number][] = [];
     /** Asked to pull an arrow out of myself (E, or the button) since the last `pulls()`. */
     private pulled = 0;
+    /** Trigger presses (a click with the mouse locked, the button, space), and reloads asked for (R, the button), since the last calls. */
+    private clicked = 0;
+    private reloaded = 0;
+    /** The reload button, touch only, shown with a gun. */
+    readonly reloadButton: HTMLButtonElement;
+    /** A gun instead of the bow: clicks fire rather than pick up. */
+    gun = false;
 
     constructor(root: HTMLElement) {
         this.surface = document.createElement("div");
@@ -53,7 +62,17 @@ export class Controls {
         this.joystick.className = "aw-play-stick";
         this.bow = document.createElement("aw-bow-button") as BowButton;
         this.bow.className = "aw-play-bow";
-        root.append(this.surface, this.joystick, this.bow);
+        this.reloadButton = document.createElement("button");
+        this.reloadButton.type = "button";
+        this.reloadButton.className = "aw-play-reload";
+        this.reloadButton.hidden = true;
+        this.reloadButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>`;
+        this.reloadButton.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.reloaded++;
+        });
+        root.append(this.surface, this.joystick, this.bow, this.reloadButton);
 
         this.surface.addEventListener("pointerdown", this.handledown);
         this.surface.addEventListener("pointermove", this.handlemove);
@@ -75,6 +94,27 @@ export class Controls {
         this.bow.style.setProperty("--size", `${place.size}px`);
         this.bow.style.left = `calc(${place.x * 100}% - ${place.size / 2}px)`;
         this.bow.style.top = `calc(${place.y * 100}% - ${place.size / 2}px)`;
+        // the reload button beside the trigger towards the middle of the screen: under it when it's high up
+        const small = Math.round(place.size * .6);
+        this.reloadButton.style.setProperty("--size", `${small}px`);
+        this.reloadButton.style.left = `calc(${place.x * 100}% - ${place.size * (place.x > .5 ? .95 : -.35)}px)`;
+        this.reloadButton.style.top = place.y < .5
+            ? `calc(${place.y * 100}% + ${place.size * .5 + 12}px)`
+            : `calc(${place.y * 100}% - ${place.size * .5 + small + 12}px)`;
+    }
+
+    /** Trigger presses since the last call, with a gun. Counted, so a tap quicker than a frame still fires. */
+    triggers() {
+        const clicked = this.clicked;
+        this.clicked = 0;
+        return clicked;
+    }
+
+    /** Reloads asked for since the last call. */
+    reloads() {
+        const reloaded = this.reloaded;
+        this.reloaded = 0;
+        return reloaded;
     }
 
     /** -1..1 each: x right, y forward. */
@@ -131,6 +171,7 @@ export class Controls {
         this.surface.remove();
         this.joystick.remove();
         this.bow.remove();
+        this.reloadButton.remove();
     }
 
     private handledown = (event: PointerEvent) => {
@@ -143,6 +184,7 @@ export class Controls {
                 return;
             }
             if (!this.locked) this.surface.requestPointerLock?.()?.catch?.(() => undefined);
+            else if (event.button === 0 && this.gun) this.clicked++;
             else if (event.button === 0)
             {
                 const box = this.surface.getBoundingClientRect();
@@ -188,6 +230,7 @@ export class Controls {
     private handledraw = (event: Event) => {
         const { dx, dy, shoot } = (event as CustomEvent<DrawEvent>).detail;
         this.thumb = event.type !== "drawend";
+        if (event.type === "drawstart" && this.gun) this.clicked++;
         this.shoot = shoot;
         this.turnX += dx * TOUCH_TURN;
         this.turnY += dy * TOUCH_TURN;
@@ -204,10 +247,16 @@ export class Controls {
         if (event.code === "Space")
         {
             event.preventDefault();
+            if (event.type === "keydown" && !event.repeat && this.gun) this.clicked++;
             this.space = event.type === "keydown";
             return;
         }
         const key = event.key.toLowerCase();
+        if (key === "r")
+        {
+            if (event.type === "keydown" && !event.repeat) this.reloaded++;
+            return;
+        }
         if (key === "e")
         {
             if (event.type === "keydown" && !event.repeat) this.pulled++;

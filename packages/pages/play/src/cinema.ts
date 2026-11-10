@@ -1,4 +1,4 @@
-import { fly, heading, launch, powerOf, STEP, type Shot, type Vec } from "@arrow-warfare/archery";
+import { fly, heading, isBullet, launch, powerOf, STEP, type Shot, type Vec } from "@arrow-warfare/archery";
 import type { Pose } from "@arrow-warfare/net";
 import type { Renderer, Vec3 } from "@arrow-warfare/render";
 import { Bodies, Rig, type Blow } from "@arrow-warfare/rig";
@@ -14,7 +14,7 @@ import { footing } from "./footing";
 const FLYBY_LEAST = 380;
 
 type Look = { clothes: Vec3; skin: Vec3 };
-export type SoundName = "twang" | "whoosh" | "body" | "kill" | "grunt";
+export type SoundName = "twang" | "whoosh" | "body" | "kill" | "grunt" | "gunshot";
 
 /** What the kill cam needs from the round. */
 export type FilmWorld = {
@@ -143,7 +143,7 @@ export class Film {
                 },
             });
             start = from;
-            if (shot) this.cues.push({ time: shot.time, play: () => this.world.sound("twang", [shot.x, shot.y, shot.z], .6, 1) });
+            if (shot) this.cues.push({ time: shot.time, play: () => this.world.sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], .6, 1) });
         }
         else if (shot && shooter && path.length > 1)
         {
@@ -157,7 +157,7 @@ export class Film {
             const far = ground(add(add(add(body, forward, 1.9), right, -1.25 * hand), [0, .75, 0]));
             start = shot.time - 750;
             this.shots.push({ name: "release", real: 1.7, from: start, to: shot.time + 120, ease: u => Math.sin(u * Math.PI / 2), camera: (_, u) => ({ eye: mix(far, look, u * .22), look }) });
-            this.cues.push({ time: shot.time, play: () => this.world.sound("twang", [shot.x, shot.y, shot.z], 1, .7) });
+            this.cues.push({ time: shot.time, play: () => this.world.sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], 1, isBullet(shot) ? .85 : .7) });
 
             let from = shot.time + 120;
             if (flight >= FLYBY_LEAST)
@@ -267,6 +267,11 @@ export class Film {
         const { eye, look } = shot.camera(this.time, u);
         aim(this.world.camera, eye, look);
         this.world.arrows.drawAt(this.time, this.world.replay.shots.values(), this.world.replay.hits, id => this.rigs.get(id) ?? null, eye);
+    }
+
+    /** Everyone holds this gun instead of a bow (see `Bodies.useGun`). */
+    useGun(...args: Parameters<Bodies["useGun"]>) {
+        this.bodies.useGun(...args);
     }
 
     destroy() {

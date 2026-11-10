@@ -122,6 +122,44 @@
     }
 }
 
+.aw-play-reload {
+    --size: 46px;
+    position: absolute;
+    z-index: 1;
+    display: none;
+    inline-size: var(--size);
+    block-size: var(--size);
+    padding: 0;
+    border: 2px solid rgb(255 255 255 / 55%);
+    border-radius: 50%;
+    background: rgb(255 255 255 / 14%);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+
+    svg {
+        inline-size: 55%;
+        block-size: 55%;
+        fill: none;
+        stroke: white;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    &:active {
+        background: rgb(255 255 255 / 40%);
+    }
+}
+
+@media (pointer: coarse) {
+    .aw-play-reload:not([hidden]) {
+        display: grid;
+        place-items: center;
+    }
+}
+
 .aw-hud {
     position: absolute;
     z-index: 2;

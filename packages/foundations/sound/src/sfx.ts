@@ -1,6 +1,6 @@
 import type { Sound } from "./sound";
 
-export type SfxName = "creak" | "twang" | "wood" | "ground" | "body" | "kill" | "pant" | "pickup" | "empty" | "whoosh" | "grunt" | "step" | "hop" | "heartbeat" | "stretch";
+export type SfxName = "creak" | "twang" | "wood" | "ground" | "body" | "kill" | "pant" | "pickup" | "empty" | "whoosh" | "grunt" | "step" | "hop" | "heartbeat" | "stretch" | "gunshot" | "reload" | "flyby";
 export type SfxOptions = { volume?: number; pan?: number; rate?: number };
 
 /**

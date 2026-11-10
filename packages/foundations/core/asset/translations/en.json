@@ -58,6 +58,7 @@
       "back": "Back to the lobby",
       "waitHost": "Waiting for the host to go back to the lobby.",
       "hint": "Click to look around, WASD to walk, hold space to draw",
+      "hintGun": "Click to look around, WASD to walk, click or space to fire, R to reload",
       "turn": "Turn your phone sideways 🔄"
     },
     "lobby": {
@@ -240,7 +241,10 @@
       "kill": "kill",
       "kills": "kills",
       "watching": "Watching {name}",
-      "switch": "tap to switch"
+      "switch": "tap to switch",
+      "rounds": "rounds",
+      "reloading": "Reloading…",
+      "reloadKey": "R to reload"
     },
     "results": {
       "title": "Round over",

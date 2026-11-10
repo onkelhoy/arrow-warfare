@@ -126,6 +126,16 @@ export class Hud {
         this.quiver.classList.toggle("empty", count === 0);
     }
 
+    /** A gun's rounds out of a full one, or that it's reloading. Empty asks for a reload. */
+    rounds(count: number, magazine: number, reloading: boolean) {
+        const coarse = matchMedia("(pointer: coarse)").matches;
+        const text = reloading ? t("hud.reloading") : `<b>${count}</b>/${magazine} ${t("hud.rounds")}${count === 0 && !coarse ? ` · ${t("hud.reloadKey")}` : ""}`;
+        if (text === this.shown.arrows) return;
+        this.shown.arrows = text;
+        this.quiver.innerHTML = text;
+        this.quiver.classList.toggle("empty", count === 0 && !reloading);
+    }
+
     /** My kills this round, shown from the first. */
     kills(count: number) {
         if (count === this.shown.kills) return;

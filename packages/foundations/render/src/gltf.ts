@@ -139,6 +139,28 @@ export class Rigged {
         this.pose(null, 0);
     }
 
+    /** All the pieces as one mesh, posed as now (the model's space): for the gun others hold. */
+    bake(): MeshData {
+        const count = this.parts.reduce((sum, part) => sum + part.mesh.count, 0);
+        const vertices = new Float32Array(count * STRIDE);
+        const m = mat4();
+        let o = 0;
+        this.parts.forEach((part, index) => {
+            this.matrix(m, index);
+            const v = part.mesh.vertices;
+            for (let k = 0; k < part.mesh.count; k++, o += STRIDE)
+            {
+                const i = k * STRIDE, x = v[i], y = v[i + 1], z = v[i + 2];
+                vertices[o] = m[0] * x + m[4] * y + m[8] * z + m[12];
+                vertices[o + 1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+                vertices[o + 2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+                for (let e = 6; e < STRIDE; e++) vertices[o + e] = v[i + e];
+            }
+        });
+        flatten(vertices, count);
+        return { vertices, count };
+    }
+
     /** The animation's length in seconds, 0 if there's none by that name. */
     duration(name: string) {
         return this.gltf.animations.find(animation => animation.name === name)?.duration ?? 0;
