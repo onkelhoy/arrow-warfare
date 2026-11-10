@@ -411,6 +411,13 @@ export class Arrows {
     }
 
     /** The arrows stuck in a body, for pulling them out. */
+    /** How many arrows are in `id`, leaving out the ones in `skip`: `in` without the list, for every frame. */
+    countIn(id: string, skip: Set<string>) {
+        let count = 0;
+        for (const arrow of this.all.values()) if (!arrow.gone && !isBullet(arrow.shot) && arrow.rest?.in === "body" && arrow.rest.id === id && !skip.has(arrow.shot.id)) count++;
+        return count;
+    }
+
     in(id: string) {
         return [...this.all.values()].filter(arrow => !arrow.gone && !isBullet(arrow.shot) && arrow.rest?.in === "body" && arrow.rest.id === id);
     }

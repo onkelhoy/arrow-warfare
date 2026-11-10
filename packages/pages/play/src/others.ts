@@ -129,7 +129,9 @@ export class Others {
 
     /** The living, as drawn: for the view, where my phone judges everyone. */
     get living() {
-        return [...this.others.values()].filter(other => !other.corpse).map(other => ({ id: other.id, rig: other.rig }));
+        const living: { id: string; rig: Rig }[] = [];
+        for (const other of this.others.values()) if (!other.corpse) living.push({ id: other.id, rig: other.rig });
+        return living;
     }
 
     /** Where someone is drawn now, null for someone not here. */

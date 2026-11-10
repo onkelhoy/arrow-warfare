@@ -227,6 +227,10 @@ export class Renderer extends GameObject {
     private viewProjection = mat4();
     private inverse = mat4();
     private lightData = new Float32Array(LIGHTS * 4);
+    private sun: Vec3 = [0, 1, 0];
+    /** `batches` with the front ones last, made again when a batch comes or goes. */
+    private ordered: Batch[] | null = null;
+    private best: { lamp: Lamp; d: number }[] = [];
 
     constructor(readonly surface: Layer3D) {
         super();
@@ -248,12 +252,14 @@ export class Renderer extends GameObject {
     batch(mesh: Mesh | MeshData, setting?: BatchSetting) {
         const batch = new Batch(this.gl, mesh instanceof Mesh ? mesh : this.mesh(mesh), setting);
         this.batches.push(batch);
+        this.ordered = null;
         return batch;
     }
 
     removeBatch(batch: Batch) {
         const index = this.batches.indexOf(batch);
         if (index >= 0) this.batches.splice(index, 1);
+        this.ordered = null;
         batch.destroy();
     }
 
@@ -272,7 +278,9 @@ export class Renderer extends GameObject {
         const { gl, light } = this;
         multiply(this.viewProjection, camera.projectionMatrix, camera.viewMatrix);
         const eye = camera.worldPosition;
-        const sun = normalize([...light.sunDirection] as Vec3);
+        const sun = this.sun;
+        sun[0] = light.sunDirection[0]; sun[1] = light.sunDirection[1]; sun[2] = light.sunDirection[2];
+        normalize(sun);
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -315,7 +323,7 @@ export class Renderer extends GameObject {
 
         let drawn = 0;
         let cleared = false;
-        const ordered = this.batches.some(batch => batch.front) ? [...this.batches.filter(batch => !batch.front), ...this.batches.filter(batch => batch.front)] : this.batches;
+        const ordered = this.ordered ??= [...this.batches.filter(batch => !batch.front), ...this.batches.filter(batch => batch.front)];
         for (const batch of ordered)
         {
             if (!batch.upload()) continue;
@@ -342,7 +350,8 @@ export class Renderer extends GameObject {
         const most = Math.max(0, Math.min(LIGHTS, Math.floor(this.pointLights)));
         if (!most || !this.lamps.length) return 0;
         // a short list kept sorted by distance, the lamps far past their reach left out
-        const best: { lamp: Lamp; d: number }[] = [];
+        const best = this.best;
+        best.length = 0;
         for (const lamp of this.lamps)
         {
             const d = (lamp.x - x) ** 2 + (lamp.y - y) ** 2 + (lamp.z - z) ** 2;
@@ -352,7 +361,9 @@ export class Renderer extends GameObject {
             best.splice(i, 0, { lamp, d });
             if (best.length > most) best.pop();
         }
-        best.forEach(({ lamp }, i) => this.lightData.set([lamp.x, lamp.y, lamp.z, lamp.reach], i * 4));
+        best.forEach(({ lamp }, i) => {
+            this.lightData[i * 4] = lamp.x; this.lightData[i * 4 + 1] = lamp.y; this.lightData[i * 4 + 2] = lamp.z; this.lightData[i * 4 + 3] = lamp.reach;
+        });
         return best.length;
     }
 }

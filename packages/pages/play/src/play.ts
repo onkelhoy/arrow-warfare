@@ -925,6 +925,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     let creak = 0;
     let feet = 0;
     const whooshed = new Set<string>();
+    // the arrows' ids kept for the whoosh and the birds, let go of with the arrows now and then
+    let tidy = 0;
+    const forgetArrows = (dt: number) => {
+        tidy -= dt;
+        if (tidy > 0) return;
+        tidy = 5;
+        for (const set of [whooshed, birdDone]) for (const id of set) if (!arrows.all.has(id)) set.delete(id);
+        for (const id of birdFlights.keys()) if (!arrows.all.has(id)) birdFlights.delete(id);
+    };
     let beat = 0;
     // a game object, so it runs before the frame is drawn and the camera is where I am now
     const driver = engine.add(new class extends GameObject {
@@ -1038,10 +1047,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (bots) playBots(dt, now);
 
         // arrows, and the bodies my phone judges
+        const living = others.living;
         const judge = walker.alive ? [{ id: me, rig: myRig }] : [];
-        if (options.bots) judge.push(...others.living.filter(other => !dead.has(other.id)));
-        // the host decides hits on its bots
-        else if (bots) judge.push(...others.living.filter(other => bots.has(other.id) && !dead.has(other.id)));
+        // the view judges everyone, the host decides hits on its bots
+        if (options.bots || bots) for (const other of living) if (!dead.has(other.id) && (options.bots || bots!.has(other.id))) judge.push(other);
         const flown = arrows.update(now, judge, friendly ? undefined : (shooter, id) => {
             const team = state.players.find(player => player.id === shooter)?.team;
             return !!team && team === state.players.find(player => player.id === id)?.team;
@@ -1092,7 +1101,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             else birdFlights.set(id, at);
         }
         {
-            const near = others.living.map(other => other.rig.where);
+            const near = [];
+            for (const other of living) near.push(other.rig.where);
             if (walker.alive) near.push({ x: walker.x, y: walker.y, z: walker.z, yaw: 0, tip: 0 });
             birds.update(dt, near);
         }
@@ -1109,6 +1119,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             const distance = Math.hypot(at[0] - arrow.shot.x, at[2] - arrow.shot.z);
             struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance, time: arrow.at });
         }
+        forgetArrows(dt);
         blood.update(dt * (view === "film" ? film.rate : 1));
         impacts.update(dt * (view === "film" ? film.rate : 1));
         if (view !== "film") arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
@@ -1151,7 +1162,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         hud.damage(wounds.hits);
         hud.wounds(wounds.bits, injuries);
         hud.energy(wounds.energy, wounds.resting);
-        hud.pull(alive && draw.phase !== "drawing" ? arrows.in(me).filter(arrow => !taken.has(arrow.shot.id)).length : 0);
+        hud.pull(alive && draw.phase !== "drawing" ? arrows.countIn(me, taken) : 0);
         const left = standing(state.players, [...dead]).length;
         hud.standing(t("hud.left", { count: String(left) }));
         controls.bow.hidden = !alive;
