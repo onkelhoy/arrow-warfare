@@ -9,7 +9,7 @@ import { adopt, CHAT_LENGTH, COLOURS, people, QUALITY, settings, SKINS, t, teamN
 import { BOTS_PER_PACKET, packBots, packPose, POSE_RATE, unpackBots, unpackPose, type Pose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
-import { Ambience, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
+import { Ambience, Taverns, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
 import { currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
@@ -100,6 +100,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const play = document.createElement("main");
     play.className = options.contained ? "aw-play contained" : "aw-play";
     const density = () => Math.min(window.devicePixelRatio || 1, QUALITY[settings().quality].pixels);
+    /** Where the trigger goes on a touch screen: the bow's place, or a gun's own. */
+    const buttonPlace = () => (state.rules.weapon ?? "bow") === "bow" ? settings().bow : settings().gun;
     play.innerHTML = `
         <canvas class="aw-play-canvas"></canvas>
         <div class="aw-play-names"></div>
@@ -122,7 +124,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const aspect = play.clientWidth / Math.max(1, play.clientHeight);
         baseFov = aspect > WIDE ? 2 * Math.atan(Math.tan(FOV / 2) * WIDE / aspect) : FOV;
         camera.fov = baseFov;
-        controls.placeBow(settings().bow, play.clientWidth);
+        controls.placeBow(buttonPlace(), play.clientWidth);
     };
     /** The field of view for this screen, before aiming zooms in. */
     let baseFov = FOV;
@@ -145,6 +147,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     ambience?.time(time && time !== "clock" ? time : currentPalette());
     if (rain) rain.onLightning = distance => ambience?.thunder(distance);
     ambience?.emitters(emittersOf(field));
+    // songs from the taverns, the game's music dipping close to one
+    const taverns = options.sound ? new Taverns(options.sound, field.models.filter(one => one.model === "buildings/tavern").map(one => [one.x, one.y + 1.6, one.z])) : null;
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
     const footstep = raining ? "wetstep" : "step";
@@ -195,7 +199,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     size();
     window.addEventListener("resize", size);
-    const stopBow = effect(() => controls.placeBow(settings().bow, play.clientWidth));
+    const stopBow = effect(() => controls.placeBow(buttonPlace(), play.clientWidth));
     // a new quality changes the resolution and the lamp light now, the grass next round
     let quality = settings().quality;
     const stopQuality = effect(() => {
@@ -313,6 +317,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const m = camera.worldMatrix;
         options.sound?.listen([m[12], m[13], m[14]], [-m[8], -m[9], -m[10]], [m[4], m[5], m[6]]);
         ambience?.update(dt, [m[12], m[13], m[14]]);
+        taverns?.update(dt, [m[12], m[13], m[14]]);
     };
     const vibrate = (pattern: number | number[]) => {
         try { navigator.vibrate?.(pattern); } catch { /* not here */ }
@@ -1183,7 +1188,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
     /** The insides, for the views and headless runs: also on the element as `debug`. */
     const debug: PlayDebug = {
-        walker, field, draw, arrows, others, hud, replay, film, bots, tally, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, gun, controls, get dead() { return [...dead]; },
+        walker, field, draw, arrows, others, hud, replay, film, bots, tally, rain, get view() { return view; }, firstPerson, wounds, myRig, get quiver() { return quiver; }, gun, controls, get dead() { return [...dead]; },
         /** The view's "a bot shoots me": the nearest standing bot sends a strong arrow at my chest. */
         shootMe(by?: string, at = me) {
             const pose = (id: string) => others.poseOf(id);
@@ -1238,6 +1243,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             stopQuality();
             playing = false;
             ambience?.stop();
+            taverns?.stop();
             document.removeEventListener("visibilitychange", awake);
             wake?.release().catch(() => undefined);
             clearTimeout(settle);

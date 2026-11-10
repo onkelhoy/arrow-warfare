@@ -99,9 +99,12 @@ for (const [name, [count, make]] of Object.entries(AMBIENCE)) {
         list[name].push(file);
     }
 }
-// copied in, not rendered: the guns, from cowboy (packages/game/asset/audio); the crickets, a recording (bin/crickets.mjs)
+// copied in, not rendered: the guns, from cowboy (packages/game/asset/audio); crickets, owls, crows and rain, recordings (bin/crickets.mjs, bin/calls.mjs, bin/loop.mjs)
 const COPIED = {
     crickets: ["crickets-1.wav"],
+    rain: ["rain-1.wav"],
+    owl: ["owl-1.wav", "owl-2.wav", "owl-3.wav"],
+    crow: [1, 2, 3, 4, 5, 6].map(n => `crow-${n}.wav`),
     gunshot: ["gunshot-1.mp3", "gunshot-2.mp3"],
     reload: ["reload-1.mp3"],
     flyby: ["flyby-1.mp3", "flyby-2.mp3", "flyby-3.mp3", "flyby-4.mp3", "flyby-5.mp3"],

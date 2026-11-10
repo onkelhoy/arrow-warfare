@@ -4,7 +4,8 @@ import type { Field } from "@arrow-warfare/world";
 
 export type Surface = "ground" | "wood" | "wall";
 
-type Bit = { x: number; y: number; z: number; vx: number; vy: number; vz: number; age: number; life: number; size: number; grow: number; drag: number; colour: number };
+/** `yaw`, `pitch` turn while it flies (a chip tumbling), dust never turns, a chip lying on the ground stops. */
+type Bit = { x: number; y: number; z: number; vx: number; vy: number; vz: number; age: number; life: number; size: number; grow: number; drag: number; colour: number; yaw: number; pitch: number; landed: boolean };
 type Mark = { x: number; y: number; z: number; yaw: number; pitch: number; age: number; size: number };
 
 const GRAVITY = 9.8;
@@ -58,11 +59,12 @@ export class Impacts {
                 vy: (out[1] + Math.random() * .6) * speed,
                 vz: (out[2] + (Math.random() - .5) * spread) * speed,
                 age: 0,
-                life: dust ? 1 + Math.random() * .6 : .45 + Math.random() * .35,
+                life: dust ? .7 + Math.random() * .4 : .45 + Math.random() * .35,
                 size: dust ? .05 + Math.random() * .04 : .02 + Math.random() * .025,
-                grow: dust ? 1.8 : 0,
-                drag: dust ? 3 : .5,
+                grow: dust ? 1.6 : 0,
+                drag: dust ? 5 : .5,
                 colour: base + Math.floor(Math.random() * colours.length),
+                yaw: Math.random() * 6, pitch: Math.random() * 6, landed: false,
             });
         }
         if (this.bits.length > BITS) this.bits.splice(0, this.bits.length - BITS);
@@ -87,13 +89,19 @@ export class Impacts {
         {
             const slow = Math.exp(-bit.drag * dt);
             bit.vx *= slow; bit.vz *= slow;
-            bit.vy = bit.vy * slow - GRAVITY * dt * (bit.grow ? .08 : 1);
-            bit.x += bit.vx * dt; bit.y += bit.vy * dt; bit.z += bit.vz * dt;
-            const ground = this.field.height(bit.x, bit.z);
-            if (bit.y < ground) { bit.y = ground; bit.vy = 0; bit.vx *= .5; bit.vz *= .5; }
+            // dust: slowed to a stop quickly, then only rises a little as it thins out
+            bit.vy = bit.grow ? bit.vy * slow + .25 * dt : bit.vy * slow - GRAVITY * dt;
+            if (!bit.landed)
+            {
+                bit.x += bit.vx * dt; bit.y += bit.vy * dt; bit.z += bit.vz * dt;
+                const ground = this.field.height(bit.x, bit.z);
+                // a chip lands and lies still
+                if (bit.y < ground) { bit.y = ground; bit.landed = !bit.grow; bit.vy = 0; bit.vx = bit.vz = 0; }
+                else if (!bit.grow) { bit.yaw += dt * 9; bit.pitch += dt * 7; }
+            }
             const k = bit.age / bit.life;
-            const size = bit.size * (bit.grow ? 1 + k * bit.grow : 1 - k * .5) * (bit.grow ? 1 - k * k : 1);
-            this.chips.place(index, bit.x, bit.y, bit.z, bit.age * 9, bit.age * 7, 0, size);
+            const size = bit.size * (bit.grow ? (1 + k * bit.grow) * (1 - k * k) : 1 - k * .5);
+            this.chips.place(index, bit.x, bit.y, bit.z, bit.yaw, bit.pitch, 0, size);
             this.chips.tint(index++, PALETTE[bit.colour], bit.grow ? .9 : 1);
         }
         this.chips.count = index;

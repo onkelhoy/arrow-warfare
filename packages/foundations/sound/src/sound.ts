@@ -30,6 +30,9 @@ export class Sound {
     private muted = false;
     private dipped = false;
     private hushed = false;
+    /** 0..1, how far the music is pulled down for a tavern's song close by. */
+    private ducked = 0;
+    private streams = new Map<string, Promise<string | null>>();
     private wanted: PlaylistName | null = null;
 
     /** `songs` is where `songs.json` and the songs are, asked for with `fetch`. */
@@ -117,6 +120,40 @@ export class Sound {
         return this.running ? { context: this.mixer.context as AudioContext, destination: this.mixer.bus("sfx").gain } : null;
     }
 
+    /** Where the songs are (`songs.json` is next to it). */
+    get songFolder() {
+        return this.songs;
+    }
+
+    /**
+     * A song streamed rather than decoded (they're long), for a voice of its own: resolves to its id for
+     * `mixer.play`, or null. Fetched as a blob first so it plays on the static site too (see `Playlists`).
+     */
+    song(name: string) {
+        let found = this.streams.get(name);
+        if (!found)
+        {
+            found = fetch(`${this.songs}/${encodeURIComponent(name)}${/\.\w+$/.test(name) ? "" : ".mp3"}`)
+                .then(async response => {
+                    if (!response.ok) return null;
+                    const id = `song:${name}`;
+                    await this.mixer.load(id, URL.createObjectURL(await response.blob()), { stream: true });
+                    return id;
+                })
+                .catch(() => null);
+            this.streams.set(name, found);
+        }
+        return found;
+    }
+
+    /** Pulls the game's music down by `amount` (0..1) while a tavern's song plays close by. */
+    duck(amount: number) {
+        const next = Math.max(0, Math.min(1, amount));
+        if (Math.abs(next - this.ducked) < .02) return;
+        this.ducked = next;
+        this.mixer.bus("music").fadeTo(this.musicLevel(), { seconds: .4 });
+    }
+
     /** Pulls the music and the ambience down, for slow motion, and lets them back up. */
     dip(value: boolean) {
         this.dipped = value;
@@ -127,9 +164,15 @@ export class Sound {
     hush(value: boolean, seconds = 1.2) {
         this.hushed = value;
         this.mixer.bus("music").fadeTo(this.musicLevel(), { seconds });
+        this.mixer.bus("tavern").fadeTo(this.tavernLevel(), { seconds });
     }
 
     private musicLevel() {
+        return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1) * (1 - this.ducked * .85);
+    }
+
+    /** Taverns' songs are music too, but not pulled down by them. */
+    private tavernLevel() {
         return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1);
     }
 
@@ -139,6 +182,7 @@ export class Sound {
         mixer.bus("sfx").fadeTo(volumes.sounds, { seconds: 0 });
         mixer.bus("ambience").fadeTo(volumes.ambience * (this.dipped ? AMBIENCE_DIP : 1), { seconds });
         mixer.bus("music").fadeTo(this.musicLevel(), { seconds });
+        mixer.bus("tavern").fadeTo(this.tavernLevel(), { seconds });
     }
 
     /** The songs start once audio runs, an `<audio>` element won't play before a tap. */

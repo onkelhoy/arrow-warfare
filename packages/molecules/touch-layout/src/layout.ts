@@ -1,20 +1,20 @@
 import "@papit/button";
 import "@arrow-warfare/bow-button";
-import { adopt, BOW_PLACE, BOW_SIZE, settings, t, updateSettings, type BowPlace } from "@arrow-warfare/core";
+import { adopt, BOW_PLACE, BOW_SIZE, GUN_PLACE, settings, t, updateSettings, type BowPlace } from "@arrow-warfare/core";
 
 import sheet from "./style.css" with { type: "css" };
 
 /**
  * Place your touch controls: a full screen layer with the bow button on it. Drag it where the thumb likes
  * it, change its size, and it's saved on the device as it moves. The joystick stays where you put your
- * thumb, so only the bow button is placed.
+ * thumb, so only the bow button is placed. `kind` "gun" places a gun's trigger instead (its own place).
  */
-export function mountTouchLayout(root: HTMLElement = document.body, onDone: () => void = () => undefined) {
+export function mountTouchLayout(root: HTMLElement = document.body, onDone: () => void = () => undefined, kind: "bow" | "gun" = "bow") {
     adopt(sheet);
     const layer = document.createElement("div");
     layer.className = "aw-layout";
     layer.innerHTML = `
-        <p class="aw-layout-title">${t("layout.title")}</p>
+        <p class="aw-layout-title">${t(kind === "gun" ? "layout.gunTitle" : "layout.title")}</p>
         <div class="aw-layout-bow"><aw-bow-button></aw-bow-button></div>
         <div class="aw-layout-bar">
             <label>${t("layout.size")} <input type="range" name="size" min="${BOW_SIZE.min}" max="${BOW_SIZE.max}" step="2"></label>
@@ -27,7 +27,8 @@ export function mountTouchLayout(root: HTMLElement = document.body, onDone: () =
     const holder = find(".aw-layout-bow");
     const size = find<HTMLInputElement>("input[name=size]");
 
-    let place: BowPlace = { ...settings().bow };
+    if (kind === "gun") (find("aw-bow-button") as HTMLElement & { gun: boolean }).gun = true;
+    let place: BowPlace = { ...settings()[kind] };
     const show = () => {
         holder.style.setProperty("--size", `${place.size}px`);
         holder.style.left = `${place.x * 100}%`;
@@ -36,7 +37,7 @@ export function mountTouchLayout(root: HTMLElement = document.body, onDone: () =
     };
     const save = (next: BowPlace) => {
         place = next;
-        updateSettings({ bow: { ...place } });
+        updateSettings({ [kind]: { ...place } });
         show();
     };
     show();
@@ -64,7 +65,7 @@ export function mountTouchLayout(root: HTMLElement = document.body, onDone: () =
     holder.addEventListener("pointercancel", up);
 
     size.addEventListener("input", () => save({ ...place, size: Number(size.value) }));
-    find("[data-do=reset]").addEventListener("click", () => save({ ...BOW_PLACE }));
+    find("[data-do=reset]").addEventListener("click", () => save({ ...(kind === "gun" ? GUN_PLACE : BOW_PLACE) }));
     const remove = () => layer.remove();
     find("[data-do=done]").addEventListener("click", () => {
         remove();
