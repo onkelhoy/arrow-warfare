@@ -32,6 +32,8 @@ export const CATALOG = {
     "ground/cobble-straight": { triangles: 414, kb: 11, min: [-2, 0, -2], max: [2, 0.33, 2] },
     "ground/cobble-t": { triangles: 458, kb: 12, min: [-2, 0, -2], max: [2, 0.33, 2] },
     "ground/plaza": { triangles: 128, kb: 6, min: [-2, 0.02, -2], max: [2, 0.02, 2] },
+    "guns/revolver": { triangles: 2812, kb: 93, min: [-0.73, -2.5, -4.85], max: [2.13, 2.73, 4.75] },
+    "guns/rifle": { triangles: 1912, kb: 70, min: [-0.2, -0.9, -4.75], max: [0.2, 0.78, 4.85] },
     "nature/BirchTree_1": { triangles: 852, kb: 15, min: [-0.85, 0, -1.24], max: [0.85, 3.57, 1.24] },
     "nature/BirchTree_2": { triangles: 784, kb: 13, min: [-0.73, 0, -0.85], max: [0.73, 4.03, 0.85] },
     "nature/BirchTree_3": { triangles: 864, kb: 15, min: [-0.79, 0, -0.89], max: [0.79, 4.09, 0.89] },

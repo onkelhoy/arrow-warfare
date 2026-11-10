@@ -5,6 +5,7 @@ import { STRIDE, type MeshData } from "./mesh";
 
 /** `@papit/game-mesh`'s glTF, kept for skins and animations later. */
 export type { GLTF } from "@papit/game-mesh";
+export { loadGLTF } from "@papit/game-mesh";
 
 export type GLTFSetting = {
     /** 0 keeps the file's colour, 1 takes the instance's tint (clothes in the player's colour). */

@@ -6,6 +6,8 @@
 // - Quaternius' nature pack (OBJ, a material colour per face): through Blender, headless, colours baked in.
 // - pap-adventure's generated models: already glb with vertex colours, through Blender to turn their inside-out
 //   faces outward (the renderer culls back faces, a cabin lost its gable and half its roof), the buildings cut down.
+// - the revolver and rifle of Animated FPS Guns (Quaternius, .blend): armature, skin and actions kept, colours by
+//   material name (the pack's materials are all grey). The game cuts them into rigid pieces (`Rigged` in render).
 // - asset/edited/<group>/<name>.glb: the owner's hand edits. One there replaces the converted model as it is.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -19,6 +21,7 @@ const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS
 const NATURE = path.join(os.homedir(), "Developer/3d/store/nature/OBJ");
 const PAP = path.join(os.homedir(), "Developer/games/pap-adventure/packages/game/assets/asset/models/generated");
 const EDITED = path.resolve(here, "../asset/edited");
+const GUNS = path.join(os.homedir(), "Developer/3d/store/Animated FPS Guns - Jun 2018/Blends");
 const force = process.argv.includes("--force");
 
 const range = (name, count) => Array.from({ length: count }, (_, i) => `${name}_${i + 1}`);
@@ -85,6 +88,15 @@ if (jobs.length)
 {
     console.log(`models: ${jobs.length / 4} through Blender`);
     execFileSync(BLENDER, ["-b", "--factory-startup", "--python", path.join(here, "blender-glb.py"), "--", ...jobs], { stdio: ["ignore", "ignore", "inherit"] });
+}
+
+fs.mkdirSync(path.join(out, "guns"), { recursive: true });
+for (const name of ["Revolver", "Rifle"])
+{
+    const target = path.join(out, "guns", `${name.toLowerCase()}.glb`);
+    if (!force && fs.existsSync(target)) continue;
+    console.log(`models: guns/${name} through Blender`);
+    execFileSync(BLENDER, ["-b", "--factory-startup", path.join(GUNS, `${name}.blend`), "--python", path.join(here, "blender-gun.py"), "--", target], { stdio: ["ignore", "ignore", "inherit"] });
 }
 
 // the owner's hand edits win
