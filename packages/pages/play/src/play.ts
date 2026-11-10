@@ -740,7 +740,6 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             tick(Math.min(delta, .1));
         }
     }());
-    const debugBow = new URLSearchParams(location.search).has("debug");
     const tick = (dt: number) => {
         const now = net.shared();
         const alive = walker.alive && !over && view === "play";
@@ -770,8 +769,6 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             // a thumb lets go: shoots only back on the button
             if (!want)
             {
-                // TEMPORARY: what the release did, for the `?debug` overlay
-                if (debugBow) console.info(`bow release ${byThumb && !controls.shoot ? "on the X" : "power " + draw.amount.toFixed(2)}`);
                 if (byThumb && !controls.shoot) draw.cancel();
                 else fire(draw.release());
             }

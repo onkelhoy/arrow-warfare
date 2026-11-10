@@ -68,15 +68,6 @@ export class Controls {
         window.addEventListener("blur", this.handleblur);
         document.addEventListener("visibilitychange", this.handleblur);
         document.addEventListener("focusin", this.handlefocus);
-        if (new URLSearchParams(location.search).has("debug")) this.logBow();
-    }
-
-    /** TEMPORARY (bug: a still thumb cancels the shot): the bow button's events in the `?debug` overlay. */
-    private logBow() {
-        const at = (event: Event) => "clientX" in event ? ` ${Math.round((event as PointerEvent).clientX)},${Math.round((event as PointerEvent).clientY)}` : "";
-        for (const type of ["pointerdown", "pointerup", "pointercancel", "lostpointercapture", "touchend", "touchcancel"])
-            this.bow.addEventListener(type, event => console.info(`bow ${type}${at(event)}${"pointerType" in event ? " " + (event as PointerEvent).pointerType : ""}`));
-        this.bow.addEventListener("drawend", event => console.info(`bow drawend shoot ${(event as CustomEvent<DrawEvent>).detail.shoot}`));
     }
 
     /** Puts the bow button where the settings say. */

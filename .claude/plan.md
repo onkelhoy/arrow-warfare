@@ -3,7 +3,7 @@
 Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models, F21 guns, F22 bots.
 
 ## Where we are
-Branch `bugs` done (tasks 1–4), waiting for the owner to test on the phone (`?debug` shows the bow button's events). Then merge to `main`, push, and start task 5 on `engine`.
+Branch `bugs` confirmed by the owner and merged to `main`. Now on `engine`, task 5.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 - One branch per group below so each can be reverted alone: `bugs`, `engine`, `maps`, `models`, `guns`, `bots`.

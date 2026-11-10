@@ -75,13 +75,12 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 
 ### Picking up loses to looking around
 - **What:** a touch is only a tap under 12px and 350ms, and the arrow has to be within 60px of it on screen, so trying to pick up often turns into a look.
-- **Fixed (bugs branch, untested on phone):** tap slack 28px / 500ms; a tap below the horizon with no arrow near it on screen picks the nearest arrow in reach.
+- **Fixed (bugs branch, confirmed by the owner):** tap slack 28px / 500ms; a tap below the horizon with no arrow near it on screen picks the nearest arrow in reach.
 
 ### Stuck running sideways (suspected cause)
 - **What:** after pressing a lot (shooting), the player keeps strafing. The joystick ignores new touches while it still thinks a pointer is down, so one missed finger lift locks it.
-- **Fixed (bugs branch, untested on phone):** a new touch takes the joystick over; it lets go on hide, death, blur and a hidden tab; keys clear when an input gets focus.
+- **Fixed (bugs branch, confirmed by the owner):** a new touch takes the joystick over; it lets go on hide, death, blur and a hidden tab; keys clear when an input gets focus.
 
 ### Shot cancels when the thumb doesn't move
 - **What:** hold the bow button and let go without moving: the shot cancels, though the X is far away. Cause not found by reading. Suspect the release arrives as pointercancel/lostpointercapture.
-- **Fix (bugs branch, untested on phone):** likely iOS taking a still thumb for a long press and cancelling the pointer. Now `touchstart` is prevented on the button, and a cancelled touch waits for the real lift, then only where it lifts decides. Also: a release under `MIN_SHOT` (about 135ms of hold) still lets the bow down without a shot, by design.
-- **To check:** `?debug` logs the bow's pointer events and each release (`on the X` or `power`). Remove the log (`controls.ts` `logBow`, `play.ts` `debugBow`, `bow` in `debug.ts` `WORTH`) once confirmed.
+- **Fixed (bugs branch, confirmed by the owner):** likely iOS taking a still thumb for a long press and cancelling the pointer. Now `touchstart` is prevented on the button, and a cancelled touch waits for the real lift, then only where it lifts decides. Also: a release under `MIN_SHOT` (about 135ms of hold) still lets the bow down without a shot, by design.
