@@ -32,7 +32,7 @@ const WALL = 12;
 export type Tree = { x: number; z: number; kind: number; variant: number; yaw: number; scale: number };
 export type Prop = { x: number; z: number; yaw: number; scale: number; variant: number };
 /** Something round to bump into and shoot into. `soft` only stops walking (a pond). */
-export type Obstacle = { x: number; z: number; radius: number; height: number; soft?: boolean };
+export type Obstacle = { x: number; z: number; radius: number; height: number; soft?: boolean; /** The ground under it, filled in by `groundOf`. */ ground?: number };
 export type Spawn = { x: number; z: number; yaw: number };
 /** A model from `asset/models` standing in the field. `y` is where its bottom sits. `bright` lifts dark packs. */
 export type Placed = { model: ModelName; x: number; y: number; z: number; yaw: number; scale: number; bright?: number };
@@ -214,6 +214,11 @@ export class Field {
         return height;
     }
 
+    /** The ground under an obstacle, worked out once (the map is done by the time anything asks). */
+    groundOf(obstacle: Obstacle) {
+        return obstacle.ground ??= this.height(obstacle.x, obstacle.z);
+    }
+
     /** How deep the water is at `x, z`, 0 out of the ponds. */
     depth(x: number, z: number) {
         let depth = 0;
@@ -312,9 +317,9 @@ export class Field {
         {
             const dx = x - obstacle.x, dz = z - obstacle.z;
             const reach = obstacle.radius + radius;
-            if (y !== undefined && y > this.height(obstacle.x, obstacle.z) + obstacle.height) continue;
             const distance = dx * dx + dz * dz;
             if (distance >= reach * reach) continue;
+            if (y !== undefined && y > this.groundOf(obstacle) + obstacle.height) continue;
             const length = Math.sqrt(distance) || 1e-6;
             x = obstacle.x + dx / length * reach;
             z = obstacle.z + dz / length * reach;

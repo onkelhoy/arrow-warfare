@@ -139,7 +139,7 @@ function worldHit(field: Field, from: Vec, to: Vec): [number, "ground" | "wood" 
             const t = circleEntry(from[0] - obstacle.x, from[2] - obstacle.z, dx, dz, obstacle.radius);
             if (t === null || (best && t >= best[0])) continue;
             const y = from[1] + (to[1] - from[1]) * t;
-            const ground = field.height(obstacle.x, obstacle.z);
+            const ground = field.groundOf(obstacle);
             if (y < ground - .2 || y > ground + obstacle.height) continue;
             best = [t, "wood"];
         }
@@ -227,7 +227,7 @@ export function clear(field: Field, from: Vec, to: Vec, soft = true) {
         const t = circleEntry(from[0] - obstacle.x, from[2] - obstacle.z, dx, dz, obstacle.radius);
         if (t === null || t <= 0) continue;
         const y = from[1] + (to[1] - from[1]) * t;
-        if (y < field.height(obstacle.x, obstacle.z) + obstacle.height) return false;
+        if (y < field.groundOf(obstacle) + obstacle.height) return false;
     }
     return true;
 }

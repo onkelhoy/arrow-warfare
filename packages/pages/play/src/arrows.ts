@@ -49,6 +49,8 @@ export class Arrows {
     /** When each arrow stopped, for the trail's fade. */
     private landed = new Map<string, number>();
     private colours = new Map<string, Vec3>();
+    /** Ids let go of from `all` (gone, or a bullet stopped), so a late copy of the shot isn't flown again. */
+    private finished = new Set<string>();
     private viewProjection = new Float32Array(16);
     /** All the arrows in me are drawn: my body is seen from outside. */
     showMine = false;
@@ -60,7 +62,7 @@ export class Arrows {
     }
 
     add(shot: Shot) {
-        if (this.all.has(shot.id)) return null;
+        if (this.all.has(shot.id) || this.finished.has(shot.id)) return null;
         const arrow = launch(shot);
         this.all.set(shot.id, arrow);
         this.colours.set(shot.id, this.colourOf(shot.by));
@@ -81,7 +83,7 @@ export class Arrows {
         for (let i = 0; i < count; i++)
         {
             const id = `${by}:drop${i}`;
-            if (this.all.has(id)) continue;
+            if (this.all.has(id) || this.finished.has(id)) continue;
             // out of the quiver on the back, along the throw, fanning out and up
             const angle = random() * Math.PI * 2, spread = .6 + random() * 1.4;
             const push = flat ? 1.5 + blow.power * 4 + random() * 2 : 0;
@@ -194,9 +196,23 @@ export class Arrows {
         }
         this.batch.count = index;
         this.drawTrails(now, rigOf, eye);
+        this.forget();
     }
 
     /** A point behind each flying arrow every frame, the old ones let go, drawn thinning out to the tail. */
+    /** Lets go of what's done with once its trail has faded: gone ones, and bullets that stopped. */
+    private forget() {
+        for (const [id, arrow] of this.all)
+        {
+            if (!(arrow.gone || (arrow.rest && isBullet(arrow.shot))) || this.trails.has(id)) continue;
+            this.all.delete(id);
+            this.colours.delete(id);
+            this.landed.delete(id);
+            this.parts.delete(id);
+            this.finished.add(id);
+        }
+    }
+
     private drawTrails(now: number, rigOf: RigOf, eye: Vec) {
         let index = 0;
         for (const [id, arrow] of this.all)
