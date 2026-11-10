@@ -4,6 +4,7 @@
 //   node bin/models.mjs --force  converts everything again
 // Sources, all vertex colours only, no textures (the owner wants one low poly look):
 // - Quaternius' nature pack (OBJ, a material colour per face): through Blender, headless, colours baked in.
+// - the Buildings Pack (Jan 2019, OBJ, untextured): tall town houses, scaled up to ours and cut to ~4000 triangles.
 // - pap-adventure's generated models: already glb with vertex colours, through Blender only to turn their inside-out
 //   faces outward (the renderer culls back faces, a cabin lost its gable and half its roof).
 import { execFileSync } from "node:child_process";
@@ -16,6 +17,7 @@ const out = path.resolve(here, "../asset/models");
 const catalog = path.resolve(here, "../src/catalog.ts");
 const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS/Blender";
 const NATURE = path.join(os.homedir(), "Developer/3d/store/nature/OBJ");
+const PACK = path.join(os.homedir(), "Developer/3D/store/Buildings Pack - Jan 2019/OBJ");
 const PAP = path.join(os.homedir(), "Developer/games/pap-adventure/packages/game/assets/asset/models/generated");
 const force = process.argv.includes("--force");
 
@@ -34,6 +36,13 @@ const nature = {
     // crops stand in rows of many, they keep fewer
     Corn_1: .4, Corn_2: .4, Wheat: .4, Lilypad: 1, Flowers: 1,
 };
+
+/** The Buildings Pack's, by our name. Its two wooden houses are left out: their siding falls apart when cut down. */
+const pack = {
+    "city-long": "Building1_Large", "city-narrow": "Building1_Small", "city-gable-long": "Building2_Large",
+    "city-gable": "Building2_Small", "city-brick": "Building3_Big", "city-brick-narrow": "Building3_Small", "city-manor": "Building4",
+};
+const PACK_SCALE = 2.2, PACK_TRIANGLES = 4000;
 
 /** pap-adventure's, by folder. The heaviest ones (arcade rows) are left out. */
 const pap = {
@@ -55,7 +64,13 @@ const jobs = [];
 for (const [name, keep] of Object.entries(nature))
 {
     const target = path.join(out, "nature", `${name}.glb`);
-    if (force || !fs.existsSync(target)) jobs.push(path.join(NATURE, `${name}.obj`), target, String(keep));
+    if (force || !fs.existsSync(target)) jobs.push(path.join(NATURE, `${name}.obj`), target, String(keep), "1");
+}
+fs.mkdirSync(path.join(out, "buildings"), { recursive: true });
+for (const [name, file] of Object.entries(pack))
+{
+    const target = path.join(out, "buildings", `${name}.glb`);
+    if (force || !fs.existsSync(target)) jobs.push(path.join(PACK, `${file}.obj`), target, String(PACK_TRIANGLES), String(PACK_SCALE));
 }
 for (const [folder, names] of Object.entries(pap))
 {
@@ -65,12 +80,12 @@ for (const [folder, names] of Object.entries(pap))
     for (const name of names)
     {
         const target = path.join(out, group, `${name}.glb`);
-        if (force || !fs.existsSync(target)) jobs.push(path.join(PAP, folder, `${name}.glb`), target, "1");
+        if (force || !fs.existsSync(target)) jobs.push(path.join(PAP, folder, `${name}.glb`), target, "1", "1");
     }
 }
 if (jobs.length)
 {
-    console.log(`models: ${jobs.length / 3} through Blender`);
+    console.log(`models: ${jobs.length / 4} through Blender`);
     execFileSync(BLENDER, ["-b", "--factory-startup", "--python", path.join(here, "blender-glb.py"), "--", ...jobs], { stdio: ["ignore", "ignore", "inherit"] });
 }
 

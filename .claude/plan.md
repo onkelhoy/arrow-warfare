@@ -35,7 +35,7 @@ Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, 
 
 ### Added 2026-11-10 (owner confirmed), city and props
 15a. [x] **Inside-out faces:** pap-adventure buildings have triangles wound inward (cabin gable and roof vanish). Fix in the pipeline, re-convert.
-15b. [ ] **Buildings Pack (Jan 2019):** `~/Developer/3D/store/Buildings Pack - Jan 2019` through the pipeline, decimated to ~3-5k triangles, scaled to our houses.
+15b. [x] **Buildings Pack (Jan 2019):** `~/Developer/3D/store/Buildings Pack - Jan 2019` through the pipeline, decimated to ~3-5k triangles, scaled to our houses.
 15c. [ ] **City on `@papit/irregular-grid`:** blocks are cells, streets run along cell edges, houses along block edges facing the street, a square in the middle, yards inside.
 15d. [ ] **More props** from pap-adventure: benches, lamps, lanterns, flower pots, crates, barrels in streets and squares; firepit, logs, carts in farm and field.
 

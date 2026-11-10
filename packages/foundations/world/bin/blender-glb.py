@@ -1,7 +1,7 @@
 # Run by models.mjs inside Blender (headless): FBX/OBJ in, one .glb out with the material colours baked into
 # vertex colours. No textures, no materials, no UVs, the ground at y 0 and the middle at x 0, z 0.
-#   Blender -b --factory-startup --python blender-glb.py -- <in> <out> <keep> [<in> <out> <keep> ...]
-# `keep` is the share of triangles to keep (1 keeps them all), for the heavy ones on phones.
+#   Blender -b --factory-startup --python blender-glb.py -- <in> <out> <keep> <scale> [<in> <out> <keep> <scale> ...]
+# `keep` under 1 is the share of triangles to keep, over 1 how many (1 keeps them all), for the heavy ones on phones.
 # A .glb in keeps its vertex colours and place, only its inside-out faces get turned (the renderer culls back faces).
 import sys
 import bpy
@@ -76,7 +76,11 @@ def fix(source, target):
     )
 
 
-def convert(source, target, keep):
+def triangles(model):
+    return sum(len(p.vertices) - 2 for p in model.data.polygons)
+
+
+def convert(source, target, keep, scale):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     if source.lower().endswith(".fbx"):
         bpy.ops.import_scene.fbx(filepath=source)
@@ -86,22 +90,7 @@ def convert(source, target, keep):
     for o in [o for o in bpy.context.scene.objects if o.type != "MESH"]:
         bpy.data.objects.remove(o, do_unlink=True)
 
-    for o in meshes:
-        mesh = o.data
-        for attribute in list(mesh.color_attributes):
-            mesh.color_attributes.remove(attribute)
-        colours = mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
-        mesh.color_attributes.active_color = colours
-        for polygon in mesh.polygons:
-            slot = o.material_slots[polygon.material_index] if polygon.material_index < len(o.material_slots) else None
-            colour = base_colour(slot.material if slot else None)
-            for loop in polygon.loop_indices:
-                colours.data[loop].color = colour
-        for layer in list(mesh.uv_layers):
-            mesh.uv_layers.remove(layer)
-        mesh.materials.clear()
-
-    # one object, transforms applied, standing on the ground in the middle
+    # one object, transforms applied
     bpy.ops.object.select_all(action="DESELECT")
     for o in meshes:
         o.select_set(True)
@@ -109,11 +98,41 @@ def convert(source, target, keep):
     if len(meshes) > 1:
         bpy.ops.object.join()
     model = bpy.context.view_layer.objects.active
+    model.scale = (scale, scale, scale)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    if keep < 1:
-        decimate = model.modifiers.new("fewer", "DECIMATE")
-        decimate.ratio = keep
-        bpy.ops.object.modifier_apply(modifier=decimate.name)
+
+    # fewer triangles: `keep` under 1 is a share, over 1 a count. Flat faces of one material merge first (keeps
+    # the boxy shapes and the windows), then edges collapse if that wasn't enough.
+    if keep != 1:
+        target_count = keep if keep > 1 else triangles(model) * keep
+        if keep > 1:
+            planar = model.modifiers.new("flat", "DECIMATE")
+            planar.decimate_type = "DISSOLVE"
+            planar.angle_limit = 0.0873
+            planar.delimit = {"MATERIAL"}
+            bpy.ops.object.modifier_apply(modifier=planar.name)
+            triangulate = model.modifiers.new("tri", "TRIANGULATE")
+            bpy.ops.object.modifier_apply(modifier=triangulate.name)
+        if triangles(model) > target_count:
+            decimate = model.modifiers.new("fewer", "DECIMATE")
+            decimate.ratio = target_count / triangles(model)
+            bpy.ops.object.modifier_apply(modifier=decimate.name)
+
+    # the material colours into vertex colours, then no materials or UVs
+    mesh = model.data
+    for attribute in list(mesh.color_attributes):
+        mesh.color_attributes.remove(attribute)
+    colours = mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
+    mesh.color_attributes.active_color = colours
+    for polygon in mesh.polygons:
+        slot = model.material_slots[polygon.material_index] if polygon.material_index < len(model.material_slots) else None
+        colour = base_colour(slot.material if slot else None)
+        for loop in polygon.loop_indices:
+            colours.data[loop].color = colour
+    for layer in list(mesh.uv_layers):
+        mesh.uv_layers.remove(layer)
+    mesh.materials.clear()
+
     xs = [v.co.x for v in model.data.vertices]
     ys = [v.co.y for v in model.data.vertices]
     zs = [v.co.z for v in model.data.vertices]
@@ -138,8 +157,8 @@ def convert(source, target, keep):
     )
 
 pairs = sys.argv[sys.argv.index("--") + 1:]
-for i in range(0, len(pairs), 3):
+for i in range(0, len(pairs), 4):
     if pairs[i].lower().endswith(".glb"):
         fix(pairs[i], pairs[i + 1])
     else:
-        convert(pairs[i], pairs[i + 1], float(pairs[i + 2]))
+        convert(pairs[i], pairs[i + 1], float(pairs[i + 2]), float(pairs[i + 3]))
