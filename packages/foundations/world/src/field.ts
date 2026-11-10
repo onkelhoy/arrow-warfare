@@ -58,6 +58,8 @@ export type Junction = { x: number; z: number; radius: number };
 
 /** Metres a foot can step up onto a floor (and how far under its top a block stops counting). */
 export const STEP_UP = .45;
+/** Metres the round cobbled places stand over the ground, over the streets' kerbs; walked on. */
+export const SQUARE_LIFT = .13;
 /** How tall a player is for blocks: a box higher than this over the feet is walked under. */
 const TALL = 1.5;
 
@@ -244,6 +246,7 @@ export class Field {
      */
     floor(x: number, z: number, y = -Infinity) {
         let floor = this.height(x, z);
+        for (const junction of this.junctions) if ((junction.x - x) ** 2 + (junction.z - z) ** 2 < (junction.radius + .3) ** 2) { floor += SQUARE_LIFT; break; }
         for (const block of this.blocks)
         {
             if (!block.floor || block.top <= floor || block.top > y + STEP_UP || !inside(block, x, z, 0)) continue;

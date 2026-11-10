@@ -3,7 +3,7 @@ import { MeshBuilder, seeded, type Batch, type Lamp, type MeshData, type Rendere
 
 import { CLOUDS, PALETTES, wet, wetClouds, type PaletteName } from "./atmosphere";
 import { Backdrop } from "./backdrop";
-import { Field, STONES, VARIANTS, type Placed } from "./field";
+import { Field, SQUARE_LIFT, STONES, VARIANTS, type Placed } from "./field";
 import { fileModel, glowOf, type ModelName } from "./files";
 import { blob, cloud, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
 
@@ -263,25 +263,41 @@ function addStreets(renderer: Renderer, field: Field) {
             }
         }
     }
-    // where streets meet: a round of stones a touch higher, so it lies over their ends
+    // where streets meet: a round of cobbles laid in rings, over the kerbs (no flicker with the streets' ends), in
+    // small cells so it follows the ground, a kerb around it down to the grass
+    const LIFT = SQUARE_LIFT;
     for (const junction of field.junctions)
     {
-        const sides = Math.max(10, Math.round(junction.radius * 3));
-        const middle = point(junction.x, junction.z, .015);
-        for (let i = 0; i < sides; i++)
+        const rings = Math.max(2, Math.round(junction.radius / .9));
+        const p = (r: number, a: number, lift = LIFT) => point(junction.x + Math.cos(a) * r, junction.z + Math.sin(a) * r, lift);
+        for (let ring = 0; ring < rings; ring++)
         {
-            const a0 = i / sides * Math.PI * 2, a1 = (i + 1) / sides * Math.PI * 2;
-            for (const [r0, r1] of [[0, .5], [.5, 1]])
+            const r0 = ring / rings * junction.radius, r1 = (ring + 1) / rings * junction.radius;
+            const cells = Math.max(6, Math.round(Math.PI * 2 * r1 / 1));
+            // each ring turned a little, so the cells don't line up into spokes
+            const turn = random() * Math.PI * 2;
+            for (let i = 0; i < cells; i++)
             {
-                const p = (r: number, a: number) => point(junction.x + Math.cos(a) * r * junction.radius, junction.z + Math.sin(a) * r * junction.radius, .015);
+                const a0 = turn + i / cells * Math.PI * 2, a1 = turn + (i + 1) / cells * Math.PI * 2;
                 const colour = cobble();
-                if (r0 === 0) flat(middle, p(r1, a0), p(r1, a1), colour);
+                if (ring === 0) flat(p(0, 0), p(r1, a0), p(r1, a1), colour);
                 else
                 {
                     flat(p(r0, a0), p(r1, a0), p(r1, a1), colour);
                     flat(p(r0, a0), p(r1, a1), p(r0, a1), colour);
                 }
             }
+        }
+        const sides = Math.max(12, Math.round(Math.PI * 2 * junction.radius / .8));
+        for (let i = 0; i < sides; i++)
+        {
+            const a0 = i / sides * Math.PI * 2, a1 = (i + 1) / sides * Math.PI * 2;
+            const outer = junction.radius + .3;
+            // the kerb's top, then its side down to the ground, facing out
+            flat(p(junction.radius, a0), p(outer, a0), p(outer, a1), KERB);
+            flat(p(junction.radius, a0), p(outer, a1), p(junction.radius, a1), KERB);
+            const a = p(outer, a0), b = p(outer, a1), c = p(outer, a1, -OVER - .05), d = p(outer, a0, -OVER - .05);
+            stones.quad(a, b, c, d, KERB);
         }
     }
     const batch = renderer.batch(stones.build(), { capacity: 1 });
