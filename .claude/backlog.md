@@ -246,7 +246,10 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - Magazines are unlimited, a reload always fills the gun, it starts by itself when empty. No arrows, no pickups, nothing dropped on death.
 - Bullets are a short bright tracer, no model. They fly from the muzzle to the middle of the view 40 m out, hits as arrows (the victim decides). A bullet passing within 4 m plays a flyby.
 - The models come from the `.blend` files (the FBX lost the bones' names in places and every material was grey): colours are ours, by material name (`world/bin/blender-gun.py`). `Rigged` in render cuts the skin into rigid pieces, `game-mesh` `rig`/`sample` pose them. `world/views/guns` shows both with their animations.
-- Others hold the gun low in the hand, the same pose as an archer's bow at rest. No aiming pose for them yet.
+- Others hold the gun low in the hand, and raise it to the eye when they aim (the aim goes in the pose's `draw` byte). The kill cam shows it.
+- Aiming: hold the right button or press Q (computer), the aim button switches it (touch). Zooms 25% (revolver) or 50% (rifle), slower look and walk.
+- Spare rounds rule (unlimited by default): reloads take from it, the fallen leave everything they had, a click/tap on the body (or the white "Pick up ammo" prompt) takes it, the host settles who. The same prompt shows for arrows when they're limited.
+- Kill cam: its parts never run back in time (a bullet froze it half a second), sounds slow down with it, a swell at the start and a slow heartbeat at the hit.
 
 ## Milestones
 

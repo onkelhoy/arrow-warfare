@@ -3,8 +3,7 @@
 Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models, F21 guns, F22 bots.
 
 ## Where we are
-
-Branch `guns` (16-21) done, for the owner to test: weapon in Rules, revolver and rifle in first person with fire and reload animations, real bullet drop, tracers, rounds and reload, cowboy's sounds, trigger and reload buttons. Not merged or pushed. Owner's new asks 21a-21g wait for confirmation (and a branch). Then `bots`.
+Branch `guns` done with 16-21 and the gun asks 21h-21j, 21l, 21m (aiming, others aim, kill cam fixes and slow sounds, limited ammo and pickup, the pick-up prompt). PR open, the owner merges it. Left for a new session: 21k (the arrow leaves above the nocked arrow) and 21a-21g, all still to confirm. Then `bots`.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 
@@ -61,10 +60,10 @@ Branch `guns` (16-21) done, for the owner to test: weapon in Rules, revolver and
 
 21h. [x] **Aim down the sights:** desktop: hold the right mouse button. Touch: an aim button that switches aiming on and off. Shooting always works, aimed or not. Aiming brings the gun to the middle of the view, zooms in a little (more for the rifle), slows the look and walk.
 21i. [x] **Others aim too, kill cam shows it:** an aiming pose sent with the pose (like `draw`), the rig raises the gun to the eye towards where they look. The kill cam replays it.
-21j. [x] **Kill cam: slow motion sounds and the buggy feel:** sounds in the kill cam slowed with the film (lower and stretched, a slow heartbeat/whoosh under it). Find what feels buggy (jumps between shots, camera snaps, bullets far too fast to follow) and fix it.
+21j. [ ] **Kill cam: slow motion sounds and the buggy feel:** sounds in the kill cam slowed with the film (lower and stretched, a slow heartbeat/whoosh under it). Find what feels buggy (jumps between shots, camera snaps, bullets far too fast to follow) and fix it.
 21k. [ ] **The arrow leaves above the nocked arrow:** the flying arrow (and trail) starts above where the nocked one points. Make the shot leave exactly from the nocked arrow along its line.
-21l. [ ] **Limited ammo with guns, pick up from bodies:** an "Ammo" rule like "Arrows" (rounds per player, unlimited by default). Not unlimited: walk up to a dead player and tap/click to take their rounds.
-21m. [ ] **"Pick up" prompt:** friendly white text ("Pick up arrow", "Pick up ammo") when something can be picked up. Not shown with unlimited arrows or ammo, where there's nothing to pick up.
+21l. [x] **Limited ammo with guns, pick up from bodies:** an "Ammo" rule like "Arrows" (rounds per player, unlimited by default). Not unlimited: walk up to a dead player and tap/click to take their rounds.
+21m. [x] **"Pick up" prompt:** friendly white text ("Pick up arrow", "Pick up ammo") when something can be picked up. Not shown with unlimited arrows or ammo, where there's nothing to pick up.
 
 ## Branch `bots` (F22)
 
@@ -81,7 +80,7 @@ Branch `guns` (16-21) done, for the owner to test: weapon in Rules, revolver and
 21d. [ ] **Bushes block walking (unconfirmed):** today you can stand inside a bush and hide. Bushes block walking (arrows still go through, `soft`).
 21e. [ ] **More Plant_1 and Plant_4 (unconfirmed, owner 2026-11-10):** Plant_4 barely shows up today, more of both.
 21f. [ ] **Lily pads above the water (unconfirmed):** the water covers the leaves (owner's screenshot on the Desktop). Raise them to the water's surface.
-21g. [ ] **Lamps and lit windows (unconfirmed, owner 2026-11-10):** more lamp posts and lamps. Cheap glow first: lamp glass, lanterns, some windows emissive. Then a few nearest point lights (~8) in the toon shader that light the ground and walls around them, with a setting to turn them off (or tied to quality).
+21g. [ ] **Lamps and lit windows (unconfirmed, owner 2026-11-10):** more lamp posts and lamps. Cheap glow first: lamp glass, lanterns, some windows emissive. Then a few nearest point lights (~8) in the toon shader that light the ground and walls around them, with a setting to turn them off (or tied to quality). 26. [ ] use papit/audio system to be able to have 3d sounds, merge sounds, have environmental sounds like fire cracklings and other things if we have - maybe crickets in background. so we can overlay many audio things without bnlovking - we need papit/audio for this
 
 ## Suggested models (owner picks per session)
 
