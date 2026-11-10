@@ -8,7 +8,8 @@ import type { DrawEvent } from "./types";
 /**
  * The bow button. Hold a thumb on it and the bow draws by time (the game decides how fast). The same
  * thumb aims freely, every direction. On press the button snaps to the right edge and becomes a cancel
- * button: let go anywhere to shoot, let go on it to bring the bow down. Then it snaps back.
+ * button: let go anywhere to shoot, let go on it to bring the bow down. Then it snaps back. Only where
+ * the thumb lets go decides, whatever event ends the press (a cancelled pointer waits for the lift).
  *
  * @element aw-bow-button
  *
@@ -40,6 +41,8 @@ export class BowButton extends CustomElement {
         this.addEventListener("pointercancel", this.handlecancel);
         this.addEventListener("lostpointercapture", this.handlecancel);
         this.addEventListener("contextmenu", this.handlemenu);
+        // keeps iOS from taking a still thumb for a long press, which cancels the pointer
+        this.addEventListener("touchstart", this.handletouch, { passive: false });
     }
 
     disconnectedCallback() {
@@ -50,9 +53,12 @@ export class BowButton extends CustomElement {
         this.removeEventListener("pointercancel", this.handlecancel);
         this.removeEventListener("lostpointercapture", this.handlecancel);
         this.removeEventListener("contextmenu", this.handlemenu);
+        this.removeEventListener("touchstart", this.handletouch);
+        this.stopWaiting();
     }
 
     private handlemenu = (event: Event) => event.preventDefault();
+    private handletouch = (event: Event) => event.preventDefault();
 
     /** On the button, a little bigger than it looks so the thumb finds it blind. */
     private onButton(x: number, y: number) {
@@ -103,13 +109,65 @@ export class BowButton extends CustomElement {
         this.finish();
     }
 
+    /**
+     * The browser took the pointer (a gesture, a lost capture) but the thumb may still be down. A touch
+     * waits for the finger to really lift, then it's decided by where it was, like a normal let go.
+     */
     private handlecancel = (event: PointerEvent) => {
-        if (event.pointerId !== this.pointer) return;
-        this.shoot = false;
+        if (event.pointerId !== this.pointer || this.waiting) return;
+        if (event.pointerType !== "touch")
+        {
+            this.check(this.lastX, this.lastY);
+            this.finish();
+            return;
+        }
+        this.waiting = true;
+        window.addEventListener("touchmove", this.handlelost, { capture: true });
+        window.addEventListener("touchend", this.handlelost, { capture: true });
+        window.addEventListener("touchcancel", this.handlelost, { capture: true });
+    }
+
+    private waiting = false;
+
+    /** The touches after the pointer was taken: follow the nearest one to the thumb, finish when it lifts. */
+    private handlelost = (event: TouchEvent) => {
+        let touch: Touch | null = null, best = Infinity;
+        for (const each of Array.from(event.changedTouches))
+        {
+            const distance = Math.hypot(each.clientX - this.lastX, each.clientY - this.lastY);
+            if (distance < best)
+            {
+                best = distance;
+                touch = each;
+            }
+        }
+        if (!touch) return;
+        if (event.type === "touchmove")
+        {
+            if (best > 120) return;
+            const dx = touch.clientX - this.lastX, dy = touch.clientY - this.lastY;
+            this.lastX = touch.clientX;
+            this.lastY = touch.clientY;
+            this.check(touch.clientX, touch.clientY);
+            this.fire("drawmove", dx, dy);
+            return;
+        }
+        // another finger lifting, far from the thumb, isn't it (unless it's the last one down)
+        if (best > 120 && event.touches.length > 0) return;
+        this.check(touch.clientX, touch.clientY);
         this.finish();
     }
 
+    private stopWaiting() {
+        if (!this.waiting) return;
+        this.waiting = false;
+        window.removeEventListener("touchmove", this.handlelost, { capture: true });
+        window.removeEventListener("touchend", this.handlelost, { capture: true });
+        window.removeEventListener("touchcancel", this.handlelost, { capture: true });
+    }
+
     private finish() {
+        this.stopWaiting();
         this.pointer = null;
         this.active = false;
         this.style.translate = "";

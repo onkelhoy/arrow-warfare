@@ -3,8 +3,8 @@ import type { Lobby } from "@arrow-warfare/net";
 import type { Session } from "./session";
 
 const short = (id: string | null | undefined) => id ? id.slice(0, 6) : "-";
-/** Log lines worth seeing on a phone: ours from the lobby, registry, game and joins. */
-const WORTH = /^(lobby|registry|game|room|could not join)/;
+/** Log lines worth seeing on a phone: ours from the lobby, registry, game and joins, and the bow button (temporary). */
+const WORTH = /^(lobby|registry|game|room|could not join|bow)/;
 const LINES = 10;
 
 /**

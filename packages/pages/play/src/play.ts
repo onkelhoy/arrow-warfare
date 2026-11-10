@@ -740,6 +740,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             tick(Math.min(delta, .1));
         }
     }());
+    const debugBow = new URLSearchParams(location.search).has("debug");
     const tick = (dt: number) => {
         const now = net.shared();
         const alive = walker.alive && !over && view === "play";
@@ -769,6 +770,8 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             // a thumb lets go: shoots only back on the button
             if (!want)
             {
+                // TEMPORARY: what the release did, for the `?debug` overlay
+                if (debugBow) console.info(`bow release ${byThumb && !controls.shoot ? "on the X" : "power " + draw.amount.toFixed(2)}`);
                 if (byThumb && !controls.shoot) draw.cancel();
                 else fire(draw.release());
             }
@@ -863,7 +866,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const left = standing(state.players, [...dead]).length;
         hud.standing(t("hud.left", { count: String(left) }));
         controls.bow.hidden = !alive;
-        controls.joystick.hidden = !walker.alive || view !== "play";
+        const stickHidden = !walker.alive || view !== "play";
+        // hidden while held, its lift never comes
+        if (stickHidden && !controls.joystick.hidden) controls.release();
+        controls.joystick.hidden = stickHidden;
         controls.bow.disabled = quiver <= 0 || draw.phase === "panting";
         hint.hidden = coarse || controls.locked || view !== "play";
 
