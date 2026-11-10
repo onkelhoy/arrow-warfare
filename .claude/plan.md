@@ -45,7 +45,7 @@ Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, 
 
 ## Branch `guns` (F21)
 16. [x] **Weapon rule** in game setup: bow / revolver / rifle, one weapon for everyone per game.
-17. [ ] **Gun models:** convert Revolver and Rifle from `~/Developer/3d/store/Animated FPS Guns - Jun 2018` (FBX) to glb, with their shooting and reload animations (`game-mesh` animation sampling).
+17. [x] **Gun models:** convert Revolver and Rifle from `~/Developer/3d/store/Animated FPS Guns - Jun 2018` (FBX) to glb, with their shooting and reload animations (`game-mesh` animation sampling).
 18. [ ] **Ballistics:** bullets with real muzzle speeds and gravity drop. The rifle stays flat for longer than the revolver. Hits reuse `hitBody`, and the victim decides (D5).
 19. [ ] **Ammo and reload:** magazine size and reload time per gun, with a HUD count. Decide how pickups work with guns (probably no pickups, unlimited magazines).
 20. [ ] **Sounds:** copy `shot1`, `shot2`, `reload` and `fly1-5` (bullets passing close) from `~/Developer/games/cowboy/packages/game/asset/audio`.
