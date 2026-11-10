@@ -233,6 +233,13 @@ export class Field {
         return floor;
     }
 
+    /** Where rain coming down at `x, z` lands: the top of what's there (a roof, a cart), else the ground. */
+    roof(x: number, z: number) {
+        let top = this.height(x, z);
+        for (const block of this.blocks) if (block.top > top && inside(block, x, z, 0)) top = block.top;
+        return top;
+    }
+
     /** The ladder at `x, z`, if a player there can climb. */
     ladderAt(x: number, z: number) {
         return this.ladders.find(ladder => inside(ladder, x, z, 0)) ?? null;

@@ -119,6 +119,18 @@
     font-weight: 700;
 }
 
+.aw-form label.aw-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aw-check input {
+    inline-size: 22px;
+    block-size: 22px;
+    accent-color: var(--aw-text);
+}
+
 .aw-form select,
 .aw-team select {
     font: inherit;

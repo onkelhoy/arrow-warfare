@@ -111,6 +111,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                     <label>${t("rules.time")} <select name="time">
                         ${TIMES.map(time => `<option value="${time}">${t(`rules.times.${time}`)}</option>`).join("")}
                     </select></label>
+                    <label class="aw-check"><input type="checkbox" name="rain"> ${t("rules.rain")}</label>
                 </div>
             </pap-tabpanel>
         </pap-tabs>
@@ -171,6 +172,8 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     const friendly = find<HTMLSelectElement>("select[name=friendly]");
     rounds.addEventListener("change", () => actions.rules({ rounds: Number(rounds.value) }));
     friendly.addEventListener("change", () => actions.rules({ friendly: friendly.value === "on" }));
+    const rain = find<HTMLInputElement>("input[name=rain]");
+    rain.addEventListener("change", () => actions.rules({ rain: rain.checked }));
 
     /** A field being typed in keeps what's typed. */
     const set = (field: Field | HTMLSelectElement, value: string) => {
@@ -311,7 +314,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         showTab("invite", !locked);
         showTab("teams", locked);
 
-        for (const field of [gameName, password, max, weapon, ammo, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly]) field.toggleAttribute("disabled", !host);
+        for (const field of [gameName, password, max, weapon, ammo, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly, rain]) field.toggleAttribute("disabled", !host);
         set(gameName, state.name);
         if (!host) set(password, state.password ? "••••" : "");
         set(max, String(state.max));
@@ -329,6 +332,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         set(time, state.rules.time ?? RULES_DEFAULT.time);
         set(rounds, String(state.rules.rounds ?? 1));
         set(friendly, state.rules.friendly === false ? "off" : "on");
+        rain.checked = state.rules.rain === true;
 
         draw(".aw-players", players());
         draw(".aw-teams", teams());

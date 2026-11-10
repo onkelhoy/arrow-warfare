@@ -13,7 +13,7 @@ import sheet from "./style.css" with { type: "css" };
 type Dialog = HTMLElement & { showModal(): void; close(): void };
 type Field = HTMLElement & { value: string };
 
-const VOLUMES: (keyof Volumes)[] = ["everything", "music", "sounds"];
+const VOLUMES: (keyof Volumes)[] = ["everything", "music", "sounds", "ambience"];
 
 /** The buttons that are always in the top right, and the settings dialog they open. */
 export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
@@ -33,6 +33,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
             <label class="aw-corner-row">${t("corner.sensitivity")} <input type="range" name="sensitivity" min="${SENSITIVITY.min}" max="${SENSITIVITY.max}" step=".05"></label>
             <label class="aw-corner-row">${t("corner.hand")} <select name="hand"><option value="right">${t("corner.right")}</option><option value="left">${t("corner.left")}</option></select></label>
             <label class="aw-corner-row">${t("corner.quality")} <select name="quality">${QUALITIES.map(quality => `<option value="${quality}">${t(`corner.${quality}`)}</option>`).join("")}</select></label>
+            <label class="aw-corner-row">${t("corner.splashes")} <input type="checkbox" name="splashes"></label>
             ${matchMedia("(pointer: coarse)").matches ? `<pap-button data-do="layout" size="small" variant="outline">${t("layout.open")}</pap-button>` : ""}
         </pap-dialog>
     `;
@@ -63,6 +64,7 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
         find<HTMLInputElement>("input[name=sensitivity]").value = String(settings().sensitivity);
         find<HTMLSelectElement>("select[name=hand]").value = settings().hand;
         find<HTMLSelectElement>("select[name=quality]").value = settings().quality;
+        find<HTMLInputElement>("input[name=splashes]").checked = settings().splashes;
         panel.showModal();
     });
 
@@ -79,6 +81,9 @@ export function mountCorner(sound: Sound, root: HTMLElement = document.body) {
     find<HTMLSelectElement>("select[name=quality]").addEventListener("change", event => {
         const value = (event.target as HTMLSelectElement).value as Quality;
         if (QUALITIES.includes(value)) updateSettings({ quality: value });
+    });
+    find<HTMLInputElement>("input[name=splashes]").addEventListener("change", event => {
+        updateSettings({ splashes: (event.target as HTMLInputElement).checked });
     });
     find<HTMLSelectElement>("select[name=hand]").addEventListener("change", event => {
         updateSettings({ hand: (event.target as HTMLSelectElement).value === "left" ? "left" : "right" });

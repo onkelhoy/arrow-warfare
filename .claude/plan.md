@@ -3,7 +3,8 @@
 Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models, F21 guns, F22 bots.
 
 ## Where we are
-Branch `guns` done with 16-21 and the gun asks 21h-21j, 21l, 21m (aiming, others aim, kill cam fixes and slow sounds, limited ammo and pickup, the pick-up prompt). PR open, the owner merges it. Left for a new session: 21k (the arrow leaves above the nocked arrow) and 21a-21g, all still to confirm. Then `bots`.
+
+Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splashes, lightning) and 28 (bullet hits). PR open, the owner tests and merges. Left: 21k and 21a-21g (to confirm), then `bots`.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 
@@ -11,59 +12,10 @@ Branch `guns` done with 16-21 and the gun asks 21h-21j, 21l, 21m (aiming, others
 - Each branch starts from `main` after the previous one is merged, in this order. Commit locally as tasks finish.
 - When a branch is done: report to the owner, who tests it. Merge it to `main` and push only once the owner OKs it (a push deploys).
 
-## Branch `bugs`
-
-1. [x] **Pickup loses to looking.** A tap only counts if it moves less than 12px and lets go within 350ms (`controls.ts:10`), and the arrow has to be within 60px of the tap on screen (`play.ts:842`). Allow more slack before a tap becomes a look. A tap on the ground below the horizon picks up the nearest arrow within reach (`REACH` in `arrows.ts:12` stays as it is). Otherwise fall back to the nearest one on screen.
-2. [x] **Stuck strafing.** Likely cause: the joystick ignores new touches while `pointer !== null` (`joystick/component.ts:58`). If one finger lift is missed, it keeps its last x/y for good. That can happen when it's hidden while held (`play.ts:866`, on death) or when iOS gets many touches at once. Fix: a new pointerdown takes the joystick over. Reset on hide, on death, on `visibilitychange` and on blur. Desktop: keys stick if the keyup lands while an input has focus (`controls.ts` `handlekey` returns early), so clear the key when focus goes to an input.
-3. [x] **The shot cancels when the thumb doesn't move.** The owner can see the X away from the thumb, so the X position isn't the cause. Reading the code, a release with no movement should shoot. Most likely suspect: the release arrives as `pointercancel`/`lostpointercapture` (`handlecancel` forces `shoot = false`, `bow-button/component.ts:102`). Possibly related: `moveAside` translates the captured element. First add a temporary on-screen log of the bow button's events and test on the owner's phone. Fix: decide only by the last thumb position: on the X it cancels, anywhere else it shoots, whatever event ends the press. Also check that a short hold isn't just under `MIN_SHOT` (.15, about 135ms of `KEY_DRAW`).
-4. [x] **Unlimited arrows by default:** `RULES_DEFAULT.arrows` 4 → 0 (`core/src/state.ts:53`).
-
-## Branch `engine` (F18)
-
-5. [x] **Papit audit.** Compare papit with our own code and write a short report in the backlog notes: `@papit/game-mesh` (glTF loader, skins, animation sampling) against `render/mesh.ts`; `@papit/vector`/`matrix` (float64 now) against `render/math.ts`; `@papit/gjk`/`rigidbody` against `field.collide` and arrow hits; what `@papit/game-engine` offers now that we don't use. Report papit gaps to the owner, don't patch them.
-6. [x] **Do the swaps worth doing.** The first one is loading `.glb` (vertex colours, no textures) into our renderer, since F19 to F21 need it.
-
-## Branch `maps` (F19)
-
-7. [x] **Asset pipeline:** a script that runs Blender headless (`/Applications/Blender.app`) to turn FBX/OBJ into glb with vertex colours only, no textures. Sources:
-   - `~/Developer/3d/store/nature`: low poly, untextured. Skip every `_Snow` model and the winter/dead trees for now. It has Corn, Wheat, Lilypad, Rock_Moss, Willow, Birch, Bush and more.
-   - `~/Developer/games/pap-adventure/packages/game/assets/asset/models/generated`: buildings (watchtower, farmhouse, cabin, towers, town houses), props, foliage, town.
-   - Not the textured packs (Farm/Medieval/Nature MegaKit). Owner wants everything in the same low poly look.
-   - Check sizes and triangle counts for phones.
-8. [x] **Lobby options (Rules):** map field / farm / city; more props; buildings; watch towers. Synced like the other rules.
-9. [x] **Collision:** buildings, towers, rocks and props block walking (`field.collide`) and arrows (`wall` landings), using boxes or convex shapes (gjk if F18 says so).
-10. [x] **Field map:** today's meadow plus nature trees, rocks, bushes, and small ponds with lily pads.
-11. [x] **Farm map:** farmhouse, barn-like buildings, fences, corn and wheat rows. Animals later (owner's call, Farm Animals by Quaternius is in store).
-12. [x] **City map:** pap-adventure town buildings along streets and squares.
-13. [x] **Watch towers** placed by the option: climbable, a high point to shoot from.
-
-### Added 2026-11-10 (owner confirmed), city and props
-
-15a. [x] **Inside-out faces:** pap-adventure buildings have triangles wound inward (cabin gable and roof vanish). Fix in the pipeline, re-convert.
-15b. [x] **Buildings Pack (Jan 2019):** `~/Developer/3D/store/Buildings Pack - Jan 2019` through the pipeline, decimated to ~3-5k triangles, scaled to our houses.
-15c. [x] **City on `@papit/irregular-grid`:** blocks are cells, streets run along cell edges, houses along block edges facing the street, a square in the middle, yards inside.
-15d. [x] **More props** from pap-adventure: benches, lamps, lanterns, flower pots, crates, barrels in streets and squares; firepit, logs, carts in farm and field.
-
-## Branch `models` (F20)
-
-14. [x] **Softer shading:** neighbouring faces step too dark. Raise the ambient/hemisphere floor and soften the sun bands (`render/src/shaders.ts:55`). Keep it subtle.
-15. [x] **New players** in place of floating arms: nicer, same short silly style. First person arms plus the body others see, still rigid parts on the `@papit/armature` rig (D3), working with ragdoll, wounds and the kill cam.
-
 ## Branch `guns` (F21)
 
-16. [x] **Weapon rule** in game setup: bow / revolver / rifle, one weapon for everyone per game.
-17. [x] **Gun models:** convert Revolver and Rifle from `~/Developer/3d/store/Animated FPS Guns - Jun 2018` (FBX) to glb, with their shooting and reload animations (`game-mesh` animation sampling).
-18. [x] **Ballistics:** bullets with real muzzle speeds and gravity drop. The rifle stays flat for longer than the revolver. Hits reuse `hitBody`, and the victim decides (D5).
-19. [x] **Ammo and reload:** magazine size and reload time per gun, with a HUD count. Decide how pickups work with guns (probably no pickups, unlimited magazines).
-20. [x] **Sounds:** copy `shot1`, `shot2`, `reload` and `fly1-5` (bullets passing close) from `~/Developer/games/cowboy/packages/game/asset/audio`.
-21. [x] **Touch controls:** the bow button becomes a fire button (tap to fire, no draw), plus a reload button. Desktop: click or space to fire, R to reload.
-
-21h. [x] **Aim down the sights:** desktop: hold the right mouse button. Touch: an aim button that switches aiming on and off. Shooting always works, aimed or not. Aiming brings the gun to the middle of the view, zooms in a little (more for the rifle), slows the look and walk.
-21i. [x] **Others aim too, kill cam shows it:** an aiming pose sent with the pose (like `draw`), the rig raises the gun to the eye towards where they look. The kill cam replays it.
 21j. [ ] **Kill cam: slow motion sounds and the buggy feel:** sounds in the kill cam slowed with the film (lower and stretched, a slow heartbeat/whoosh under it). Find what feels buggy (jumps between shots, camera snaps, bullets far too fast to follow) and fix it.
 21k. [ ] **The arrow leaves above the nocked arrow:** the flying arrow (and trail) starts above where the nocked one points. Make the shot leave exactly from the nocked arrow along its line.
-21l. [x] **Limited ammo with guns, pick up from bodies:** an "Ammo" rule like "Arrows" (rounds per player, unlimited by default). Not unlimited: walk up to a dead player and tap/click to take their rounds.
-21m. [x] **"Pick up" prompt:** friendly white text ("Pick up arrow", "Pick up ammo") when something can be picked up. Not shown with unlimited arrows or ammo, where there's nothing to pick up.
 
 ## Branch `bots` (F22)
 
@@ -80,11 +32,10 @@ Branch `guns` done with 16-21 and the gun asks 21h-21j, 21l, 21m (aiming, others
 21d. [ ] **Bushes block walking (unconfirmed):** today you can stand inside a bush and hide. Bushes block walking (arrows still go through, `soft`).
 21e. [ ] **More Plant_1 and Plant_4 (unconfirmed, owner 2026-11-10):** Plant_4 barely shows up today, more of both.
 21f. [ ] **Lily pads above the water (unconfirmed):** the water covers the leaves (owner's screenshot on the Desktop). Raise them to the water's surface.
-21g. [ ] **Lamps and lit windows (unconfirmed, owner 2026-11-10):** more lamp posts and lamps. Cheap glow first: lamp glass, lanterns, some windows emissive. Then a few nearest point lights (~8) in the toon shader that light the ground and walls around them, with a setting to turn them off (or tied to quality). 26. [ ] use papit/audio system to be able to have 3d sounds, merge sounds, have environmental sounds like fire cracklings and other things if we have - maybe crickets in background. so we can overlay many audio things without bnlovking - we need papit/audio for this
+21g. [ ] **Lamps and lit windows (unconfirmed, owner 2026-11-10):** more lamp posts and lamps. Cheap glow first: lamp glass, lanterns, some windows emissive. Then a few nearest point lights (~8) in the toon shader that light the ground and walls around them, with a setting to turn them off (or tied to quality). 
 
-## Suggested models (owner picks per session)
-
-- Opus 5.5: 5, 6, 9, 18, 22–24
-- Fable 5.2: 14, 15 (the visual taste work), and backup for 23–24
-- Sonnet 5.5: 1–3, 7, 8, 10–13, 16, 17, 19–21, 25
-- Haiku 5.5: 4, 20
+26. [x] **Sound on papit/audio and ambience:** 26a sound on `@papit/audio` (buses, 3D effects, ears on the camera, "Nature" volume); 26b ambience rendered by `bin/ambience.mjs` (crickets, wind, frogs, crackle loops, bird and owl calls); 26c `Ambience` in the game (beds by time of day, calls around you, nearest 4 emitters: ponds, firepits, lamps); 26d kill cam dips the ambience (papit `Voice` can't change rate while playing, so it isn't slowed).
+27a. [x] **Rain (owner 2026-11-10):** a lobby checkbox "Rain". Streaks round the camera (`Rain` in world), a grey wet light and clouds (`wet`), no fireflies, rain loop, fewer crickets and birds, wet footsteps. Lightning lights the sky every 14-40 s, thunder comes after by distance. A view: `world/views/rain`.
+27b. [x] **Rain splashes:** tiny sparks where drops land near me, on the ground and roofs (`field.roof`).
+27c. [x] **Rain settings:** drops by quality (700 / 1300 / 2200), "Rain splashes" its own setting.
+28. [x] **Bullet hits (owner 2026-11-10):** a puff of tiny particles where a bullet hits (dirt, wood chips, stone dust by what it hit) and a small hit mark left on the surface, fading after a while.

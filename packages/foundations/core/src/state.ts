@@ -56,6 +56,8 @@ export type Rules = {
     rounds: number;
     /** Off: a teammate's arrow flies through you. */
     friendly: boolean;
+    /** Rain all round. */
+    rain: boolean;
 };
 
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
@@ -69,7 +71,7 @@ export const DAMAGES: Damage[] = ["arcade", "injuries"];
 export const ROUNDS = [1, 3, 5];
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true };
+export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, rain: false };
 
 export type GameState = {
     host: string;

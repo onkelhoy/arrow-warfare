@@ -43,6 +43,7 @@ function start() {
         time: data.get("time") as TimeOfDay,
         rounds: 1,
         friendly: true,
+        rain: data.get("rain") === "on",
     };
     play = mountPlay(stage, {
         state, me: "a", host: true, sound, bots: data.get("bots") === "on", contained: true, ruleArrows: true,
@@ -82,6 +83,7 @@ function example(): GameState {
             { id: "d", name: "cleo", colour: 3, skin: 4, ready: true, team: null, ping: 80 },
         ],
         results: null,
+        played: [],
         teams: [{ id: "t1", colour: 5, ideas: [{ id: "i1", by: "a", text: "The Pointy Ones", votes: ["b"] }, { id: "i2", by: "b", text: "Tiny Legs", votes: [] }] }],
     };
 }

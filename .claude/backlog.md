@@ -239,6 +239,13 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Movement, cover, targets, aim with lead and drop
 - [ ] Performance for many bots on a phone host
 
+### F23. Environment
+- [x] Sound on `@papit/audio`: buses, effects in 3D, a "Nature" volume
+- [x] Ambience: crickets, wind, birds, owls, frogs at ponds, crackling fires and lamps (generated, `bin/ambience.mjs`)
+- [x] Rain checkbox: streaks, splashes (a setting), grey light, lightning and thunder, rain loop, wet steps
+- [x] Bullet hits: a puff of chips and dust and a hole that fades
+- [ ] Name tags rule, railings, ponds, bushes, plants, lily pads, lamps (21a-21g, unconfirmed)
+
 ---
 
 ## Notes from F21, guns (for the owner to review)

@@ -58,3 +58,30 @@ function palette({ zenith, horizon, fog, ...rest }: Setting): Light {
         fogColour,
     };
 }
+
+/** `light` on a rainy day: greyer and darker, the sun weak behind the clouds, thicker air, no stars. */
+export function wet(light: Light): Light {
+    const grey = (colour: Vec3, amount: number, dim: number): Vec3 => {
+        const level = (colour[0] * .3 + colour[1] * .55 + colour[2] * .15) * dim;
+        return mix(colour.map(c => c * dim) as Vec3, [level * .95, level, level * 1.08], amount);
+    };
+    return {
+        ...light,
+        zenith: grey(light.zenith, .7, .62),
+        horizon: grey(light.horizon, .65, .7),
+        fogColour: grey(light.fogColour, .65, .7),
+        sky: grey(light.sky, .4, .85),
+        ground: grey(light.ground, .3, .85),
+        sunColour: light.sunColour.map(c => c * .45) as Vec3,
+        fogDensity: light.fogDensity * 1.9,
+        disc: light.disc.map(c => c * .35) as Vec3,
+        ring: grey(light.ring, .8, .5),
+        stars: 0,
+    };
+}
+
+/** The clouds on a rainy day, heavy and grey. */
+export function wetClouds(colour: Vec3): Vec3 {
+    const level = (colour[0] + colour[1] + colour[2]) / 3 * .6;
+    return [level, level, level * 1.05];
+}

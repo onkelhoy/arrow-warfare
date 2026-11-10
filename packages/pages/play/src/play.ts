@@ -9,11 +9,12 @@ import { adopt, CHAT_LENGTH, COLOURS, QUALITY, settings, SKINS, t, teamName, wea
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
-import { Sfx, type SfxName, type Sound } from "@arrow-warfare/sound";
-import { currentPalette, Field, GUN_FILES, loadGun, Meadow, type PaletteName } from "@arrow-warfare/world";
+import { Ambience, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
+import { currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
 import { Blood } from "./blood";
+import { Impacts } from "./impacts";
 import { aim, Film } from "./cinema";
 import { Controls } from "./controls";
 import { FirstPerson } from "./firstperson";
@@ -131,11 +132,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const coarse = matchMedia("(pointer: coarse)").matches;
     // the rule's time of day, or my own clock
     const time = state.rules.time;
-    const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: QUALITY[settings().quality].grass }));
+    const raining = state.rules.rain === true;
+    const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: QUALITY[settings().quality].grass, rain: raining }));
+    const rain = raining ? engine.add(new Rain(renderer, field, camera, { drops: QUALITY[settings().quality].drops, splashes: settings().splashes })) : null;
     const spawns = field.spawns(state.players);
+    const ambience = options.sound ? new Ambience(options.sound) : null;
+    ambience?.rain(raining);
+    ambience?.time(time && time !== "clock" ? time : currentPalette());
+    if (rain) rain.onLightning = distance => ambience?.thunder(distance);
+    ambience?.emitters(emittersOf(field));
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
-    others.onStep = at => sound("step", at, .6);
+    const footstep = raining ? "wetstep" : "step";
+    others.onStep = at => sound(footstep, at, .6);
     const controls = new Controls(play);
     const hud = new Hud(play);
     const draw = new Draw();
@@ -176,6 +185,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const arrows = new Arrows(renderer, field, me, colourOf);
     const replay = new Replay();
     const blood = new Blood(renderer, field);
+    const impacts = new Impacts(renderer, field);
 
     size();
     window.addEventListener("resize", size);
@@ -248,17 +258,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const everyone = () => state.players.map(other => other.id);
     const broadcast = (type: string, payload: unknown) => net.send(everyone(), type, payload);
 
-    /** Volume and pan of something at `at`, as heard from the camera. */
-    const heard = (at: Vec): { volume: number; pan: number } => {
-        const m = camera.worldMatrix;
-        const dx = at[0] - m[12], dy = at[1] - m[13], dz = at[2] - m[14];
-        const distance = Math.hypot(dx, dy, dz) || 1;
-        return { volume: 1 / (1 + distance / 9), pan: (m[0] * dx + m[1] * dy + m[2] * dz) / distance * .8 };
-    };
+    /** `at` is placed in 3D, heard from the camera (`listen` each frame), without it it's in my head. */
     const sound = (name: SfxName, at?: Vec, volume = 1, rate = 1) => {
-        if (!sfx) return;
-        const where = at ? heard(at) : { volume: 1, pan: 0 };
-        sfx.play(name, { volume: where.volume * volume, pan: where.pan, rate });
+        sfx?.play(name, { volume, at, rate });
+    };
+    /** The ears go where the camera is. */
+    const listen = (dt: number) => {
+        const m = camera.worldMatrix;
+        options.sound?.listen([m[12], m[13], m[14]], [-m[8], -m[9], -m[10]], [m[4], m[5], m[6]]);
+        ambience?.update(dt, [m[12], m[13], m[14]]);
     };
     const vibrate = (pattern: number | number[]) => {
         try { navigator.vibrate?.(pattern); } catch { /* not here */ }
@@ -928,7 +936,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (alive)
         {
             const foot = Math.floor(walker.posture === "hop" ? walker.hop / Math.PI : walker.stride / Math.PI);
-            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : "step", undefined, .35);
+            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : footstep, undefined, .35);
             feet = foot;
             beat -= dt;
             if (wounds.energy < .25 && beat <= 0)
@@ -980,13 +988,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 }
             }
         }
-        for (const landed of flown.landed) sound(landed.kind === "ground" ? "ground" : "wood", [landed.arrow.x, landed.arrow.y, landed.arrow.z]);
+        for (const { arrow, kind } of flown.landed)
+        {
+            sound(kind === "ground" ? "ground" : "wood", [arrow.x, arrow.y, arrow.z]);
+            // a bullet leaves a puff and a hole, an arrow stays in what it hit
+            if (isBullet(arrow.shot)) impacts.hit([arrow.x, arrow.y, arrow.z], [arrow.shot.dx, arrow.shot.dy, arrow.shot.dz], kind);
+        }
         for (const { arrow, id, hit, place, local, at } of flown.struck)
         {
             const distance = Math.hypot(at[0] - arrow.shot.x, at[2] - arrow.shot.z);
             struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance, time: arrow.at });
         }
         blood.update(dt * (view === "film" ? film.rate : 1));
+        impacts.update(dt * (view === "film" ? film.rate : 1));
         if (view !== "film") arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
 
         // picking up: a tap near an arrow in reach, never while drawing
@@ -1040,6 +1054,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         controls.aimButton.hidden = !gun || !alive;
         if (!alive) controls.stopAiming();
         hint.hidden = coarse || controls.locked || view !== "play";
+        listen(dt);
 
         const pose = {
             time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
@@ -1103,7 +1118,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         debug,
         /** Another time of day, straight away (the view). */
         palette(name: PaletteName | "clock") {
-            meadow.palette(name === "clock" ? currentPalette() : name);
+            const palette = name === "clock" ? currentPalette() : name;
+            meadow.palette(palette);
+            ambience?.time(palette);
         },
         /** Players who left are gone and count as out, nothing else about the field changes mid round. */
         update(next: GameState) {
@@ -1117,6 +1134,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             stopBow();
             stopQuality();
             playing = false;
+            ambience?.stop();
             document.removeEventListener("visibilitychange", awake);
             wake?.release().catch(() => undefined);
             clearTimeout(settle);
@@ -1132,10 +1150,12 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             horns.remove();
             options.sound?.hush(false);
             blood.destroy();
+            impacts.destroy();
             firstPerson.destroy();
             hud.destroy();
             engine.remove(driver);
             engine.remove(meadow);
+            if (rain) engine.remove(rain);
             engine.remove(renderer);
             renderer.gl.getExtension("WEBGL_lose_context")?.loseContext();
             play.remove();
@@ -1159,4 +1179,16 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             },
         };
     }
+}
+
+/** What sounds in the field by itself: frogs at the ponds, fires and lamps crackling. */
+function emittersOf(field: Field): Emitter[] {
+    const list: Emitter[] = field.ponds.map(pond => ({ name: "frogs", at: [pond.x, pond.level + .3, pond.z], half: 2 + pond.radius * .6, reach: 35, volume: .9 }));
+    for (const placed of field.models)
+    {
+        if (placed.model === "props/firepit") list.push({ name: "crackle", at: [placed.x, placed.y + .4, placed.z], half: 2.5, reach: 25, volume: 1 });
+        else if (placed.model === "props/stone-lantern") list.push({ name: "crackle", at: [placed.x, placed.y + 1.2, placed.z], half: 1.2, reach: 12, volume: .35 });
+        else if (placed.model === "props/street-lamp" || placed.model === "props/double-lamp") list.push({ name: "crackle", at: [placed.x, placed.y + 3, placed.z], half: 1, reach: 10, volume: .2 });
+    }
+    return list;
 }
