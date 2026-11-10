@@ -3,8 +3,11 @@ import { MeshBuilder, seeded, type Batch, type MeshData, type Renderer, type Vec
 
 import { CLOUDS, PALETTES, type PaletteName } from "./atmosphere";
 import { Backdrop } from "./backdrop";
-import { Field, STONES, VARIANTS } from "./field";
+import { Field, STONES, VARIANTS, type Placed } from "./field";
+import { fileModel, type ModelName } from "./files";
 import { blob, cloud, flower, grassTuft, log, mushroom, stone, stump, TREE_KINDS } from "./models";
+
+const WHITE: Vec3 = [1, 1, 1];
 
 /** How far past the field the clouds go before they come round again, and how fast they drift (m/s). */
 const CLOUD_REACH = 90;
@@ -31,6 +34,9 @@ export class Meadow extends GameObject {
     private clouds: Batch[] = [];
     private backdrop: Backdrop;
     private sky: { batch: number; index: number; x: number; y: number; z: number; yaw: number; scale: number }[] = [];
+    private gone = false;
+    /** Resolves once every model from a file is on screen (or failed). */
+    readonly ready: Promise<void>;
 
     constructor(readonly renderer: Renderer, readonly field: Field, setting: MeadowSetting = {}) {
         super();
@@ -71,6 +77,25 @@ export class Meadow extends GameObject {
         const grass = field.grass.slice(0, Math.round(field.grass.length * share));
         const tufts = [grassTuft(field.seed), grassTuft(field.seed + 1), grassTuft(field.seed + 2)];
         tufts.forEach((tuft, i) => add(tuft, grass.filter((_, g) => g % tufts.length === i), { sway: .12 }));
+
+        // water: a flat disc a touch inside each pond's rim
+        if (field.ponds.length)
+        {
+            const water = renderer.batch(new MeshBuilder().cylinder("#5f9fc4", { scale: [2, .02, 2] }, 18).build(), { capacity: field.ponds.length, emissive: .15 });
+            for (const pond of field.ponds) water.add(pond.x, pond.level, pond.z, 0, pond.radius * .97);
+            this.batches.push(water);
+        }
+
+        // the models from files, one batch each, added as they load
+        const byModel = new Map<ModelName, Placed[]>();
+        for (const one of field.models) byModel.set(one.model, [...(byModel.get(one.model) ?? []), one]);
+        this.ready = Promise.all([...byModel].map(async ([model, all]) => {
+            const mesh = await fileModel(model);
+            if (!mesh || this.gone) return;
+            const batch = renderer.batch(mesh, { capacity: all.length, sway: /Corn|Wheat/.test(model) ? .04 : 0 });
+            for (const one of all) batch.add(one.x, one.y, one.z, one.yaw, one.scale, WHITE, one.bright ?? 1);
+            this.batches.push(batch);
+        })).then(() => undefined);
 
         this.backdrop = new Backdrop(renderer, field.radius, field.seed, name);
         this.addClouds(name);
@@ -115,6 +140,7 @@ export class Meadow extends GameObject {
 
     /** Takes every batch off the renderer. */
     override destroy() {
+        this.gone = true;
         for (const batch of this.batches) this.renderer.removeBatch(batch);
         this.batches.length = 0;
         if (this.fireflies) this.renderer.removeBatch(this.fireflies);
@@ -183,6 +209,8 @@ function addGround(renderer: Renderer, field: Field) {
     const ground = new MeshBuilder();
     const colourAt = (p: Vec3): Vec3 => {
         const distance = Math.hypot(p[0], p[2]);
+        const dirt = field.patchColour(p[0], p[2]);
+        if (dirt) return dirt;
         const patch = meadow[Math.min(meadow.length - 1, Math.floor(field.patch(p[0], p[2]) * meadow.length))];
         const into = Math.max(0, Math.min(1, (distance - field.radius) / 4));
         return [patch[0] + (forest[0] - patch[0]) * into, patch[1] + (forest[1] - patch[1]) * into, patch[2] + (forest[2] - patch[2]) * into];

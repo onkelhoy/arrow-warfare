@@ -5,13 +5,16 @@ import { rgb, Renderer, type Batch, type Vec3 } from "@arrow-warfare/render";
 // component
 import {
     birchTree, body, currentPalette, Field, flower, grassTuft, head, log, Meadow, mushroom, NECK,
-    pineTree, roundTree, stone, stump, type MapSize, type PaletteName, type TreeAmount,
+    pineTree, roundTree, stone, stump, type MapKind, type MapSize, type PaletteName, type TreeAmount,
 } from "@arrow-warfare/world";
 
 const engine = new GameEngine({ name: "main", query: "canvas", type: "webgl2", theme: true });
 const layer = engine.layers.main;
 const renderer = engine.add(new Renderer(layer));
 const form = document.querySelector("form")!;
+// `?map=farm&view=above` and so on preset the form
+for (const [key, value] of new URLSearchParams(location.search)) (form.elements.namedItem(key) as HTMLSelectElement | null)?.setAttribute("data-preset", value);
+for (const element of form.querySelectorAll<HTMLSelectElement | HTMLInputElement>("[data-preset]")) element.value = element.dataset.preset!;
 
 let meadow: Meadow | null = null;
 let extra: Batch[] = [];
@@ -48,7 +51,10 @@ function build() {
         return;
     }
 
-    const field = new Field({ seed: Number(data.get("seed")) || 0, size: data.get("size") as MapSize, trees: data.get("trees") as TreeAmount });
+    const field = new Field({
+        seed: Number(data.get("seed")) || 0, size: data.get("size") as MapSize, trees: data.get("trees") as TreeAmount,
+        map: data.get("map") as MapKind, props: data.get("props") as TreeAmount, buildings: data.get("buildings") as TreeAmount, towers: data.get("towers") as TreeAmount,
+    });
     meadow = engine.add(new Meadow(renderer, field, { palette }));
     if (view === "backdrop")
     {

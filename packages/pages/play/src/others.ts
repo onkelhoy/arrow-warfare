@@ -5,6 +5,7 @@ import { multiply, rgb, type Renderer, type Vec3 } from "@arrow-warfare/render";
 import { Bodies, Rig, type Blow } from "@arrow-warfare/rig";
 import type { Field, Spawn } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
+import { footing } from "./footing";
 
 /** ms behind the newest pose that others are drawn, so there's usually a pose on each side to blend. */
 const DELAY = 110;
@@ -75,7 +76,7 @@ export class Others {
                 const pose: Pose = { time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: false, wounds: 0, resting: false };
                 other = {
                     id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, blow: null, walked: 0, wounds: 0,
-                    rig: new Rig((x, z) => this.field.height(x, z)),
+                    rig: footing(this.field),
                     poses: [pose], last: pose,
                 };
                 this.others.set(player.id, other);
@@ -151,17 +152,17 @@ export class Others {
             {
                 const before = Math.floor(other.walked / STEP);
                 other.walked += pose.speed * dt;
-                if (Math.floor(other.walked / STEP) > before) this.onStep([place.x, this.field.height(place.x, place.z), place.z]);
+                if (Math.floor(other.walked / STEP) > before) this.onStep([place.x, place.y, place.z]);
             }
             other.rig.update(dt, {
-                x: place.x, y: this.field.height(place.x, place.z), z: place.z, yaw: place.yaw,
+                x: place.x, y: place.y, z: place.z, yaw: place.yaw,
                 pitch: pose.pitch, draw: other.corpse ? 0 : pose.draw, left: pose.left, stage: pose.stage,
                 wounds: pose.wounds | other.wounds, resting: pose.resting,
                 dead: !!other.corpse, blow: other.blow, unarmed: this.unarmed,
             });
             shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
             if (this.hidden || !this.names) other.label.hidden = true;
-            else if (!other.corpse) this.placeLabel(other.label, place.x, this.field.height(place.x, place.z) + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
+            else if (!other.corpse) this.placeLabel(other.label, place.x, place.y + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
         }
         this.bodies.draw(this.hidden ? [] : [...shown, ...extra]);
     }

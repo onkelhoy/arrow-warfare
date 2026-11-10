@@ -30,7 +30,8 @@ const nature = {
     ...Object.fromEntries([...range("Rock", 7), ...range("Rock_Moss", 7)].map(name => [name, 1])),
     ...Object.fromEntries(range("Plant", 5).map(name => [name, 1])),
     TreeStump: 1, TreeStump_Moss: 1, WoodLog: 1, WoodLog_Moss: 1,
-    Corn_1: 1, Corn_2: 1, Wheat: 1, Lilypad: 1, Flowers: 1,
+    // crops stand in rows of many, they keep fewer
+    Corn_1: .4, Corn_2: .4, Wheat: .4, Lilypad: 1, Flowers: 1,
 };
 
 /** pap-adventure's, by folder. The heaviest ones (arcade rows) are left out. */
