@@ -8,8 +8,8 @@ import type { BowPlace } from "@arrow-warfare/core";
 const TOUCH_TURN = .0065;
 const MOUSE_TURN = .0024;
 /** A touch that moves less than this and lets go quickly is a tap. */
-const TAP_MOVE = 12;
-const TAP_TIME = 350;
+const TAP_MOVE = 28;
+const TAP_TIME = 500;
 
 const KEYS: Record<string, [x: number, y: number]> = {
     w: [0, 1], arrowup: [0, 1],
