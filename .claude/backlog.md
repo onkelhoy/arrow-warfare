@@ -235,9 +235,9 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Bullet drop, ammo, reload, cowboy's gun sounds, touch fire and reload buttons
 
 ### F22. Bots
-- [ ] Rules: 0–100 bots, difficulty easy / normal / hard, run by the host as fake players
-- [ ] Movement, cover, targets, aim with lead and drop
-- [ ] Performance for many bots on a phone host
+- [x] Rules: 0–100 bots, difficulty easy / normal / hard, run by the host as fake players
+- [x] Movement, cover, targets, aim with lead and drop
+- [x] Performance for many bots on a phone host
 
 ### F23. Environment
 - [x] Sound on `@papit/audio`: buses, effects in 3D, a "Nature" volume
@@ -246,7 +246,19 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Bullet hits: a puff of chips and dust and a hole that fades
 - [ ] Name tags rule, railings, ponds, bushes, plants, lily pads, lamps (21a-21g, unconfirmed)
 
+### Nice to have
+- [ ] Bots played by the nearest player instead of the host, to spread the work: an owner per bot that moves (handing over wounds, quiver, goal, target), the owner judging hits on it, phones taking bot messages from the current owner. Only if a phone host struggles: 100 bots' thinking is 0.8 ms a frame on a laptop, drawing their bodies likely costs more.
+
 ---
+
+## Notes from F22, bots (for the owner to review)
+- The host plays them in `play/src/bots.ts`: they wander, hunt where they last saw or heard someone, hide behind trees and buildings and lean out to shoot, fetch arrows or a fallen player's rounds when out. They see less far at night and in the rain. No ladders.
+- Aim: `solve` in `archery/src/flight.ts` flies the shot as `fly` does, so lead and drop are exact; skill adds the error, reaction and draw time (`SKILL`). Walking or a moving target spoils it more.
+- Bots are `Player`s with `bot: true`, `bot-<n>` ids, added at the countdown and dropped back in the lobby; the same bots through a match. Not counted in `max`. The host leaving ends the game, bots go with it.
+- Guests take bot shots, hits, drops and stashes from the host; all bots' poses go in one packet (15 bytes a bot, 64 to a packet), bots further than 45 m from a player go to them every third time.
+- Far bodies (over 45 m) move their rig every third frame, none drawn behind the camera. The lobby warns above 30 bots (a guess until a phone host is tried).
+- Tested in the play view only (`?bots=8&skill=hard&weapon=rifle`). Hit rates in a small meadow: easy ~13%, normal ~15%, hard ~18% with the bow, normal rifle ~30%.
+- Crickets are a cleaned recording now (`bin/crickets.mjs <file>`), not generated.
 
 ## Notes from F21, guns (for the owner to review)
 - Revolver: 280 m/s, 6 rounds, 1.9 s reload, a shot every 0.4 s. Rifle: 850 m/s, 5 rounds, 1.1 s reload, a shot a second. At 100 m the revolver has dropped about 77 cm, the rifle 8 cm. Numbers in `archery/src/guns.ts` and `flight.ts` (`BALLISTICS`).

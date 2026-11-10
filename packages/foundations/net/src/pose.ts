@@ -63,3 +63,63 @@ export function unpackPose(data: ArrayBuffer): Pose | null {
     const flags = view.getUint8(35);
     return Object.values(pose).every(Number.isFinite) ? { ...pose, left: (view.getUint8(34) & 4) !== 0, wounds: flags & 15, resting: (flags & 16) !== 0 } : null;
 }
+
+/** The host's bots, many to a packet: `bot-<n>` and their poses, all taken at one time. */
+const BOTS = 2;
+const BOT_BYTES = 15;
+/** Bots in one packet, so it stays under a datagram (about 1 kB). */
+export const BOTS_PER_PACKET = 64;
+
+/**
+ * `1 + 8 + 1` bytes then 15 a bot: its number, x y z in cm, yaw and pitch as shorts, the speed in
+ * twentieths of m/s, then a byte each for the draw, stage, hand and resting, and the wounds.
+ */
+export function packBots(time: number, bots: { n: number; pose: Pose }[]) {
+    const count = Math.min(bots.length, BOTS_PER_PACKET);
+    const view = new DataView(new ArrayBuffer(10 + count * BOT_BYTES));
+    view.setUint8(0, BOTS);
+    view.setFloat64(1, time);
+    view.setUint8(9, count);
+    const short = (x: number) => Math.max(-32767, Math.min(32767, Math.round(x)));
+    for (let i = 0; i < count; i++)
+    {
+        const { n, pose } = bots[i], at = 10 + i * BOT_BYTES;
+        const yaw = pose.yaw - Math.round(pose.yaw / (Math.PI * 2)) * Math.PI * 2;
+        view.setUint8(at, n);
+        view.setInt16(at + 1, short(pose.x * 100));
+        view.setInt16(at + 3, short(pose.y * 100));
+        view.setInt16(at + 5, short(pose.z * 100));
+        view.setInt16(at + 7, short(yaw / Math.PI * 32767));
+        view.setInt16(at + 9, short(pose.pitch / (Math.PI / 2) * 32767));
+        view.setUint8(at + 11, Math.round(Math.max(0, Math.min(12.75, pose.speed)) * 20));
+        view.setUint8(at + 12, Math.round(Math.max(0, Math.min(1, pose.draw)) * 255));
+        view.setUint8(at + 13, (pose.stage & 3) | (pose.left ? 4 : 0) | (pose.resting ? 8 : 0));
+        view.setUint8(at + 14, pose.wounds & 15);
+    }
+    return view.buffer;
+}
+
+/** Null for anything that isn't a whole bots packet. */
+export function unpackBots(data: ArrayBuffer): { time: number; bots: { n: number; pose: Pose }[] } | null {
+    if (data.byteLength < 10) return null;
+    const view = new DataView(data);
+    if (view.getUint8(0) !== BOTS) return null;
+    const time = view.getFloat64(1), count = view.getUint8(9);
+    if (!Number.isFinite(time) || data.byteLength !== 10 + count * BOT_BYTES) return null;
+    const bots: { n: number; pose: Pose }[] = [];
+    for (let i = 0; i < count; i++)
+    {
+        const at = 10 + i * BOT_BYTES, flags = view.getUint8(at + 13);
+        bots.push({
+            n: view.getUint8(at),
+            pose: {
+                time,
+                x: view.getInt16(at + 1) / 100, y: view.getInt16(at + 3) / 100, z: view.getInt16(at + 5) / 100,
+                yaw: view.getInt16(at + 7) / 32767 * Math.PI, pitch: view.getInt16(at + 9) / 32767 * Math.PI / 2,
+                speed: view.getUint8(at + 11) / 20, draw: view.getUint8(at + 12) / 255,
+                stage: flags & 3, left: (flags & 4) !== 0, resting: (flags & 8) !== 0, wounds: view.getUint8(at + 14) & 15,
+            },
+        });
+    }
+    return { time, bots };
+}

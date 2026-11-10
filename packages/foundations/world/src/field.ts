@@ -21,6 +21,8 @@ export type FieldSetting = {
 };
 
 /** Metres from the middle to the forest edge. */
+/** Metres between sides on a spawn ring, at least. */
+const SPACING = 7;
 export const RADIUS: Record<MapSize, number> = { small: 28, medium: 42, large: 60 };
 /** Meadow trees per square metre. */
 const TREES: Record<TreeAmount, number> = { none: 0, few: .0025, many: .008 };
@@ -316,17 +318,28 @@ export class Field {
         }
 
         const spawns: Record<string, Spawn> = {};
-        const ring = this.radius * .7;
         const start = random() * Math.PI * 2;
-        groups.forEach((group, g) => {
-            const angle = start + g / groups.length * Math.PI * 2;
-            group.forEach((id, i) => {
-                // members side by side along the ring, 2.5 m apart
-                const along = (i - (group.length - 1) / 2) * 2.5 / ring;
-                let x = Math.cos(angle + along) * ring, z = Math.sin(angle + along) * ring;
-                [x, z] = this.collide(x, z, .6);
-                spawns[id] = { x, z, yaw: Math.atan2(x, z) };
-            });
+        // one ring at 70%; more sides than fit `SPACING` apart (bots) fill rings further in, by their length
+        const rings = [.7, .45, .22].map(k => this.radius * k);
+        const fits = (ring: number) => Math.max(1, Math.floor(Math.PI * 2 * ring / SPACING));
+        const used = groups.length <= fits(rings[0]) ? [rings[0]] : rings;
+        const total = used.reduce((sum, ring) => sum + ring, 0);
+        let g = 0;
+        used.forEach((ring, r) => {
+            const count = r === used.length - 1 ? groups.length - g : Math.round(groups.length * ring / total);
+            const offset = start + r * .7;
+            for (let n = 0; n < count; n++, g++)
+            {
+                const group = groups[g], angle = offset + n / count * Math.PI * 2;
+                group.forEach((id, i) => {
+                    // members side by side along the ring, 2.5 m apart, in rows of 8 going in
+                    const row = Math.floor(i / 8), across = Math.min(8, group.length - row * 8), here = Math.max(4, ring - row * 2.5);
+                    const along = (i % 8 - (across - 1) / 2) * 2.5 / here;
+                    let x = Math.cos(angle + along) * here, z = Math.sin(angle + along) * here;
+                    [x, z] = this.collide(x, z, .6);
+                    spawns[id] = { x, z, yaw: Math.atan2(x, z) };
+                });
+            }
         });
         return spawns;
     }

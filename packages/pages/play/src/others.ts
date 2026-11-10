@@ -13,6 +13,8 @@ const DELAY = 110;
 const AHEAD = 250;
 /** Names further away than this aren't shown. */
 const NAMES = 70;
+/** Metres: bodies further away move their rig every third frame (many bots). */
+const FAR = 45;
 
 type Other = {
     id: string; poses: Pose[]; label: HTMLElement; clothes: Vec3; skin: Vec3;
@@ -27,6 +29,8 @@ type Other = {
     walked: number;
     /** The pose drawn, a dead body keeps its last. */
     last: Pose;
+    /** Seconds not yet given to the rig, far away. */
+    lag: number;
 };
 
 /** Metres per footstep. */
@@ -37,6 +41,7 @@ export class Others {
     private others = new Map<string, Other>();
     private bodies: Bodies;
     private viewProjection = new Float32Array(16);
+    private frames = 0;
     /** A footstep of someone, at their feet. */
     onStep: (at: [number, number, number]) => void = () => { };
     /** The round is over: bows down. */
@@ -77,7 +82,7 @@ export class Others {
                 other = {
                     id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, blow: null, walked: 0, wounds: 0,
                     rig: footing(this.field),
-                    poses: [pose], last: pose,
+                    poses: [pose], last: pose, lag: 0,
                 };
                 this.others.set(player.id, other);
             }
@@ -143,8 +148,12 @@ export class Others {
         const at = now - DELAY;
         multiply(this.viewProjection, camera.projectionMatrix, camera.viewMatrix);
         const shown: Parameters<Bodies["draw"]>[0] = [];
+        const eye = camera.worldPosition, m = camera.worldMatrix;
+        this.frames++;
+        let n = 0;
         for (const other of this.others.values())
         {
+            n++;
             if (!other.corpse) other.last = this.override.get(other.id) ?? sample(other.poses, at);
             const pose = other.last;
             const place = other.corpse ?? pose;
@@ -154,13 +163,22 @@ export class Others {
                 other.walked += pose.speed * dt;
                 if (Math.floor(other.walked / STEP) > before) this.onStep([place.x, place.y, place.z]);
             }
-            other.rig.update(dt, {
-                x: place.x, y: place.y, z: place.z, yaw: place.yaw,
-                pitch: pose.pitch, draw: other.corpse ? 0 : pose.draw, left: pose.left, stage: pose.stage,
-                wounds: pose.wounds | other.wounds, resting: pose.resting,
-                dead: !!other.corpse, blow: other.blow, unarmed: this.unarmed,
-            });
-            shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
+            // far away: the rig every third frame (in turns), and not drawn at all behind me
+            const dx = place.x - eye.x, dz = place.z - eye.z, distance = Math.hypot(dx, dz);
+            other.lag += dt;
+            if (other.corpse || distance <= FAR || (this.frames + n) % 3 === 0)
+            {
+                const step = other.lag;
+                other.lag = 0;
+                other.rig.update(step, {
+                    x: place.x, y: place.y, z: place.z, yaw: place.yaw,
+                    pitch: pose.pitch, draw: other.corpse ? 0 : pose.draw, left: pose.left, stage: pose.stage,
+                    wounds: pose.wounds | other.wounds, resting: pose.resting,
+                    dead: !!other.corpse, blow: other.blow, unarmed: this.unarmed,
+                });
+            }
+            const behind = distance > 4 && (dx * -m[8] + dz * -m[10]) < -distance * .2;
+            if (!behind) shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
             if (this.hidden || !this.names) other.label.hidden = true;
             else if (!other.corpse) this.placeLabel(other.label, place.x, place.y + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
         }

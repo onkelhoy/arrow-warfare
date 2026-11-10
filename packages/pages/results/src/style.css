@@ -104,3 +104,8 @@
         padding: 3px 10px;
     }
 }
+
+.aw-results-bot {
+    opacity: .6;
+    font-size: .8em;
+}

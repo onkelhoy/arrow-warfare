@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, WEAPONS, AMMO, wears, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
+import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, WEAPONS, AMMO, wears, BOT_COUNTS, BOTS_WARN, DIFFICULTIES, type Difficulty, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -112,6 +112,14 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                         ${TIMES.map(time => `<option value="${time}">${t(`rules.times.${time}`)}</option>`).join("")}
                     </select></label>
                     <label class="aw-check"><input type="checkbox" name="rain"> ${t("rules.rain")}</label>
+                    <label>${t("rules.bots")} <select name="bots">
+                        ${BOT_COUNTS.map(count => `<option value="${count}">${count}</option>`).join("")}
+                    </select></label>
+                    <label class="aw-difficulty">${t("rules.difficulty")} <select name="difficulty">
+                        ${DIFFICULTIES.map(level => `<option value="${level}">${t(`rules.difficulties.${level}`)}</option>`).join("")}
+                    </select></label>
+                    <p class="aw-dim">${t("rules.botsNote")}</p>
+                    <p class="aw-bots-warn" role="status">⚠ ${t("rules.botsWarn", { count: String(BOTS_WARN) })}</p>
                 </div>
             </pap-tabpanel>
         </pap-tabs>
@@ -174,6 +182,10 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     friendly.addEventListener("change", () => actions.rules({ friendly: friendly.value === "on" }));
     const rain = find<HTMLInputElement>("input[name=rain]");
     rain.addEventListener("change", () => actions.rules({ rain: rain.checked }));
+    const bots = find<HTMLSelectElement>("select[name=bots]");
+    const difficulty = find<HTMLSelectElement>("select[name=difficulty]");
+    bots.addEventListener("change", () => actions.rules({ bots: Number(bots.value) }));
+    difficulty.addEventListener("change", () => actions.rules({ difficulty: difficulty.value as Difficulty }));
 
     /** A field being typed in keeps what's typed. */
     const set = (field: Field | HTMLSelectElement, value: string) => {
@@ -223,13 +235,13 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
             const mine = state!.players.find(other => other.id === me);
             // no direct link between us (or, for the host, between them and someone): it goes through the host
             const relayed = player.id !== me && (mine?.gaps?.includes(player.id) || player.gaps?.includes(me) || (host && !!player.gaps?.length));
-            const ping = (player.id === state!.host ? t("players.host") : player.ping < 0 ? "…" : `${player.ping} ms`) + (relayed ? ` · ${t("players.relayed")}` : "");
+            const ping = player.bot ? t("players.bot") : (player.id === state!.host ? t("players.host") : player.ping < 0 ? "…" : `${player.ping} ms`) + (relayed ? ` · ${t("players.relayed")}` : "");
             return `<li>
                 <span class="aw-player">${playerLabel(state!, player)}${player.id === me ? ` <span class="aw-dim">${t("players.you")}</span>` : ""}</span>
                 <span class="aw-ready">${player.ready ? "✓" : ""}</span>
                 <span class="aw-ping${weak ? " weak" : ""}" title="${weak ? t("players.weak") : ""}">${ping}${weak ? ` ⚠ ${t("players.weak")}` : ""}</span>
                 ${host && !player.ready && canForce() ? `<pap-button size="small" variant="outline" data-act="force" data-id="${player.id}">${t("players.force")}</pap-button>` : ""}
-                ${host && player.id !== me ? `<pap-button size="small" variant="clear" data-act="kick" data-id="${player.id}">${t("players.kick")}</pap-button>` : ""}
+                ${host && player.id !== me && !player.bot ? `<pap-button size="small" variant="clear" data-act="kick" data-id="${player.id}">${t("players.kick")}</pap-button>` : ""}
             </li>`;
         }).join("");
     };
@@ -314,7 +326,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         showTab("invite", !locked);
         showTab("teams", locked);
 
-        for (const field of [gameName, password, max, weapon, ammo, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly, rain]) field.toggleAttribute("disabled", !host);
+        for (const field of [gameName, password, max, weapon, ammo, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly, rain, bots, difficulty]) field.toggleAttribute("disabled", !host);
         set(gameName, state.name);
         if (!host) set(password, state.password ? "••••" : "");
         set(max, String(state.max));
@@ -333,6 +345,10 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         set(rounds, String(state.rules.rounds ?? 1));
         set(friendly, state.rules.friendly === false ? "off" : "on");
         rain.checked = state.rules.rain === true;
+        set(bots, String(state.rules.bots ?? 0));
+        set(difficulty, state.rules.difficulty ?? RULES_DEFAULT.difficulty);
+        find(".aw-difficulty").style.display = state.rules.bots ? "" : "none";
+        find(".aw-bots-warn").style.display = (state.rules.bots ?? 0) > BOTS_WARN ? "" : "none";
 
         draw(".aw-players", players());
         draw(".aw-teams", teams());
