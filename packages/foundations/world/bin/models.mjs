@@ -4,7 +4,8 @@
 //   node bin/models.mjs --force  converts everything again
 // Sources, all vertex colours only, no textures (the owner wants one low poly look):
 // - Quaternius' nature pack (OBJ, a material colour per face): through Blender, headless, colours baked in.
-// - pap-adventure's generated models: already glb with vertex colours, copied as they are.
+// - pap-adventure's generated models: already glb with vertex colours, through Blender only to turn their inside-out
+//   faces outward (the renderer culls back faces, a cabin lost its gable and half its roof).
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -56,17 +57,21 @@ for (const [name, keep] of Object.entries(nature))
     const target = path.join(out, "nature", `${name}.glb`);
     if (force || !fs.existsSync(target)) jobs.push(path.join(NATURE, `${name}.obj`), target, String(keep));
 }
-if (jobs.length)
-{
-    console.log(`models: ${jobs.length / 3} through Blender`);
-    execFileSync(BLENDER, ["-b", "--factory-startup", "--python", path.join(here, "blender-glb.py"), "--", ...jobs], { stdio: ["ignore", "ignore", "inherit"] });
-}
 for (const [folder, names] of Object.entries(pap))
 {
     // the town's few go with the props
     const group = folder === "town" ? "props" : folder;
     fs.mkdirSync(path.join(out, group), { recursive: true });
-    for (const name of names) fs.copyFileSync(path.join(PAP, folder, `${name}.glb`), path.join(out, group, `${name}.glb`));
+    for (const name of names)
+    {
+        const target = path.join(out, group, `${name}.glb`);
+        if (force || !fs.existsSync(target)) jobs.push(path.join(PAP, folder, `${name}.glb`), target, "1");
+    }
+}
+if (jobs.length)
+{
+    console.log(`models: ${jobs.length / 3} through Blender`);
+    execFileSync(BLENDER, ["-b", "--factory-startup", "--python", path.join(here, "blender-glb.py"), "--", ...jobs], { stdio: ["ignore", "ignore", "inherit"] });
 }
 
 // the catalog: size from the position bounds, triangles from the indices
