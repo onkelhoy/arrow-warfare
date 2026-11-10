@@ -91,7 +91,7 @@
         "few": "A few",
         "many": "Many"
       },
-      "size": "Meadow size",
+      "size": "Map size",
       "map": {
         "small": "Small",
         "medium": "Medium",
@@ -120,7 +120,22 @@
       "round": "Round {number}",
       "friendly": "Friendly fire",
       "friendlyOn": "On",
-      "friendlyOff": "Off: arrows fly through teammates"
+      "friendlyOff": "Off: arrows fly through teammates",
+      "mapKind": "Map",
+      "maps": {
+        "field": "Meadow",
+        "farm": "Farm",
+        "city": "Town"
+      },
+      "props": "Rocks, bushes and props",
+      "buildings": "Houses and barns",
+      "towers": "Watch towers",
+      "amount": {
+        "none": "None",
+        "few": "A few",
+        "many": "Many"
+      },
+      "towersNote": "Walk into a tower's ladder to climb it."
     },
     "colour": {
       "red": "red",

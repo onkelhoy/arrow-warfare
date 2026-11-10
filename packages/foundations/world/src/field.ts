@@ -3,10 +3,17 @@ import { seeded } from "@arrow-warfare/render";
 export type MapSize = "small" | "medium" | "large";
 export type TreeAmount = "none" | "few" | "many";
 
+export type MapKind = "field" | "farm" | "city";
+
 export type FieldSetting = {
     seed: number;
     size?: MapSize;
     trees?: TreeAmount;
+    map?: MapKind;
+    /** Rocks, bushes and things to hide behind. */
+    props?: TreeAmount;
+    buildings?: TreeAmount;
+    towers?: TreeAmount;
 };
 
 /** Metres from the middle to the forest edge. */

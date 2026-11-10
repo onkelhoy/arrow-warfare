@@ -123,7 +123,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
 
-    const field = new Field({ seed: state.seed, size: state.rules.size, trees: state.rules.trees });
+    const field = new Field({ seed: state.seed, ...state.rules });
     const coarse = matchMedia("(pointer: coarse)").matches;
     // the rule's time of day, or my own clock
     const time = state.rules.time;

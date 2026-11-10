@@ -91,7 +91,7 @@
         "few": "Några",
         "many": "Många"
       },
-      "size": "Ängens storlek",
+      "size": "Kartans storlek",
       "map": {
         "small": "Liten",
         "medium": "Mellan",
@@ -120,7 +120,22 @@
       "round": "Runda {number}",
       "friendly": "Vådabeskjutning",
       "friendlyOn": "På",
-      "friendlyOff": "Av: pilar flyger genom lagkamrater"
+      "friendlyOff": "Av: pilar flyger genom lagkamrater",
+      "mapKind": "Karta",
+      "maps": {
+        "field": "Äng",
+        "farm": "Bondgård",
+        "city": "Stad"
+      },
+      "props": "Stenar, buskar och saker",
+      "buildings": "Hus och lador",
+      "towers": "Vakttorn",
+      "amount": {
+        "none": "Inga",
+        "few": "Några",
+        "many": "Många"
+      },
+      "towersNote": "Gå in i ett torns stege för att klättra upp."
     },
     "colour": {
       "red": "röd",
