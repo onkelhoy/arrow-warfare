@@ -863,7 +863,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const left = standing(state.players, [...dead]).length;
         hud.standing(t("hud.left", { count: String(left) }));
         controls.bow.hidden = !alive;
-        controls.joystick.hidden = !walker.alive || view !== "play";
+        const stickHidden = !walker.alive || view !== "play";
+        // hidden while held, its lift never comes
+        if (stickHidden && !controls.joystick.hidden) controls.release();
+        controls.joystick.hidden = stickHidden;
         controls.bow.disabled = quiver <= 0 || draw.phase === "panting";
         hint.hidden = coarse || controls.locked || view !== "play";
 

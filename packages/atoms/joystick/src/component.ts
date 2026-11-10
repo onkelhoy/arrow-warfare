@@ -8,7 +8,7 @@ import type { JoystickEvent } from "./types";
 /**
  * A touch joystick. Its own box is where a thumb can start: the base appears under the thumb and the knob
  * follows it, up to `radius` pixels away. `x` is right, `y` is up (forward), both -1..1. One pointer at a
- * time, other touches pass through to whatever else listens.
+ * time: a new touch on it takes over. `reset()` lets go of a thumb whose lift was missed.
  *
  * @element aw-joystick
  *
@@ -49,6 +49,7 @@ export class Joystick extends CustomElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.reset();
         this.removeEventListener("pointerdown", this.handledown);
         this.removeEventListener("pointermove", this.handlemove);
         this.removeEventListener("pointerup", this.handleup);
@@ -56,11 +57,24 @@ export class Joystick extends CustomElement {
         this.removeEventListener("lostpointercapture", this.handleup);
     }
 
+    /** Lets go of the thumb it holds, as if lifted: x and y back to 0. For a lift it never heard. */
+    reset() {
+        if (this.pointer === null) return;
+        const pointer = this.pointer;
+        this.pointer = null;
+        try { if (this.hasPointerCapture(pointer)) this.releasePointerCapture(pointer); } catch { /* already gone */ }
+        this.active = false;
+        this.x = this.y = 0;
+        this.dispatchEvent(new CustomEvent<JoystickEvent>("end", { detail: { x: 0, y: 0 }, bubbles: true, composed: true }));
+    }
+
     private handledown = (event: PointerEvent) => {
-        if (this.pointer !== null) return;
+        // a new thumb takes over, the old one may have lifted without telling
+        this.reset();
         event.preventDefault();
         this.pointer = event.pointerId;
-        this.setPointerCapture(event.pointerId);
+        try { this.setPointerCapture(event.pointerId); } catch { /* a pointer already gone */ }
+        this.x = this.y = 0;
         const box = this.getBoundingClientRect();
         this.originX = event.clientX - box.left;
         this.originY = event.clientY - box.top;
@@ -91,10 +105,7 @@ export class Joystick extends CustomElement {
 
     private handleup = (event: PointerEvent) => {
         if (event.pointerId !== this.pointer) return;
-        this.pointer = null;
-        this.active = false;
-        this.x = this.y = 0;
-        this.dispatchEvent(new CustomEvent<JoystickEvent>("end", { detail: { x: 0, y: 0 }, bubbles: true, composed: true }));
+        this.reset();
     }
 
     private place(dx: number, dy: number) {

@@ -247,13 +247,15 @@ export class Arrows {
     }
 
     /**
-     * The arrow to pick up for a tap at `x, y` on screen: resting, within reach of my feet, and the one
-     * nearest the tap within `radius` pixels.
+     * The arrow to pick up for a tap at `x, y` on screen: resting and within reach of my feet. The one
+     * nearest the tap within `radius` pixels, else (a tap on the ground, below the horizon) the one
+     * nearest my feet.
      */
     pickable(x: number, y: number, radius: number, me: { x: number; y: number; z: number }, now: number, camera: Camera, width: number, height: number, rigOf: RigOf) {
         multiply(this.viewProjection, camera.projectionMatrix, camera.viewMatrix);
         const m = this.viewProjection;
         let best: string | null = null, bestDistance = radius;
+        let near: string | null = null, nearDistance = Infinity;
         for (const [id, arrow] of this.all)
         {
             // the ones in me are pulled out with their own button
@@ -265,9 +267,15 @@ export class Arrows {
             const px = at.tip[0] - at.direction[0] * ARROW_LENGTH * half;
             const py = at.tip[1] - at.direction[1] * ARROW_LENGTH * half;
             const pz = at.tip[2] - at.direction[2] * ARROW_LENGTH * half;
-            if (Math.hypot(px - me.x, pz - me.z) > REACH.side) continue;
+            const side = Math.hypot(px - me.x, pz - me.z);
+            if (side > REACH.side) continue;
             const up = py - me.y;
             if (up < REACH.low || up > REACH.high) continue;
+            if (side < nearDistance)
+            {
+                nearDistance = side;
+                near = id;
+            }
             const cx = m[0] * px + m[4] * py + m[8] * pz + m[12];
             const cy = m[1] * px + m[5] * py + m[9] * pz + m[13];
             const w = m[3] * px + m[7] * py + m[11] * pz + m[15];
@@ -280,7 +288,21 @@ export class Arrows {
                 best = id;
             }
         }
-        return best;
+        if (best || !near) return best;
+        return y > this.horizon(camera, height) ? near : null;
+    }
+
+    /** The horizon's height on screen, in CSS pixels from the top (0 when it's above the view). */
+    private horizon(camera: Camera, height: number) {
+        const w = camera.worldMatrix, m = this.viewProjection;
+        // far ahead at eye height, level
+        const fx = -w[8], fz = -w[10], length = Math.hypot(fx, fz);
+        if (length < 1e-4) return 0;
+        const px = w[12] + fx / length * 1000, py = w[13], pz = w[14] + fz / length * 1000;
+        const cy = m[1] * px + m[5] * py + m[9] * pz + m[13];
+        const cw = m[3] * px + m[7] * py + m[11] * pz + m[15];
+        if (cw <= .05) return 0;
+        return Math.max(0, (1 - (cy / cw * .5 + .5)) * height);
     }
 
     /** Arrows flown again for the kill cam, by shot id, with the last points of their trails. */

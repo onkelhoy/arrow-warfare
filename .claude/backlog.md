@@ -213,6 +213,32 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] The dead drop their unshot arrows
 - [ ] An arrow bag in the hand (later, a finesse thing)
 
+### F18. Papit engine pieces
+- [ ] Audit game-mesh, vector/matrix (float64), gjk/rigidbody, game-engine against our own code
+- [ ] Load `.glb` (vertex colours) into our renderer, swap what's worth it
+
+### F19. Maps and props
+- [ ] Blender pipeline: FBX/OBJ to untextured glb (nature pack, pap-adventure generated)
+- [ ] Rules: map field / farm / city, more props, buildings, watch towers
+- [ ] Buildings and props block walking and arrows
+- [ ] Field with ponds and lily pads, farm, city, climbable watch towers
+- [ ] Unlimited arrows by default
+- [ ] Animals on the farm (later)
+
+### F20. Nicer models
+- [ ] Softer shading between faces, more ambient
+- [ ] New player bodies in place of floating arms, same style
+
+### F21. Guns
+- [ ] Weapon rule: bow / revolver / rifle, one per game
+- [ ] Revolver and rifle from FPS Guns, shooting and reload animations
+- [ ] Bullet drop, ammo, reload, cowboy's gun sounds, touch fire and reload buttons
+
+### F22. Bots
+- [ ] Rules: 0–100 bots, difficulty easy / normal / hard, run by the host as fake players
+- [ ] Movement, cover, targets, aim with lead and drop
+- [ ] Performance for many bots on a phone host
+
 ---
 
 ## Milestones
@@ -226,6 +252,12 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 7. ✅ **World design** (F17): softer, crisper colours after cowboy, lighter shadows, drawn sun and moon, clouds, the missing arm, dropped arrows. The arrow bag moved to later.
 9. ✅ **A connection that holds**: join by code through the lobby, the game survives a lost lobby, reconnects, relays. Owner tests on phones.
 8. ✅ **Ragdoll deaths**: eyes (x when dead), bodies thrown by the arrow, the same fall on every phone and in the kill cam, kill cams only for the dead and the end's victim and winner.
+10. **Bugs**: pickup, stuck strafing, shot cancelling, unlimited arrows default. Branch `bugs`.
+11. **Papit engine** (F18), branch `engine`.
+12. **Maps** (F19), branch `maps`.
+13. **Nicer models** (F20), branch `models`.
+14. **Guns** (F21), branch `guns`.
+15. **Bots** (F22), branch `bots`.
 
 ---
 

@@ -8,8 +8,8 @@ import type { BowPlace } from "@arrow-warfare/core";
 const TOUCH_TURN = .0065;
 const MOUSE_TURN = .0024;
 /** A touch that moves less than this and lets go quickly is a tap. */
-const TAP_MOVE = 12;
-const TAP_TIME = 350;
+const TAP_MOVE = 28;
+const TAP_TIME = 500;
 
 const KEYS: Record<string, [x: number, y: number]> = {
     w: [0, 1], arrowup: [0, 1],
@@ -66,6 +66,8 @@ export class Controls {
         window.addEventListener("keydown", this.handlekey);
         window.addEventListener("keyup", this.handlekey);
         window.addEventListener("blur", this.handleblur);
+        document.addEventListener("visibilitychange", this.handleblur);
+        document.addEventListener("focusin", this.handlefocus);
     }
 
     /** Puts the bow button where the settings say. */
@@ -124,6 +126,8 @@ export class Controls {
         window.removeEventListener("keydown", this.handlekey);
         window.removeEventListener("keyup", this.handlekey);
         window.removeEventListener("blur", this.handleblur);
+        document.removeEventListener("visibilitychange", this.handleblur);
+        document.removeEventListener("focusin", this.handlefocus);
         this.surface.remove();
         this.joystick.remove();
         this.bow.remove();
@@ -215,7 +219,18 @@ export class Controls {
         else this.keys.delete(key);
     }
 
-    private handleblur = () => {
+    /** Lets go of everything held: keys, space, the joystick (on blur, a hidden tab, death). */
+    release() {
+        this.keys.clear();
+        this.space = false;
+        this.joystick.reset();
+    }
+
+    private handleblur = () => this.release();
+
+    /** Typing in a box: its keyups never reach `handlekey`, so a held key would stick. */
+    private handlefocus = (event: FocusEvent) => {
+        if (!(event.target as HTMLElement)?.closest?.("input, textarea, [contenteditable], pap-input")) return;
         this.keys.clear();
         this.space = false;
     }
