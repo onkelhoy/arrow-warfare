@@ -3,7 +3,7 @@
 Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models, F21 guns, F22 bots.
 
 ## Where we are
-Branch `bugs` confirmed by the owner and merged to `main`. Now on `engine`, task 5.
+Branch `bugs` confirmed by the owner and merged to `main`. Now on `engine`. Task 5 done (report in backlog "Papit audit"), next task 6.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 - One branch per group below so each can be reverted alone: `bugs`, `engine`, `maps`, `models`, `guns`, `bots`.
@@ -17,7 +17,7 @@ Branch `bugs` confirmed by the owner and merged to `main`. Now on `engine`, task
 4. [x] **Unlimited arrows by default:** `RULES_DEFAULT.arrows` 4 → 0 (`core/src/state.ts:53`).
 
 ## Branch `engine` (F18)
-5. [ ] **Papit audit.** Compare papit with our own code and write a short report in the backlog notes: `@papit/game-mesh` (glTF loader, skins, animation sampling) against `render/mesh.ts`; `@papit/vector`/`matrix` (float64 now) against `render/math.ts`; `@papit/gjk`/`rigidbody` against `field.collide` and arrow hits; what `@papit/game-engine` offers now that we don't use. Report papit gaps to the owner, don't patch them.
+5. [x] **Papit audit.** Compare papit with our own code and write a short report in the backlog notes: `@papit/game-mesh` (glTF loader, skins, animation sampling) against `render/mesh.ts`; `@papit/vector`/`matrix` (float64 now) against `render/math.ts`; `@papit/gjk`/`rigidbody` against `field.collide` and arrow hits; what `@papit/game-engine` offers now that we don't use. Report papit gaps to the owner, don't patch them.
 6. [ ] **Do the swaps worth doing.** The first one is loading `.glb` (vertex colours, no textures) into our renderer, since F19 to F21 need it.
 
 ## Branch `maps` (F19)
