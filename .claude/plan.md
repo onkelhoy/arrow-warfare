@@ -38,4 +38,4 @@ Branch `guns` done with 16-21 and the gun asks 21h-21j, 21l, 21m (aiming, others
 27a. [x] **Rain (owner 2026-11-10):** a lobby checkbox "Rain". Streaks round the camera (`Rain` in world), a grey wet light and clouds (`wet`), no fireflies, rain loop, fewer crickets and birds, wet footsteps. Lightning lights the sky every 14-40 s, thunder comes after by distance. A view: `world/views/rain`.
 27b. [x] **Rain splashes:** tiny sparks where drops land near me, on the ground and roofs (`field.roof`).
 27c. [x] **Rain settings:** drops by quality (700 / 1300 / 2200), "Rain splashes" its own setting.
-28. [ ] **Bullet hits (owner 2026-11-10):** a puff of tiny particles where a bullet hits (dirt, wood chips, stone dust by what it hit) and a small hit mark left on the surface, fading after a while.
+28. [x] **Bullet hits (owner 2026-11-10):** a puff of tiny particles where a bullet hits (dirt, wood chips, stone dust by what it hit) and a small hit mark left on the surface, fading after a while.

@@ -14,6 +14,7 @@ import { currentPalette, Field, GUN_FILES, loadGun, Meadow, Rain, type PaletteNa
 
 import { Arrows } from "./arrows";
 import { Blood } from "./blood";
+import { Impacts } from "./impacts";
 import { aim, Film } from "./cinema";
 import { Controls } from "./controls";
 import { FirstPerson } from "./firstperson";
@@ -184,6 +185,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const arrows = new Arrows(renderer, field, me, colourOf);
     const replay = new Replay();
     const blood = new Blood(renderer, field);
+    const impacts = new Impacts(renderer, field);
 
     size();
     window.addEventListener("resize", size);
@@ -986,13 +988,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 }
             }
         }
-        for (const landed of flown.landed) sound(landed.kind === "ground" ? "ground" : "wood", [landed.arrow.x, landed.arrow.y, landed.arrow.z]);
+        for (const { arrow, kind } of flown.landed)
+        {
+            sound(kind === "ground" ? "ground" : "wood", [arrow.x, arrow.y, arrow.z]);
+            // a bullet leaves a puff and a hole, an arrow stays in what it hit
+            if (isBullet(arrow.shot)) impacts.hit([arrow.x, arrow.y, arrow.z], [arrow.shot.dx, arrow.shot.dy, arrow.shot.dz], kind);
+        }
         for (const { arrow, id, hit, place, local, at } of flown.struck)
         {
             const distance = Math.hypot(at[0] - arrow.shot.x, at[2] - arrow.shot.z);
             struck({ arrow: arrow.shot.id, victim: id, zone: hit.zone, part: hit.part, point: local.point, direction: local.direction, place: { x: place.x, y: place.y, z: place.z, yaw: place.yaw }, at, distance, time: arrow.at });
         }
         blood.update(dt * (view === "film" ? film.rate : 1));
+        impacts.update(dt * (view === "film" ? film.rate : 1));
         if (view !== "film") arrows.draw(now, rigOf, [camera.worldMatrix[12], camera.worldMatrix[13], camera.worldMatrix[14]]);
 
         // picking up: a tap near an arrow in reach, never while drawing
@@ -1142,6 +1150,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             horns.remove();
             options.sound?.hush(false);
             blood.destroy();
+            impacts.destroy();
             firstPerson.destroy();
             hud.destroy();
             engine.remove(driver);
