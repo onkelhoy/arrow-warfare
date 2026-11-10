@@ -96,3 +96,6 @@ Known and suspected bugs, with the workaround in use. Papit ones get reported to
 
 ### `preloadModels(Iterable)` broke the world build (the papit bundle-ts bug above)
 - **Workaround:** it takes an array.
+
+### A large town is heavy (suspected, phones)
+- **What:** a large town (seed 3) draws about 370k triangles, a medium one about 180k. Buildings are 2-7k triangles each. Not measured on a phone yet. If it's slow: fewer houses on large, or cheaper copies of far buildings (F22's task 25).

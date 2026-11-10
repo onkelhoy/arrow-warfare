@@ -48,6 +48,11 @@ export type Ladder = { x: number; z: number; yaw: number; hx: number; hz: number
 /** A patch of the ground in another colour (fields of dirt), a box like a block. */
 export type Patch = { x: number; z: number; yaw: number; hx: number; hz: number; colour: [number, number, number] };
 
+/** A cobbled street from `a` to `b`, `width` across, drawn on the ground. Stops nothing. */
+export type Street = { ax: number; az: number; bx: number; bz: number; width: number };
+/** A round cobbled place where streets meet, or a square. */
+export type Junction = { x: number; z: number; radius: number };
+
 /** Metres a foot can step up onto a floor (and how far under its top a block stops counting). */
 export const STEP_UP = .45;
 /** How tall a player is for blocks: a box higher than this over the feet is walked under. */
@@ -81,6 +86,8 @@ export class Field {
     readonly ponds: Pond[] = [];
     readonly ladders: Ladder[] = [];
     readonly patches: Patch[] = [];
+    readonly streets: Street[] = [];
+    readonly junctions: Junction[] = [];
     /** Places taken by something big (buildings, ponds, streets), so the small things keep out. */
     readonly taken: { x: number; z: number; radius: number }[] = [];
     /** How rolling the ground is, 1 is the meadow. */

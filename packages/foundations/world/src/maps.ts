@@ -1,6 +1,8 @@
+import { IrregularGrid } from "@papit/irregular-grid";
+
 import type { ModelName } from "./catalog";
 import { sizeOf } from "./files";
-import { inDisc, type Field, type FieldSetting, type Placed, type TreeAmount } from "./field";
+import { inDisc, inside, type Field, type FieldSetting, type Placed, type TreeAmount } from "./field";
 
 /**
  * What each map puts in the field from the seed, before the trees and the small things: buildings, streets,
@@ -30,6 +32,13 @@ const TOWN_HOUSES: ModelName[] = [
     "buildings/brick-house", "buildings/brick-house-2", "buildings/stone-house", "buildings/stone-house-2", "buildings/tavern",
     "buildings/bakery", "buildings/general-store", "buildings/bank", "buildings/corner-house",
 ];
+/** The Buildings Pack's tall town houses, mixed in with the others in the city. */
+const CITY_HOUSES: ModelName[] = [
+    ...TOWN_HOUSES, "buildings/city-long", "buildings/city-narrow", "buildings/city-gable-long", "buildings/city-gable",
+    "buildings/city-brick", "buildings/city-brick-narrow", "buildings/city-manor",
+];
+/** Metres across a street, kerbs and all. */
+const STREET = 4.6;
 const FARM_PROPS: ModelName[] = ["props/hay", "props/bale", "props/bale", "props/cart-hay", "props/cart-sacks", "props/barrel", "props/crate", "props/sack", "props/pumpkin", "props/big-pumpkin"];
 const TOWN_PROPS: ModelName[] = ["props/barrel", "props/crate", "props/sack", "props/bench", "props/street-lamp", "props/food-cart", "props/cart-sacks", "props/basket", "props/bucket"];
 const STALLS: ModelName[] = ["props/fruit-stall", "props/bread-stall", "props/cloth-stall", "props/fish-stall"];
@@ -126,72 +135,160 @@ function farm(field: Field, random: Random, scale: number, buildings: number) {
     }
 }
 
-/** A town: cobbled streets in a grid, houses along them facing the street, a square with stalls in the middle. */
+/**
+ * A town on an irregular grid (`@papit/irregular-grid`): its cells are blocks, its edges crooked streets that
+ * meet at odd angles. Houses stand along each block's edges facing the street, a square with a well and
+ * stalls where the streets meet in the middle, the chapel in a block of its own.
+ */
 function city(field: Field, random: Random, buildings: number) {
     field.hills = .12;
-    const turn = random() * Math.PI / 2;
-    const to = (x: number, z: number): [number, number] => [x * Math.cos(turn) + z * Math.sin(turn), -x * Math.sin(turn) + z * Math.cos(turn)];
-    const TILE = 4, BLOCK = 20;
     const reach = field.radius - 6;
-    const lines: number[] = [];
-    for (let k = -Math.floor(reach / BLOCK); k * BLOCK <= reach; k++) lines.push(k * BLOCK);
     const level = field.rolling(0, 0);
     field.flats.push({ x: 0, z: 0, radius: reach, level, blend: 8 });
 
-    // the square in the middle: plaza tiles, a well and stalls
-    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++)
-    {
-        const [x, z] = to(i * TILE, j * TILE);
-        tile(field, "ground/plaza", x, z, turn);
-    }
-    const [wx, wz] = to(0, 0);
-    prop(field, "props/well", wx, wz, turn);
-    STALLS.forEach((stall, i) => {
-        const angle = i / STALLS.length * Math.PI * 2 + Math.PI / 4;
-        const [x, z] = to(Math.cos(angle) * 5.2, Math.sin(angle) * 5.2);
-        prop(field, stall, x, z, turn - angle - Math.PI / 2);
-    });
-    field.taken.push({ x: 0, z: 0, radius: 7 });
+    // one hexagon of blocks, about 18 m across on a medium map, turned any way
+    const grid = IrregularGrid.hex({ radius: 1, size: Math.max(38, reach + 8), seed: Math.floor(random() * 2 ** 31), relax: 6, merge: .6 });
+    const turn = random() * Math.PI * 2, c = Math.cos(turn), s = Math.sin(turn);
+    const vertex = (v: number): [number, number] => {
+        const x = grid.positions[v * 2], y = grid.positions[v * 2 + 1];
+        return [x * c - y * s, x * s + y * c];
+    };
+    const half = STREET / 2;
 
-    // streets: tiles along every line inside the town, crossings where they meet
-    const onStreet = (a: number) => lines.includes(a);
-    for (const line of lines)
+    // streets along every edge, cut off at the edge of town
+    for (let e = 0; e < grid.edgeCount; e++)
     {
-        for (let along = -reach; along <= reach; along += TILE)
+        const clipped = clip(vertex(grid.edges[e * 2]), vertex(grid.edges[e * 2 + 1]), reach);
+        if (!clipped) continue;
+        const [[ax, az], [bx, bz]] = clipped;
+        field.streets.push({ ax, az, bx, bz, width: STREET });
+        const length = Math.hypot(bx - ax, bz - az);
+        for (let t = 0; t <= length; t += 2) field.taken.push({ x: ax + (bx - ax) * t / length, z: az + (bz - az) * t / length, radius: half + .3 });
+    }
+
+    // where they meet: wide enough to cover the overlap of the sharpest pair
+    let middle = 0;
+    for (let v = 0; v < grid.vertexCount; v++)
+    {
+        const [x, z] = vertex(v);
+        if (Math.hypot(x, z) < Math.hypot(...vertex(middle))) middle = v;
+        if (Math.hypot(x, z) > reach) continue;
+        const angles = [...grid.neighboursOfVertex(v)].map(n => {
+            const [nx, nz] = vertex(n);
+            return Math.atan2(nz - z, nx - x);
+        }).sort((a, b) => a - b);
+        let sharpest = Math.PI;
+        angles.forEach((angle, i) => sharpest = Math.min(sharpest, ((angles[(i + 1) % angles.length] - angle) + Math.PI * 2) % (Math.PI * 2) || Math.PI * 2));
+        const radius = Math.min(5, Math.max(half * 1.2, half / Math.tan(sharpest / 2) + .3));
+        field.junctions.push({ x, z, radius });
+        field.taken.push({ x, z, radius });
+    }
+
+    // the square where the middle streets meet: a well, stalls between the streets
+    const [mx, mz] = vertex(middle);
+    field.junctions.push({ x: mx, z: mz, radius: 8 });
+    field.taken.push({ x: mx, z: mz, radius: 8.5 });
+    prop(field, "props/well", mx, mz, turn);
+    const ways = [...grid.neighboursOfVertex(middle)].map(n => {
+        const [nx, nz] = vertex(n);
+        return Math.atan2(nz - mz, nx - mx);
+    }).sort((a, b) => a - b);
+    ways.forEach((way, i) => {
+        const next = i + 1 < ways.length ? ways[i + 1] : ways[0] + Math.PI * 2;
+        const angle = (way + next) / 2;
+        const x = mx + Math.cos(angle) * 5.6, z = mz + Math.sin(angle) * 5.6;
+        // its front to the well
+        prop(field, STALLS[i % STALLS.length], x, z, Math.atan2(mx - x, mz - z));
+    });
+
+    // the blocks: corners round each, the middle of it
+    const blocks = Array.from({ length: grid.cellCount }, (_, cell) => {
+        const corners = [...grid.cornersOf(cell)].map(vertex);
+        const centre: [number, number] = [corners.reduce((sum, p) => sum + p[0], 0) / 4, corners.reduce((sum, p) => sum + p[1], 0) / 4];
+        return { corners, centre };
+    }).filter(block => Math.hypot(...block.centre) < reach);
+
+    // the chapel in a block of its own, facing its nearest street
+    const away = blocks.filter(block => Math.hypot(...block.centre) > 12);
+    const chapel = away[Math.floor(random() * away.length)];
+    if (chapel)
+    {
+        const [x, z] = chapel.centre;
+        const [fx, fz] = nearestEdge(chapel.corners, x, z);
+        if (field.open(x, z, 4)) building(field, "buildings/chapel", x, z, Math.atan2(fx - x, fz - z));
+    }
+
+    // houses along each edge of each block, a little gap between, some left out for alleys and yards
+    const fill = .5 + buildings * .2;
+    for (const block of blocks)
+    {
+        for (let i = 0; i < 4; i++)
         {
-            const a = Math.round(along / TILE) * TILE;
-            if (Math.abs(a) <= TILE && Math.abs(line) <= TILE) continue;
-            for (const [u, v, yaw] of [[line, a, 0], [a, line, Math.PI / 2]] as const)
+            const [px, pz] = block.corners[i], [qx, qz] = block.corners[(i + 1) % 4];
+            const length = Math.hypot(qx - px, qz - pz);
+            const ux = (qx - px) / length, uz = (qz - pz) / length;
+            // in, towards the middle of the block
+            let nx = -uz, nz = ux;
+            if ((block.centre[0] - px) * nx + (block.centre[1] - pz) * nz < 0) [nx, nz] = [-nx, -nz];
+            const yaw = Math.atan2(-nx, -nz);
+            const end = length - half - 1;
+            for (let along = half + 1; along < end;)
             {
-                if (Math.hypot(u, v) > reach) continue;
-                if (yaw && onStreet(u)) continue;
-                const [x, z] = to(u, v);
-                tile(field, onStreet(u) && onStreet(v) ? "ground/cobble-cross" : "ground/cobble-straight", x, z, turn + yaw);
+                if (random() > fill)
+                {
+                    along += 3 + random() * 3;
+                    continue;
+                }
+                const fits = CITY_HOUSES.filter(model => sizeOf(model).width * .92 <= end - along);
+                if (!fits.length) break;
+                const model = pick(random, fits), size = sizeOf(model);
+                const width = size.width * .92, depth = size.depth;
+                const back = half + .5 + depth / 2;
+                const x = px + ux * (along + width / 2) + nx * back, z = pz + uz * (along + width / 2) + nz * back;
+                // the whole footprint clear of streets and other houses, inside the town
+                const free = Math.hypot(x, z) < reach - 2 && [[-1, -1], [-1, 1], [1, -1], [1, 1], [0, 0]].every(([a, b]) => {
+                    const cx = x + ux * a * width * .45 + nx * b * depth * .42, cz = z + uz * a * width * .45 + nz * b * depth * .42;
+                    return clear(field, cx, cz);
+                });
+                if (free)
+                {
+                    building(field, model, x, z, yaw);
+                    along += width + .4 + random() * 1.6;
+                }
+                else along += 2;
             }
         }
     }
+}
 
-    // houses on both sides of each street, their fronts (+z) to it, gaps between for alleys to run through
-    const fill = .45 + buildings * .2;
-    for (const line of lines) for (let along = -reach + 4; along <= reach - 4; along += 8)
+/** Whether `x, z` is off every street and junction and outside every block. */
+function clear(field: Field, x: number, z: number) {
+    for (const block of field.blocks) if (inside(block, x, z, .2)) return false;
+    for (const junction of field.junctions) if ((junction.x - x) ** 2 + (junction.z - z) ** 2 < (junction.radius + .3) ** 2) return false;
+    for (const street of field.streets)
     {
-        for (const side of [-1, 1])
-            for (const across of [0, 1])
-            {
-                if (random() > fill) continue;
-                // across 0 runs along x (a street at z = line), 1 along z
-                const u = across ? line + side * 6.5 : along, v = across ? along : line + side * 6.5;
-                if (Math.hypot(u, v) > reach - 4 || Math.hypot(u, v) < 10) continue;
-                const [x, z] = to(u, v);
-                if (!field.open(x, z, 3.2)) continue;
-                // facing the street: +z of the model points back at the line
-                const yaw = turn + (across ? (side > 0 ? -Math.PI / 2 : Math.PI / 2) : (side > 0 ? Math.PI : 0));
-                building(field, pick(random, TOWN_HOUSES), x, z, yaw);
-            }
+        const dx = street.bx - street.ax, dz = street.bz - street.az;
+        const t = Math.max(0, Math.min(1, ((x - street.ax) * dx + (z - street.az) * dz) / (dx * dx + dz * dz)));
+        if (Math.hypot(street.ax + dx * t - x, street.az + dz * t - z) < street.width / 2 + .3) return false;
     }
-    // the chapel at the edge of town
-    const spot = space(field, random, reach - 6, 8);
-    if (spot) building(field, "buildings/chapel", spot[0], spot[1], random() * Math.PI * 2);
+    return true;
+}
+
+/** The part of the line from `a` to `b` inside the circle of `radius` round the middle, or null. */
+function clip(a: [number, number], b: [number, number], radius: number): [[number, number], [number, number]] | null {
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    const qa = dx * dx + dz * dz, qb = 2 * (a[0] * dx + a[1] * dz), qc = a[0] ** 2 + a[1] ** 2 - radius ** 2;
+    const root = qb * qb - 4 * qa * qc;
+    if (root <= 0) return null;
+    const t0 = Math.max(0, (-qb - Math.sqrt(root)) / (2 * qa)), t1 = Math.min(1, (-qb + Math.sqrt(root)) / (2 * qa));
+    if (t1 - t0 < .05) return null;
+    return [[a[0] + dx * t0, a[1] + dz * t0], [a[0] + dx * t1, a[1] + dz * t1]];
+}
+
+/** The middle of the edge of `corners` nearest to `x, z`. */
+function nearestEdge(corners: [number, number][], x: number, z: number): [number, number] {
+    const middles = corners.map((p, i) => [(p[0] + corners[(i + 1) % corners.length][0]) / 2, (p[1] + corners[(i + 1) % corners.length][1]) / 2] as [number, number]);
+    return middles.reduce((best, m) => Math.hypot(m[0] - x, m[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? m : best);
 }
 
 // ------------------------------------------------------------------ the things in them
@@ -229,13 +326,6 @@ function building(field: Field, model: ModelName, x: number, z: number, yaw: num
     place(field, model, x, z, yaw, 1, level - .05);
     field.blocks.push({ x, z, yaw, hx: size.width / 2 * WALLS, hz: size.depth / 2 * WALLS, bottom: level - .5, top: level + size.height * .9 });
     field.taken.push({ x, z, radius: Math.max(size.width, size.depth) / 2 + .5 });
-}
-
-/** A street or square tile, flush with the ground. */
-function tile(field: Field, model: ModelName, x: number, z: number, yaw: number) {
-    // the cobbles are its lowest 10 cm, the kerbs stand over the ground
-    place(field, model, x, z, yaw, 1.01, field.height(x, z) + .02);
-    field.taken.push({ x, z, radius: 2.2 });
 }
 
 /** A smaller thing that blocks: a cart, a barrel, a stall, a well. */
