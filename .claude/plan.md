@@ -4,7 +4,7 @@ Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models,
 
 ## Where we are
 
-Branch `guns` done with 16-21 and the gun asks 21h-21j, 21l, 21m (aiming, others aim, kill cam fixes and slow sounds, limited ammo and pickup, the pick-up prompt). PR open, the owner merges it. Left for a new session: 21k (the arrow leaves above the nocked arrow) and 21a-21g, all still to confirm. Then `bots`.
+Branch `environment` done with 26 (papit/audio, ambience), 27a-27c (rain, splashes, lightning) and 28 (bullet hits). PR open, the owner tests and merges. Left: 21k and 21a-21g (to confirm), then `bots`.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 
