@@ -277,6 +277,18 @@ export class Field {
         return [...this.trees, ...this.treeSpots].some(tree => (tree.x - x) ** 2 + (tree.z - z) ** 2 < 25);
     }
 
+    /** Whether `x, z` is on a street or a square (footsteps on stone there). */
+    paved(x: number, z: number) {
+        for (const junction of this.junctions) if ((junction.x - x) ** 2 + (junction.z - z) ** 2 < junction.radius ** 2) return true;
+        for (const street of this.streets)
+        {
+            const dx = street.bx - street.ax, dz = street.bz - street.az, length2 = dx * dx + dz * dz || 1;
+            const t = Math.max(0, Math.min(1, ((x - street.ax) * dx + (z - street.az) * dz) / length2));
+            if (Math.hypot(street.ax + dx * t - x, street.az + dz * t - z) < street.width / 2) return true;
+        }
+        return false;
+    }
+
     /** The colour of a dirt patch at `x, z`, or null for the meadow's own. */
     patchColour(x: number, z: number) {
         for (const patch of this.patches) if (inside(patch, x, z, 0)) return patch.colour;

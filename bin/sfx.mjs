@@ -62,12 +62,9 @@ const sounds = {
     empty: [2, .1, () => [tone("square", 140, 120, .05, .08)]],
     stretch: [3, .5, () => [noise(jit(700), 8, .35, .25, 0, .25, 2.2), tone("saw", jit(110), 160, .35, .03, 0, .25)]],
     whoosh: [4, .7, () => [noise(jit(500), 1.5, .35, .7, 0, .25, 4), noise(jit(2500), 3, .2, .2, .15, .1, .6)]],
-    step: [6, .2, () => [noise(jit(2500, .3), .6, .06, .35, 0, .01), noise(jit(5000, .2), 1, .04, .15, .03, .005), tone("sine", jit(70), 50, .04, .15)]],
     hop: [3, .3, () => [noise(jit(1800), .8, .06, .3, 0, .01), tone("sine", jit(110), 60, .08, .3, .02)]],
     grunt: [4, .4, () => { const f = jit(130, .2); return [tone("saw", f, f * .7, .18, .25, 0, .03), tone("square", f * 2, f * 1.4, .12, .05, 0, .03), noise(jit(600), 2, .15, .2, 0, .03)]; }],
     heartbeat: [2, .8, () => [tone("sine", 60, 40, .08, .9, 0, .005), tone("sine", 55, 38, .1, .7, .22, .005)]],
-    // on wet ground: a soft squelch and a little splash
-    wetstep: [6, .3, () => [noise(jit(900, .3), 2.5, .07, .35, 0, .01, 1.8), noise(jit(4500, .2), 1.5, .08, .25, .02, .01), tone("sine", jit(70), 50, .04, .12)]],
 };
 
 function wav(data, rate = RATE) {
@@ -101,6 +98,10 @@ for (const [name, [count, make, rate = AMBIENCE_RATE]] of Object.entries(AMBIENC
 }
 // copied in, not rendered: the guns, from cowboy (packages/game/asset/audio); crickets, owls, crows and rain, recordings (bin/crickets.mjs, bin/calls.mjs, bin/loop.mjs)
 const COPIED = {
+    // footsteps, rendered by bin/steps.mjs
+    step: [1, 2, 3, 4, 5, 6, 7, 8].map(n => `step-${n}.wav`),
+    stone: [1, 2, 3, 4, 5, 6, 7, 8].map(n => `stone-${n}.wav`),
+    wetstep: [1, 2, 3, 4, 5, 6, 7, 8].map(n => `wetstep-${n}.wav`),
     crickets: ["crickets-1.wav"],
     rain: ["rain-1.wav"],
     owl: ["owl-1.wav", "owl-2.wav", "owl-3.wav"],
