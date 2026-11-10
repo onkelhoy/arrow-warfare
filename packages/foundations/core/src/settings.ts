@@ -15,7 +15,7 @@ export type Settings = {
     bow: BowPlace;
     /** The hand that pulls the string. Right handed holds the bow in the left hand. */
     hand: Hand;
-    /** How much the phone draws: resolution and grass. */
+    /** How much the phone draws: resolution, grass, rain, lamp light. */
     quality: Quality;
     /** Little splashes where the rain lands, off spares a slow phone. */
     splashes: boolean;
@@ -23,11 +23,11 @@ export type Settings = {
 
 export type Quality = "low" | "medium" | "high";
 export const QUALITIES: Quality[] = ["low", "medium", "high"];
-/** Device pixels per CSS pixel at most, the share of grass, and the rain drops around me. */
-export const QUALITY: Record<Quality, { pixels: number; grass: number; drops: number }> = {
-    low: { pixels: 1, grass: .35, drops: 700 },
-    medium: { pixels: 1.25, grass: .7, drops: 1300 },
-    high: { pixels: 1.5, grass: 1, drops: 2200 },
+/** Device pixels per CSS pixel at most, the share of grass, the rain drops around me, and lamps lighting at once (0: they only glow). */
+export const QUALITY: Record<Quality, { pixels: number; grass: number; drops: number; lights: number }> = {
+    low: { pixels: 1, grass: .35, drops: 700, lights: 0 },
+    medium: { pixels: 1.25, grass: .7, drops: 1300, lights: 4 },
+    high: { pixels: 1.5, grass: 1, drops: 2200, lights: 8 },
 };
 /** Phones start at medium, computers at high. */
 const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;

@@ -433,6 +433,10 @@ class Bot {
             wantX += dx / d * (APART - d) * 4;
             wantZ += dz / d * (APART - d) * 4;
         }
+        // slower in a pond
+        const wade = this.field.wade(this.x, this.z);
+        wantX *= wade;
+        wantZ *= wade;
         const grip = 1 - Math.exp(-dt * 10);
         this.vx += (wantX - this.vx) * grip;
         this.vz += (wantZ - this.vz) * grip;

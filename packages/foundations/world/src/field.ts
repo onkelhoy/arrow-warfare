@@ -38,12 +38,13 @@ export type Spawn = { x: number; z: number; yaw: number };
 export type Placed = { model: ModelName; x: number; y: number; z: number; yaw: number; scale: number; bright?: number };
 /**
  * A box that blocks walking and arrows, turned by `yaw` around y: `hx`, `hz` are half its size along its own
- * x and z, from `bottom` to `top`. A `floor` can be stood on (a tower's platform).
+ * x and z, from `bottom` to `top`. A `floor` can be stood on (a tower's platform). A `rail` only stops walking,
+ * shots go between its bars.
  */
-export type Block = { x: number; z: number; yaw: number; hx: number; hz: number; bottom: number; top: number; floor?: boolean };
+export type Block = { x: number; z: number; yaw: number; hx: number; hz: number; bottom: number; top: number; floor?: boolean; rail?: boolean };
 /** The ground made level: `level` inside `radius`, easing back to the hills over `blend` metres. */
 export type Flat = { x: number; z: number; radius: number; level: number; blend: number };
-/** Water at `level`, a bowl under it. Nobody walks in, arrows sink. */
+/** Water at `level`, a shallow bowl under it. Walked in slowly, arrows sink. */
 export type Pond = { x: number; z: number; radius: number; level: number };
 /** Where a watch tower's ladder is: a box to climb in (same shape as a block), up to `top`. `tx, tz` is the tower. */
 export type Ladder = { x: number; z: number; yaw: number; hx: number; hz: number; bottom: number; top: number; tx: number; tz: number };
@@ -205,10 +206,26 @@ export class Field {
         for (const pond of this.ponds)
         {
             const d2 = ((x - pond.x) ** 2 + (z - pond.z) ** 2) / (pond.radius * pond.radius);
-            // a bowl from just over the water at the rim down to a metre under it
-            if (d2 < 1.3) height = Math.min(height, pond.level + .2 - 1.2 * Math.max(0, 1 - d2));
+            // a bowl from just over the water at the rim down to 70 cm under it, shallow enough to wade
+            if (d2 < 1.3) height = Math.min(height, pond.level + .2 - .9 * Math.max(0, 1 - d2));
         }
         return height;
+    }
+
+    /** How deep the water is at `x, z`, 0 out of the ponds. */
+    depth(x: number, z: number) {
+        let depth = 0;
+        for (const pond of this.ponds)
+        {
+            if ((x - pond.x) ** 2 + (z - pond.z) ** 2 > (pond.radius * 1.15) ** 2) continue;
+            depth = Math.max(depth, pond.level - this.height(x, z));
+        }
+        return depth;
+    }
+
+    /** How fast one walks at `x, z`, 1 on land, down to about half in the deepest water. */
+    wade(x: number, z: number) {
+        return 1 - Math.min(.5, this.depth(x, z) * .75);
     }
 
     /** The hills alone, before anything was levelled. */

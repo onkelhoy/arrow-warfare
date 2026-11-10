@@ -1,6 +1,6 @@
 import { loadGLTF, rig, sample, type GLTF, type GLTFNode, type Mesh, type Rig } from "@papit/game-mesh";
 
-import { invert, mat4, multiply, type Mat4 } from "./math";
+import { invert, mat4, multiply, type Mat4, type Vec3 } from "./math";
 import { STRIDE, type MeshData } from "./mesh";
 
 /** `@papit/game-mesh`'s glTF, kept for skins and animations later. */
@@ -230,4 +230,31 @@ function normalMatrix(m: Mat4): Mat4 {
     const out = mat4();
     for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) out[c * 4 + r] = inverse[r * 4 + c];
     return out;
+}
+
+/** The packs' colours (sRGB) for lamp light and fire, which glow, and for window glass, lit at night. */
+const GLOWS: Vec3[] = [[1, .78, .42], [1, .45, .12]];
+const WINDOWS: Vec3[] = [[.24, .32, .39]];
+
+/**
+ * Marks the glowing parts of a model from a file by their colour (see `TOON_VERTEX`): lamp glass and fire
+ * glow, window glass lights up at night. Returns the middle of what glows in the model's own space, or null.
+ */
+export function glowing(data: MeshData): Vec3 | null {
+    const { vertices, count } = data;
+    const near = (o: number, colours: Vec3[]) => colours.some(c => Math.abs(vertices[o + 6] - c[0]) < .02 && Math.abs(vertices[o + 7] - c[1]) < .02 && Math.abs(vertices[o + 8] - c[2]) < .02);
+    const sum: Vec3 = [0, 0, 0];
+    let glows = 0;
+    for (let o = 0; o < count * STRIDE; o += STRIDE)
+    {
+        if (vertices[o + 9] >= 2) continue;
+        if (near(o, GLOWS))
+        {
+            vertices[o + 9] += 2;
+            sum[0] += vertices[o]; sum[1] += vertices[o + 1]; sum[2] += vertices[o + 2];
+            glows++;
+        }
+        else if (near(o, WINDOWS)) vertices[o + 9] += 4;
+    }
+    return glows ? [sum[0] / glows, sum[1] / glows, sum[2] / glows] : null;
 }

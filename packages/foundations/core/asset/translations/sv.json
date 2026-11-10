@@ -125,6 +125,9 @@
       "friendly": "Vådabeskjutning",
       "friendlyOn": "På",
       "friendlyOff": "Av: pilar flyger genom lagkamrater",
+      "tags": "Namnskyltar",
+      "tagsOn": "På",
+      "tagsOff": "Av: bara lagkamraters namn, svårare",
       "weapon": "Vapen",
       "weapons": {
         "bow": "Pilbåge",

@@ -244,12 +244,22 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] Ambience: crickets, wind, birds, owls, frogs at ponds, crackling fires and lamps (generated, `bin/ambience.mjs`)
 - [x] Rain checkbox: streaks, splashes (a setting), grey light, lightning and thunder, rain loop, wet steps
 - [x] Bullet hits: a puff of chips and dust and a hole that fades
-- [ ] Name tags rule, railings, ponds, bushes, plants, lily pads, lamps (21a-21g, unconfirmed)
+- [x] Name tags rule, railings, ponds, bushes, plants, lily pads, lamps (21a-21g)
 
 ### Nice to have
 - [ ] Bots played by the nearest player instead of the host, to spread the work: an owner per bot that moves (handing over wounds, quiver, goal, target), the owner judging hits on it, phones taking bot messages from the current owner. Only if a phone host struggles: 100 bots' thinking is 0.8 ms a frame on a laptop, drawing their bodies likely costs more.
 
 ---
+
+## Notes from F23, environment (for the owner to review)
+- Name tags rule (lobby, Rules): off hides everyone's name but your teammates'.
+- Tower rails stop walking only, shots and bots' sight go between the bars.
+- Ponds: walked in at about half speed, up to 70 cm deep (the bowl is shallower), splashing steps. Bots wade too.
+- Bushes stop walking, arrows go through, and they hide you from bots now.
+- Plant_1 and Plant_4 in clumps all over (fewer in town), Plant_4 by ponds too. Lily pads float on the water (its top is the pond's level now).
+- Lamps: the packs' lamp glass and fire glow (marked by colour in `render/gltf.ts` `glowing`), window glass lights up in about half the houses once it's dark. The nearest lamps light the ground and walls: 8 on high quality, 4 medium, none on low (glow only). Strength by time of day (`Light.lamps`: night 1, sunset .55, dawn .3, a rainy day .35).
+- More lamps: kerb lamps denser in town, lanterns in town yards, a lantern by most country houses, two lamps by the farm's well.
+- Seen in headless Chrome (city and farm at night, a pond at noon, wading). Not on a phone: the lamp light costs a little per pixel.
 
 ## Notes from F22, bots (for the owner to review)
 - The host plays them in `play/src/bots.ts`: they wander, hunt where they last saw or heard someone, hide behind trees and buildings and lean out to shoot, fetch arrows or a fallen player's rounds when out. They see less far at night and in the rain. No ladders.

@@ -1,4 +1,11 @@
-/** Everything lit: vertex colours, an instance matrix and tint, hemisphere + banded sun, fog, optional sway. */
+/** Lamps lighting their surroundings at once, at most. */
+export const LIGHTS = 8;
+
+/**
+ * Everything lit: vertex colours, an instance matrix and tint, hemisphere + banded sun, fog, optional sway,
+ * and the nearest lamps' light. A vertex colour's alpha is the tint mix, plus 2 for glowing (lamp glass,
+ * fire) or plus 4 for window glass (lit at night in some houses, see `glowing` in render).
+ */
 export const TOON_VERTEX = `#version 300 es
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec3 aNormal;
@@ -9,10 +16,12 @@ layout(location = 7) in vec4 aTint;
 uniform mat4 uViewProjection;
 uniform float uTime;
 uniform float uSway;
+uniform float uLamps;
 
 out vec3 vNormal;
 out vec3 vColour;
 out vec3 vWorld;
+out float vGlow;
 
 void main() {
     vec4 world = aModel * vec4(aPosition, 1.0);
@@ -26,7 +35,19 @@ void main() {
         world.z += cos(phase * 0.8) * uSway * 0.5 * gust * height * height;
     }
     vNormal = mat3(aModel) * aNormal;
-    vColour = mix(aColour.rgb, aTint.rgb, aColour.a) * aTint.a;
+    float kind = floor(aColour.a * 0.5);
+    vec3 colour = mix(aColour.rgb, aTint.rgb, aColour.a - kind * 2.0) * aTint.a;
+    vGlow = 0.0;
+    // lamp glass and fire: glowing, fully at night
+    if (kind == 1.0) vGlow = mix(0.5, 1.0, uLamps);
+    // windows: lit in about half the houses (by where they stand) once it gets dark
+    else if (kind == 2.0)
+    {
+        float lit = step(0.5, fract(sin(dot(floor(aModel[3].xz), vec2(12.9898, 78.233))) * 43758.5453)) * uLamps;
+        colour = mix(colour, vec3(1.0, 0.8, 0.46), lit);
+        vGlow = lit;
+    }
+    vColour = colour;
     vWorld = world.xyz;
     gl_Position = uViewProjection * world;
 }`;
@@ -37,6 +58,7 @@ precision highp float;
 in vec3 vNormal;
 in vec3 vColour;
 in vec3 vWorld;
+in float vGlow;
 
 uniform vec3 uCamera;
 uniform vec3 uSunDirection;
@@ -48,6 +70,10 @@ uniform float uFogDensity;
 uniform float uEmissive;
 uniform float uFog;
 uniform float uSway;
+uniform float uLamps;
+uniform int uLightCount;
+/** The nearest lamps: where, and how far their light reaches. */
+uniform vec4 uLights[${LIGHTS}];
 
 out vec4 fragColour;
 
@@ -67,7 +93,21 @@ void main() {
     // the sky reaches the sides too, faces turned down still get some of it over the ground's bounce
     vec3 hemisphere = mix(mix(uGround, uSky, 0.3), uSky, smoothstep(-0.9, 0.5, normal.y));
     vec3 light = hemisphere + uSunColour * sun;
-    vec3 colour = vColour * mix(light, vec3(1.0), uEmissive);
+
+    // warm pools of lamp light on the ground and the walls, in two soft steps like the sun
+    float lamp = 0.0;
+    for (int i = 0; i < ${LIGHTS}; i++)
+    {
+        if (i >= uLightCount) break;
+        vec3 to = uLights[i].xyz - vWorld;
+        float d = length(to);
+        float near = clamp(1.0 - d / uLights[i].w, 0.0, 1.0);
+        float face = 0.4 + 0.6 * clamp(dot(normal, to / max(d, 0.001)), 0.0, 1.0);
+        lamp += (smoothstep(0.0, 0.5, near) * 0.3 + near * near * 0.5) * face;
+    }
+    light += vec3(1.0, 0.68, 0.38) * min(lamp, 0.9) * uLamps;
+
+    vec3 colour = vColour * mix(light, vec3(1.0), max(uEmissive, vGlow));
 
     float distance = length(vWorld - uCamera) * uFogDensity;
     float fog = 1.0 - exp(-distance * distance);

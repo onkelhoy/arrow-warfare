@@ -82,7 +82,7 @@ export class Walker {
 
         // forward is -z at yaw 0, right is +x
         const [mx, my] = this.alive ? controls.move : [0, 0];
-        const fast = WALK * draw.walk * this.limit;
+        const fast = WALK * draw.walk * this.limit * this.field.wade(this.x, this.z);
         this.low += ((this.posture === "sit" ? 1 : 0) - this.low) * (1 - Math.exp(-dt * 5));
         const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
         const wantX = (-sin * my + cos * mx) * fast;

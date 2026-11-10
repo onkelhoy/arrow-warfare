@@ -43,6 +43,7 @@ function start() {
         time: data.get("time") as TimeOfDay,
         rounds: 1,
         friendly: true,
+        tags: true,
         rain: data.get("rain") === "on",
         bots: Number(data.get("botCount")) || 0,
         difficulty: (data.get("difficulty") ?? "normal") as Difficulty,

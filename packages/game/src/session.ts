@@ -378,6 +378,7 @@ export class Session {
         if (change.time && TIMES.includes(change.time)) state.rules.time = change.time;
         if (change.rounds !== undefined && ROUNDS.includes(change.rounds)) state.rules.rounds = change.rounds;
         if (change.friendly !== undefined) state.rules.friendly = !!change.friendly;
+        if (change.tags !== undefined) state.rules.tags = !!change.tags;
         if (change.rain !== undefined) state.rules.rain = !!change.rain;
         if (change.bots !== undefined && BOT_COUNTS.includes(change.bots)) state.rules.bots = change.bots;
         if (change.difficulty && DIFFICULTIES.includes(change.difficulty)) state.rules.difficulty = change.difficulty;

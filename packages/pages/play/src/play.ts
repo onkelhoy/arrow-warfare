@@ -130,6 +130,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const camera = new Camera({ fov: FOV, near: .05, far: 320 });
     layer.camera = camera;
     const renderer = engine.add(new Renderer(layer));
+    renderer.pointLights = QUALITY[settings().quality].lights;
 
     const field = new Field({ seed: state.seed, ...state.rules });
     const coarse = matchMedia("(pointer: coarse)").matches;
@@ -147,7 +148,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
     const footstep = raining ? "wetstep" : "step";
-    others.onStep = at => sound(footstep, at, .6);
+    // splashing in a pond, rain or not
+    const stepAt = (x: number, z: number) => field.depth(x, z) > .05 ? "wetstep" : footstep;
+    others.onStep = at => sound(stepAt(at[0], at[2]), at, .6);
     const controls = new Controls(play);
     const hud = new Hud(play);
     const draw = new Draw();
@@ -193,11 +196,12 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     size();
     window.addEventListener("resize", size);
     const stopBow = effect(() => controls.placeBow(settings().bow, play.clientWidth));
-    // a new quality changes the resolution now, the grass next round
+    // a new quality changes the resolution and the lamp light now, the grass next round
     let quality = settings().quality;
     const stopQuality = effect(() => {
         if (settings().quality === quality) return;
         quality = settings().quality;
+        renderer.pointLights = QUALITY[quality].lights;
         size();
     });
 
@@ -991,7 +995,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (alive)
         {
             const foot = Math.floor(walker.posture === "hop" ? walker.hop / Math.PI : walker.stride / Math.PI);
-            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : footstep, undefined, .35);
+            if (foot !== feet && walker.speed > .3) sound(walker.posture === "hop" ? "hop" : stepAt(walker.x, walker.z), undefined, .35);
             feet = foot;
             beat -= dt;
             if (wounds.energy < .25 && beat <= 0)

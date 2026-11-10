@@ -18,6 +18,8 @@ const FAR = 45;
 
 type Other = {
     id: string; poses: Pose[]; label: HTMLElement; clothes: Vec3; skin: Vec3;
+    /** Whether their name shows over them (the name tags rule, teammates always). */
+    tag: boolean;
     rig: Rig;
     /** Wounds from hits this phone saw (the bots of the view send no poses). */
     wounds: number;
@@ -67,6 +69,7 @@ export class Others {
             other.label.remove();
             this.others.delete(id);
         }
+        const team = state.players.find(player => player.id === this.me)?.team ?? null;
         for (const player of state.players)
         {
             if (player.id === this.me) continue;
@@ -80,12 +83,13 @@ export class Others {
                 const y = this.field.height(spawn.x, spawn.z);
                 const pose: Pose = { time: -Infinity, x: spawn.x, y, z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: false, wounds: 0, resting: false };
                 other = {
-                    id: player.id, label, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, blow: null, walked: 0, wounds: 0,
+                    id: player.id, label, tag: true, clothes: [1, 1, 1], skin: [1, 1, 1], corpse: null, blow: null, walked: 0, wounds: 0,
                     rig: footing(this.field),
                     poses: [pose], last: pose, lag: 0,
                 };
                 this.others.set(player.id, other);
             }
+            other.tag = state.rules.tags !== false || (!!team && player.team === team);
             const colour = wears(state, player);
             other.label.innerHTML = `<span style="background: ${COLOURS[colour].hex}"></span>${escape(player.name)}`;
             other.clothes = rgb(COLOURS[colour].hex);
@@ -179,7 +183,7 @@ export class Others {
             }
             const behind = distance > 4 && (dx * -m[8] + dz * -m[10]) < -distance * .2;
             if (!behind) shown.push({ rig: other.rig, look: { clothes: other.clothes, skin: other.skin } });
-            if (this.hidden || !this.names) other.label.hidden = true;
+            if (this.hidden || !this.names || !other.tag) other.label.hidden = true;
             else if (!other.corpse) this.placeLabel(other.label, place.x, place.y + (pose.resting || (pose.wounds & 12) === 12 ? 1.45 : 1.75), place.z, camera, width, height);
         }
         this.bodies.draw(this.hidden ? [] : [...shown, ...extra]);
