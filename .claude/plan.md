@@ -57,6 +57,12 @@ Branch `guns` (16-21) done, for the owner to test: weapon in Rules, revolver and
 21e. [ ] **More Plant_1 and Plant_4 (unconfirmed, owner 2026-11-10):** Plant_4 barely shows up today, more of both.
 21f. [ ] **Lily pads above the water (unconfirmed):** the water covers the leaves (owner's screenshot on the Desktop). Raise them to the water's surface.
 21g. [ ] **Lamps and lit windows (unconfirmed, owner 2026-11-10):** more lamp posts and lamps. Cheap glow first: lamp glass, lanterns, some windows emissive. Then a few nearest point lights (~8) in the toon shader that light the ground and walls around them, with a setting to turn them off (or tied to quality).
+21h. [ ] **Aim down the sights (unconfirmed, owner 2026-11-10):** an aim button beside the shoot button (touch), right mouse on desktop. Aiming brings the gun to the middle of the view, zooms in a little (more for the rifle), slows the look and walk.
+21i. [ ] **Others aim too, kill cam shows it:** an aiming pose sent with the pose (like `draw`), the rig raises the gun to the eye towards where they look. The kill cam replays it.
+21j. [ ] **Kill cam: slow motion sounds and the buggy feel:** sounds in the kill cam slowed with the film (lower and stretched, a slow heartbeat/whoosh under it). Find what feels buggy (jumps between shots, camera snaps, bullets far too fast to follow) and fix it.
+21k. [ ] **The arrow leaves above the nocked arrow:** the flying arrow (and trail) starts above where the nocked one points. Make the shot leave exactly from the nocked arrow along its line.
+21l. [ ] **Limited ammo with guns, pick up from bodies:** an "Ammo" rule like "Arrows" (rounds per player, unlimited by default). Not unlimited: walk up to a dead player and tap/click to take their rounds.
+21m. [ ] **"Pick up" prompt:** friendly white text ("Pick up arrow", "Pick up ammo") when something can be picked up. Not shown with unlimited arrows or ammo, where there's nothing to pick up.
 
 ## Branch `bots` (F22)
 22. [ ] **Rules:** bot count 0–100 and difficulty easy / normal / hard. The host runs the bots as fake players (own ids, colours, names), sending poses and events like a real player, so guests need no changes. Playing alone with bots must work.
