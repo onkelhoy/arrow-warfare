@@ -44,7 +44,7 @@ Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, 
 15. [x] **New players** in place of floating arms: nicer, same short silly style. First person arms plus the body others see, still rigid parts on the `@papit/armature` rig (D3), working with ragdoll, wounds and the kill cam.
 
 ## Branch `guns` (F21)
-16. [ ] **Weapon rule** in game setup: bow / revolver / rifle, one weapon for everyone per game.
+16. [x] **Weapon rule** in game setup: bow / revolver / rifle, one weapon for everyone per game.
 17. [ ] **Gun models:** convert Revolver and Rifle from `~/Developer/3d/store/Animated FPS Guns - Jun 2018` (FBX) to glb, with their shooting and reload animations (`game-mesh` animation sampling).
 18. [ ] **Ballistics:** bullets with real muzzle speeds and gravity drop. The rifle stays flat for longer than the revolver. Hits reuse `hitBody`, and the victim decides (D5).
 19. [ ] **Ammo and reload:** magazine size and reload time per gun, with a HUD count. Decide how pickups work with guns (probably no pickups, unlimited magazines).
