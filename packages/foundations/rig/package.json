@@ -40,15 +40,15 @@
   },
   "dependencies": {
     "@arrow-warfare/archery": "*",
+    "@arrow-warfare/ragdoll": "*",
     "@arrow-warfare/render": "*",
     "@arrow-warfare/world": "*",
-    "@papit/armature": "^0.0.1",
-    "@arrow-warfare/ragdoll": "*"
+    "@papit/armature": "^0.0.2"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
+    "@papit/game-engine": "*",
     "@papit/theme": "*",
-    "@papit/game-engine": "*"
+    "typescript": "5.9.3"
   },
   "papit": {
     "publish": false,

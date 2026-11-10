@@ -27,6 +27,7 @@ engine.start();
 | Part | What it does |
 | --- | --- |
 | `MeshBuilder` | Triangles with flat normals and vertex colours: `box`, `cylinder` (cones too), `ball`, `blade`, `triangle`, `quad`, `add` another. Each takes a `Place` (`at`, `yaw`, `pitch`, `roll`, `scale`, `tint`) |
+| `loadModel(url, setting?)`, `fromGLTF(gltf, setting?)` | A `.glb`/`.gltf` (via `@papit/game-mesh`) as one `MeshData`: node transforms baked, vertex colours kept, `tint` and `nodes` (only these names) optional. View: `views/gltf` |
 | `Renderer` | A game object. Draws the sky, then every batch, through the layer's camera. `light` holds sun, hemisphere, fog, sky colours, moon and stars |
 | `Batch` | One mesh drawn many times in one call. `add`, `place`, `matrix`, `tint`, `clear`, `count`, `visible`. `sway` bends the top in the wind, `emissive` is unlit, `dynamic` for things that move every frame |
 | `seeded(seed)` | The same random numbers for the same seed |

@@ -215,7 +215,7 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 
 ### F18. Papit engine pieces
 - [x] Audit game-mesh, vector/matrix (float64), gjk/rigidbody, game-engine against our own code
-- [ ] Load `.glb` (vertex colours) into our renderer, swap what's worth it
+- [x] Load `.glb` (vertex colours) into our renderer, swap what's worth it
 
 ### F19. Maps and props
 - [ ] Blender pipeline: FBX/OBJ to untextured glb (nature pack, pap-adventure generated)
