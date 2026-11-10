@@ -212,7 +212,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     // how others hold it: the other hand on the rifle's fore end, cupping the revolver's grip
     Rig.held = gun ? { fore: gun.kind === "rifle" ? [0, -.006, -.4] : [-.03, -.04, .01] } : null;
     /** 0..1 how far my gun is up at the eye, eased. */
-    let aim = 0;
+    let sights = 0;
     if (gun)
     {
         controls.gun = true;
@@ -799,11 +799,11 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         walker.posture = walker.alive ? wounds.posture : "stand";
         // aiming a gun: zoomed in (the rifle more), slower to look round and to walk
         const aimWanted = !!gun && walker.alive && view === "play" && !over && controls.aiming && !(gun.reloading > 0);
-        aim += ((aimWanted ? 1 : 0) - aim) * (1 - Math.exp(-dt * 12));
-        const zoom = gun ? aim * (gun.kind === "rifle" ? .5 : .25) : 0;
+        sights += ((aimWanted ? 1 : 0) - sights) * (1 - Math.exp(-dt * 12));
+        const zoom = gun ? sights * (gun.kind === "rifle" ? .5 : .25) : 0;
         camera.fov = baseFov * (1 - zoom);
-        firstPerson.aim = aim;
-        walker.limit = wounds.walk * (1 - .45 * aim);
+        firstPerson.aim = sights;
+        walker.limit = wounds.walk * (1 - .45 * sights);
         draw.rate = wounds.drawRate < 1 ? wounds.drawRate / KEY_DRAW : Infinity;
         draw.shake = wounds.shake;
         if (walker.alive && view === "play") walker.update(dt, controls, settings().sensitivity * (1 - zoom), draw);
@@ -883,7 +883,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         others.frame(now, dt, camera, play.clientWidth, play.clientHeight, meToo ? [{ rig: myRig, look: { clothes: colourOf(me), skin: mySkin } }] : []);
         myRig.update(dt, {
             x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch,
-            draw: gun ? aim : draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
+            draw: gun ? sights : draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
             wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, blow: myBlow, unarmed: over,
         });
 
@@ -969,7 +969,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
 
         const pose = {
             time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
-            draw: gun ? aim : draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
+            draw: gun ? sights : draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
             wounds: wounds.bits, resting: wounds.resting,
         };
         // mine, a little more often than it's sent, while I'm alive
@@ -1002,15 +1002,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (!bot || !from || !to || dead.has(at)) return;
             const start: Vec = [from.x, from.y + 1.2, from.z], target: Vec = [to.x, to.y + .62, to.z];
             const dx = target[0] - start[0], dy = target[1] - start[1], dz = target[2] - start[2];
-            const flat = Math.hypot(dx, dz), speed = 32;
+            const flat = Math.hypot(dx, dz), speed = gun ? BALLISTICS[gun.kind].speed : 32;
             // a little up, for the drop on the way
             const up = dy / flat + 9.81 * flat / (2 * speed * speed);
             const length = Math.hypot(dx, flat * up, dz);
-            const shot: Shot = { id: `${bot}:${++botShots}`, by: bot, time: net.shared(), x: start[0], y: start[1], z: start[2], dx: dx / length, dy: flat * up / length, dz: dz / length, speed };
+            const shot: Shot = { id: `${bot}:${++botShots}`, by: bot, time: net.shared(), x: start[0], y: start[1], z: start[2], dx: dx / length, dy: flat * up / length, dz: dz / length, speed, kind: gun?.kind };
             if (!arrows.add(shot)) return;
             replay.shot(shot);
             tally.shot(bot);
-            sound("twang", start, .8);
+            sound(gun ? "gunshot" : "twang", start, .8);
         },
         /** The view's "injure me": a wound as if an arrow went in, or `null` heals everything. */
         injure(zone: Zone | null) {
