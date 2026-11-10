@@ -9,7 +9,7 @@ import { adopt, CHAT_LENGTH, COLOURS, QUALITY, settings, SKINS, t, teamName, wea
 import { packPose, POSE_RATE, unpackPose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
 import { Rig, type Blow } from "@arrow-warfare/rig";
-import { Sfx, type SfxName, type Sound } from "@arrow-warfare/sound";
+import { Ambience, Sfx, type Emitter, type SfxName, type Sound } from "@arrow-warfare/sound";
 import { currentPalette, Field, GUN_FILES, loadGun, Meadow, type PaletteName } from "@arrow-warfare/world";
 
 import { Arrows } from "./arrows";
@@ -133,6 +133,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const time = state.rules.time;
     const meadow = engine.add(new Meadow(renderer, field, { palette: time && time !== "clock" ? time : currentPalette(), grass: QUALITY[settings().quality].grass }));
     const spawns = field.spawns(state.players);
+    const ambience = options.sound ? new Ambience(options.sound) : null;
+    ambience?.time(time && time !== "clock" ? time : currentPalette());
+    ambience?.emitters(emittersOf(field));
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
     others.onStep = at => sound("step", at, .6);
@@ -253,9 +256,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         sfx?.play(name, { volume, at, rate });
     };
     /** The ears go where the camera is. */
-    const listen = () => {
+    const listen = (dt: number) => {
         const m = camera.worldMatrix;
         options.sound?.listen([m[12], m[13], m[14]], [-m[8], -m[9], -m[10]], [m[4], m[5], m[6]]);
+        ambience?.update(dt, [m[12], m[13], m[14]]);
     };
     const vibrate = (pattern: number | number[]) => {
         try { navigator.vibrate?.(pattern); } catch { /* not here */ }
@@ -1037,7 +1041,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         controls.aimButton.hidden = !gun || !alive;
         if (!alive) controls.stopAiming();
         hint.hidden = coarse || controls.locked || view !== "play";
-        listen();
+        listen(dt);
 
         const pose = {
             time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
@@ -1101,7 +1105,9 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         debug,
         /** Another time of day, straight away (the view). */
         palette(name: PaletteName | "clock") {
-            meadow.palette(name === "clock" ? currentPalette() : name);
+            const palette = name === "clock" ? currentPalette() : name;
+            meadow.palette(palette);
+            ambience?.time(palette);
         },
         /** Players who left are gone and count as out, nothing else about the field changes mid round. */
         update(next: GameState) {
@@ -1115,6 +1121,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             stopBow();
             stopQuality();
             playing = false;
+            ambience?.stop();
             document.removeEventListener("visibilitychange", awake);
             wake?.release().catch(() => undefined);
             clearTimeout(settle);
@@ -1157,4 +1164,16 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             },
         };
     }
+}
+
+/** What sounds in the field by itself: frogs at the ponds, fires and lamps crackling. */
+function emittersOf(field: Field): Emitter[] {
+    const list: Emitter[] = field.ponds.map(pond => ({ name: "frogs", at: [pond.x, pond.level + .3, pond.z], half: 2 + pond.radius * .6, reach: 35, volume: .9 }));
+    for (const placed of field.models)
+    {
+        if (placed.model === "props/firepit") list.push({ name: "crackle", at: [placed.x, placed.y + .4, placed.z], half: 2.5, reach: 25, volume: 1 });
+        else if (placed.model === "props/stone-lantern") list.push({ name: "crackle", at: [placed.x, placed.y + 1.2, placed.z], half: 1.2, reach: 12, volume: .35 });
+        else if (placed.model === "props/street-lamp" || placed.model === "props/double-lamp") list.push({ name: "crackle", at: [placed.x, placed.y + 3, placed.z], half: 1, reach: 10, volume: .2 });
+    }
+    return list;
 }

@@ -33,6 +33,24 @@
         </div>
         </pap-codeblock>
     </section>
+    <section>
+        <h2>Ambience</h2>
+        <p>Loops for the time of day, calls around you, and two emitters in 3D: frogs at x 0, a fire at x 20. Walk past them with the slider.</p>
+        <pap-codeblock display="both" color="checker">
+        <div class="aw-panel">
+        <p class="row">
+            <pap-button data-time="night">Night</pap-button>
+            <pap-button data-time="dawn">Dawn</pap-button>
+            <pap-button data-time="noon">Noon</pap-button>
+            <pap-button data-time="sunset">Sunset</pap-button>
+            <pap-button id="hush">Stop</pap-button>
+        </p>
+        <label>Walk <input id="walk" type="range" min="-30" max="50" step=".1" value="-20"></label>
+        <label>Nature <input id="ambience" type="range" min="0" max="1" step=".01" value=".8"></label>
+        <p id="where"></p>
+        </div>
+        </pap-codeblock>
+    </section>
 </body>
 
 </html>
