@@ -3,7 +3,7 @@
 Confirmed by the owner on 2026-11-10. Backlog: F18 engine, F19 maps, F20 models, F21 guns, F22 bots.
 
 ## Where we are
-Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, so `models` is folded in). PR open for the owner to test. 15a-15d (city and props) done on `maps`, for the owner to test. Then branch `guns` once `maps` is merged.
+Branch `guns` (16-21) done, for the owner to test: weapon in Rules, revolver and rifle in first person with fire and reload animations, real bullet drop, tracers, rounds and reload, cowboy's sounds, trigger and reload buttons. Not merged or pushed. Owner's new asks 21a-21g wait for confirmation (and a branch). Then `bots`.
 
 ## Branches (owner's call, overrides "everything on main" for this plan)
 - One branch per group below so each can be reverted alone: `bugs`, `engine`, `maps`, `models`, `guns`, `bots`.
@@ -47,9 +47,9 @@ Branch `maps` done with tasks 7 to 15 (the owner asked for 14 and 15 on it too, 
 16. [x] **Weapon rule** in game setup: bow / revolver / rifle, one weapon for everyone per game.
 17. [x] **Gun models:** convert Revolver and Rifle from `~/Developer/3d/store/Animated FPS Guns - Jun 2018` (FBX) to glb, with their shooting and reload animations (`game-mesh` animation sampling).
 18. [x] **Ballistics:** bullets with real muzzle speeds and gravity drop. The rifle stays flat for longer than the revolver. Hits reuse `hitBody`, and the victim decides (D5).
-19. [ ] **Ammo and reload:** magazine size and reload time per gun, with a HUD count. Decide how pickups work with guns (probably no pickups, unlimited magazines).
-20. [ ] **Sounds:** copy `shot1`, `shot2`, `reload` and `fly1-5` (bullets passing close) from `~/Developer/games/cowboy/packages/game/asset/audio`.
-21. [ ] **Touch controls:** the bow button becomes a fire button (tap to fire, no draw), plus a reload button. Desktop: click or space to fire, R to reload.
+19. [x] **Ammo and reload:** magazine size and reload time per gun, with a HUD count. Decide how pickups work with guns (probably no pickups, unlimited magazines).
+20. [x] **Sounds:** copy `shot1`, `shot2`, `reload` and `fly1-5` (bullets passing close) from `~/Developer/games/cowboy/packages/game/asset/audio`.
+21. [x] **Touch controls:** the bow button becomes a fire button (tap to fire, no draw), plus a reload button. Desktop: click or space to fire, R to reload.
 21a. [ ] **Name tags rule (unconfirmed, owner asked 2026-11-10):** a lobby option to hide other players' name tags, harder game ("hardcore" or "name tags: on / off"). Synced like the other rules. Owner to confirm and pick the branch.
 21b. [ ] **Shoot through tower railings (unconfirmed, owner 2026-11-10):** the watch tower's fence/railing boxes stop arrows; let shots pass between the rails (thinner blocks, or the railing walk-only).
 21c. [ ] **Walk into ponds (unconfirmed):** ponds are shallow, they shouldn't block walking. Maybe slower and lower in the water.

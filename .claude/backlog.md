@@ -230,9 +230,9 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [x] New player bodies in place of floating arms, same style
 
 ### F21. Guns
-- [ ] Weapon rule: bow / revolver / rifle, one per game
-- [ ] Revolver and rifle from FPS Guns, shooting and reload animations
-- [ ] Bullet drop, ammo, reload, cowboy's gun sounds, touch fire and reload buttons
+- [x] Weapon rule: bow / revolver / rifle, one per game
+- [x] Revolver and rifle from FPS Guns, shooting and reload animations
+- [x] Bullet drop, ammo, reload, cowboy's gun sounds, touch fire and reload buttons
 
 ### F22. Bots
 - [ ] Rules: 0–100 bots, difficulty easy / normal / hard, run by the host as fake players
@@ -240,6 +240,13 @@ The lobby has phases, and the host panel (tabs) is open the whole time.
 - [ ] Performance for many bots on a phone host
 
 ---
+
+## Notes from F21, guns (for the owner to review)
+- Revolver: 280 m/s, 6 rounds, 1.9 s reload, a shot every 0.4 s. Rifle: 850 m/s, 5 rounds, 1.1 s reload, a shot a second. At 100 m the revolver has dropped about 77 cm, the rifle 8 cm. Numbers in `archery/src/guns.ts` and `flight.ts` (`BALLISTICS`).
+- Magazines are unlimited, a reload always fills the gun, it starts by itself when empty. No arrows, no pickups, nothing dropped on death.
+- Bullets are a short bright tracer, no model. They fly from the muzzle to the middle of the view 40 m out, hits as arrows (the victim decides). A bullet passing within 4 m plays a flyby.
+- The models come from the `.blend` files (the FBX lost the bones' names in places and every material was grey): colours are ours, by material name (`world/bin/blender-gun.py`). `Rigged` in render cuts the skin into rigid pieces, `game-mesh` `rig`/`sample` pose them. `world/views/guns` shows both with their animations.
+- Others hold the gun low in the hand, the same pose as an archer's bow at rest. No aiming pose for them yet.
 
 ## Milestones
 
