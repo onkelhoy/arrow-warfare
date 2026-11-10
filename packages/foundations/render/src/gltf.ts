@@ -12,6 +12,8 @@ export type GLTFSetting = {
     tint?: number;
     /** Only the nodes with these names (and what's under them). */
     nodes?: string[];
+    /** Nodes whose names match are left out with what's under them (the buildings' `collision` and `stairs`). */
+    skip?: RegExp;
     /** One normal per triangle, the low poly look (default). Off keeps the file's (or the loader's smooth) normals. */
     flat?: boolean;
 };
@@ -32,6 +34,7 @@ export function fromGLTF(gltf: GLTF, setting: GLTFSetting = {}): MeshData {
     const parts: { mesh: Mesh; matrix: Mat4 }[] = [];
     const walk = (index: number, parent: Mat4, picked: boolean) => {
         const node = gltf.nodes[index];
+        if (setting.skip?.test(node.name ?? "")) return;
         const matrix = multiply(mat4(), parent, local(node));
         const take = picked || !setting.nodes || setting.nodes.includes(node.name ?? "");
         if (take && node.mesh !== undefined)

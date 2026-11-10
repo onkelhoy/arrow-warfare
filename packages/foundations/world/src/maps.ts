@@ -1,6 +1,7 @@
 import { IrregularGrid } from "@papit/irregular-grid";
 
 import type { ModelName } from "./catalog";
+import { COLLISION } from "./collision";
 import { sizeOf } from "./files";
 import { inDisc, inside, type Field, type FieldSetting, type Placed, type TreeAmount } from "./field";
 
@@ -422,8 +423,23 @@ function building(field: Field, model: ModelName, x: number, z: number, yaw: num
     const size = sizeOf(model);
     const level = field.height(x, z);
     field.flats.push({ x, z, radius: Math.hypot(size.width, size.depth) / 2, level, blend: 4 });
-    place(field, model, x, z, yaw, 1, level - .05);
-    field.blocks.push({ x, z, yaw, hx: size.width / 2 * WALLS, hz: size.depth / 2 * WALLS, bottom: level - .5, top: level + size.height * .9 });
+    const placed = place(field, model, x, z, yaw, 1, level - .05);
+    // the walls from the `collision` objects in its file (bin/collision.mjs), else a box a bit inside its bounds
+    const walls = COLLISION[model]?.walls;
+    if (walls?.length)
+    {
+        const c = Math.cos(yaw), s = Math.sin(yaw);
+        for (const box of walls)
+        {
+            const mx = (box.min[0] + box.max[0]) / 2, mz = (box.min[2] + box.max[2]) / 2;
+            field.blocks.push({
+                x: placed.x + mx * c + mz * s, z: placed.z - mx * s + mz * c, yaw,
+                hx: (box.max[0] - box.min[0]) / 2, hz: (box.max[2] - box.min[2]) / 2,
+                bottom: level - .5, top: placed.y + box.max[1],
+            });
+        }
+    }
+    else field.blocks.push({ x, z, yaw, hx: size.width / 2 * WALLS, hz: size.depth / 2 * WALLS, bottom: level - .5, top: level + size.height * .9 });
     field.taken.push({ x, z, radius: Math.max(size.width, size.depth) / 2 + .5 });
 }
 

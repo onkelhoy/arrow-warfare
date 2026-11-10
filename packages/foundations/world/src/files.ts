@@ -11,11 +11,14 @@ const glows = new Map<ModelName, Vec3 | null>();
  * A model from `asset/models` (see `bin/models.mjs`), loaded once and kept. `null` if it couldn't be
  * fetched: the map is still played, just without that model.
  */
+/** Nodes in the files for the game, not drawn: the buildings' walls and stairs (`bin/collision.mjs`). */
+const HIDDEN = /^(collision|stairs)/i;
+
 export function fileModel(name: ModelName): Promise<MeshData | null> {
     let found = cache.get(name);
     if (!found)
     {
-        found = loadModel(`/models/${name}.glb`).then(mesh => {
+        found = loadModel(`/models/${name}.glb`, { skip: HIDDEN }).then(mesh => {
             glows.set(name, glowing(mesh));
             return mesh;
         }).catch(error => {
