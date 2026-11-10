@@ -162,7 +162,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const birdFlights = new Map<string, Vec>();
     const birdDone = new Set<string>();
     // songs from the taverns, the game's music dipping close to one
-    const taverns = options.sound ? new Taverns(options.sound, field.models.filter(one => one.model === "buildings/tavern").map(one => [one.x, one.y + 1.6, one.z])) : null;
+    const taverns = options.sound ? new Taverns(options.sound, field.models.filter(one => one.model === "buildings/tavern").map(one => [one.x, one.y + 1.6, one.z]), () => net.shared()) : null;
     const walker = new Walker(field, spawns[me] ?? { x: 0, z: 0, yaw: 0 });
     const others = new Others(renderer, field, play.querySelector(".aw-play-names")!, me, spawns, state);
     const footstep = raining ? "wetstep" : "step";

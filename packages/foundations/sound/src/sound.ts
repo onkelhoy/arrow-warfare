@@ -36,6 +36,8 @@ export class Sound {
     /** 0..1, how far the music is pulled down for a tavern's song close by. */
     private ducked = 0;
     private streams = new Map<string, Promise<string | null>>();
+    private urls = new Map<string, string>();
+    private songLengths = new Map<string, Promise<number>>();
     private wanted: PlaylistName | null = null;
 
     /** `songs` is where `songs.json` and the songs are, asked for with `fetch`. */
@@ -142,8 +144,9 @@ export class Sound {
             found = fetch(`${this.songs}/${encodeURIComponent(name)}${/\.\w+$/.test(name) ? "" : ".mp3"}`)
                 .then(async response => {
                     if (!response.ok) return null;
-                    const id = `song:${name}`;
-                    await this.mixer.load(id, URL.createObjectURL(await response.blob()), { stream: true });
+                    const id = `song:${name}`, url = URL.createObjectURL(await response.blob());
+                    this.urls.set(name, url);
+                    await this.mixer.load(id, url, { stream: true });
                     return id;
                 })
                 .catch(() => null);
@@ -152,7 +155,28 @@ export class Sound {
         return found;
     }
 
-    /** Pulls the game's music down by `amount` (0..1) while a tavern's song plays close by. */
+    /** Seconds a streamed song lasts (fetching it, see `song`), 0 when it can't be read. */
+    songLength(name: string) {
+        let found = this.songLengths.get(name);
+        if (!found)
+        {
+            found = this.song(name).then(id => {
+                const url = this.urls.get(name);
+                if (!id || !url) return 0;
+                return new Promise<number>(done => {
+                    const element = new Audio();
+                    element.preload = "metadata";
+                    element.onloadedmetadata = () => done(Number.isFinite(element.duration) ? element.duration : 0);
+                    element.onerror = () => done(0);
+                    element.src = url;
+                });
+            });
+            this.songLengths.set(name, found);
+        }
+        return found;
+    }
+
+    /** Pulls the game's music down by `amount` (0..1, 1 is silent) while a tavern's song plays close by. */
     duck(amount: number) {
         const next = Math.max(0, Math.min(1, amount));
         if (Math.abs(next - this.ducked) < .02) return;
@@ -174,7 +198,7 @@ export class Sound {
     }
 
     private musicLevel() {
-        return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1) * (1 - this.ducked * .85);
+        return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1) * (1 - this.ducked);
     }
 
     /** Taverns' songs are music too, but not pulled down by them. */
