@@ -143,12 +143,10 @@ export class Bodies {
             if (!rig.armed) continue;
             if (this.gun)
             {
-                // in the hand, pointing ahead and a little down
+                // the rig holds its frame (see `Rig.held`): the grip at the hand
                 const { batch, scale, grip } = this.gun;
-                const b = rig.bow;
-                compose(this.local, 0, b[12], b[13], b[14], 0, -.3, 0, scale);
-                multiply(this.world, place, this.local);
-                compose(this.local, 0, -grip[0], -grip[1], -grip[2]);
+                multiply(this.world, place, rig.bow);
+                compose(this.local, 0, -grip[0] * scale, -grip[1] * scale, -grip[2] * scale, 0, 0, 0, scale);
                 batch.matrix(guns, multiply(this.world, this.world, this.local));
                 batch.tint(guns++, [1, 1, 1]);
                 continue;

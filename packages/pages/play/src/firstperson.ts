@@ -27,6 +27,8 @@ const GUN_HOLD: Record<GunKind, { at: Vec3; second: Vec3 }> = {
     rifle: { at: [.13, -.19, -.2], second: [0, 0, 0] },
 };
 const GUN_CONVERGE = 40;
+/** Aimed: the grip in the middle, low enough that the sights line up under the eye. */
+const GUN_AIM: Record<GunKind, Vec3> = { revolver: [0, -.14, -.38], rifle: [0, -.135, -.3] };
 
 /**
  * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
@@ -83,6 +85,9 @@ export class FirstPerson {
         if (this.gun) this.gun.reloading = progress;
     }
 
+    /** 0..1 how far a gun is up at the eye, aiming. */
+    aim = 0;
+
     /** Where a gun's bullet leaves from and where it goes, in the world. */
     muzzle: { from: Vec3; direction: Vec3 } | null = null;
 
@@ -103,13 +108,15 @@ export class FirstPerson {
             this.muzzle = null;
             return;
         }
-        const bob = Math.min(1, walk.speed / 4);
+        const bob = Math.min(1, walk.speed / 4) * (1 - this.aim * .7);
+        const aimed = GUN_AIM[gun.kind], a = this.aim;
+        const base: Vec3 = [hold.at[0] * side + (aimed[0] - hold.at[0] * side) * a, hold.at[1] + (aimed[1] - hold.at[1]) * a, hold.at[2] + (aimed[2] - hold.at[2]) * a];
         // a reload takes the gun down and in a little
         const down = gun.reloading >= 0 ? Math.sin(Math.min(1, gun.reloading) * Math.PI) : 0;
         const at: Vec3 = [
-            hold.at[0] * side + Math.cos(walk.stride) * .01 * bob - down * .04 * side,
-            hold.at[1] - Math.abs(Math.sin(walk.stride)) * .014 * bob + Math.min(0, this.raise) * .4 - down * .05,
-            hold.at[2] + this.kick * this.kick * .06,
+            base[0] + Math.cos(walk.stride) * .01 * bob - down * .04 * side,
+            base[1] - Math.abs(Math.sin(walk.stride)) * .014 * bob + Math.min(0, this.raise) * .4 - down * .05,
+            base[2] + this.kick * this.kick * .06,
         ];
         // the muzzle at the middle of the view, far ahead; the kick tips it up
         const scale = spec.scale;
@@ -144,6 +151,8 @@ export class FirstPerson {
         // the trigger hand on the grip, the other under it (revolver) or on the fore end (rifle)
         const trigger = inGun(grip);
         const other: Vec3 = spec.fore ? inGun(spec.fore) : [hold.second[0] * side + (at[0] - hold.at[0] * side), hold.second[1] + (at[1] - hold.at[1]), hold.second[2] + (at[2] - hold.at[2])];
+        // aimed, the revolver's other hand cups the grip from below
+        if (!spec.fore) { other[0] += (trigger[0] - .02 * side - other[0]) * a; other[1] += (trigger[1] - .03 - other[1]) * a; other[2] += (trigger[2] + .01 - other[2]) * a; }
         this.place(this.hands, 0, trigger, this.skin);
         this.place(this.hands, 1, other, this.skin);
         let arms = this.limb(0, [SHOULDER[0] * side, SHOULDER[1], SHOULDER[2]], trigger, [side, -1, .3]);

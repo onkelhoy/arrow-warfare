@@ -154,6 +154,11 @@
 }
 
 @media (pointer: coarse) {
+    .aw-play-aim[on] {
+        background: rgb(255 255 255 / 55%);
+        border-color: white;
+    }
+
     .aw-play-reload:not([hidden]) {
         display: grid;
         place-items: center;

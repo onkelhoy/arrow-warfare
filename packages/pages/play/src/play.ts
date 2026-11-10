@@ -116,9 +116,12 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         layer.resize();
         // wide phones: keep the sideways view as at 16:10 and show less height, else the edges stretch and people look fat
         const aspect = play.clientWidth / Math.max(1, play.clientHeight);
-        camera.fov = aspect > WIDE ? 2 * Math.atan(Math.tan(FOV / 2) * WIDE / aspect) : FOV;
+        baseFov = aspect > WIDE ? 2 * Math.atan(Math.tan(FOV / 2) * WIDE / aspect) : FOV;
+        camera.fov = baseFov;
         controls.placeBow(settings().bow, play.clientWidth);
     };
+    /** The field of view for this screen, before aiming zooms in. */
+    let baseFov = FOV;
     // far enough for the painted mountains round the field (`BACKDROP_REACH` past the edge)
     const camera = new Camera({ fov: FOV, near: .05, far: 320 });
     layer.camera = camera;
@@ -206,6 +209,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     const weapon = state.rules.weapon ?? "bow";
     const gun = weapon === "bow" ? null : new Gun(weapon);
     let quiver = gun ? 0 : state.rules.arrows > 0 && !local ? state.rules.arrows : Infinity;
+    // how others hold it: the other hand on the rifle's fore end, cupping the revolver's grip
+    Rig.held = gun ? { fore: gun.kind === "rifle" ? [0, -.006, -.4] : [-.03, -.04, .01] } : null;
+    /** 0..1 how far my gun is up at the eye, eased. */
+    let aim = 0;
     if (gun)
     {
         controls.gun = true;
@@ -790,10 +797,16 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         // what my wounds leave me
         wounds.update(dt, walker.speed);
         walker.posture = walker.alive ? wounds.posture : "stand";
-        walker.limit = wounds.walk;
+        // aiming a gun: zoomed in (the rifle more), slower to look round and to walk
+        const aimWanted = !!gun && walker.alive && view === "play" && !over && controls.aiming && !(gun.reloading > 0);
+        aim += ((aimWanted ? 1 : 0) - aim) * (1 - Math.exp(-dt * 12));
+        const zoom = gun ? aim * (gun.kind === "rifle" ? .5 : .25) : 0;
+        camera.fov = baseFov * (1 - zoom);
+        firstPerson.aim = aim;
+        walker.limit = wounds.walk * (1 - .45 * aim);
         draw.rate = wounds.drawRate < 1 ? wounds.drawRate / KEY_DRAW : Infinity;
         draw.shake = wounds.shake;
-        if (walker.alive && view === "play") walker.update(dt, controls, settings().sensitivity, draw);
+        if (walker.alive && view === "play") walker.update(dt, controls, settings().sensitivity * (1 - zoom), draw);
         if (view === "play") walker.place(camera, draw);
         else direct(dt);
         arrows.showMine = !walker.alive;
@@ -870,7 +883,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         others.frame(now, dt, camera, play.clientWidth, play.clientHeight, meToo ? [{ rig: myRig, look: { clothes: colourOf(me), skin: mySkin } }] : []);
         myRig.update(dt, {
             x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch,
-            draw: draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
+            draw: gun ? aim : draw.phase === "drawing" ? draw.amount : 0, left: settings().hand === "left", stage: draw.stage,
             wounds: wounds.bits, resting: wounds.resting, dead: !walker.alive, blow: myBlow, unarmed: over,
         });
 
@@ -950,11 +963,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         controls.joystick.hidden = stickHidden;
         controls.bow.disabled = gun ? gun.reloading > 0 : quiver <= 0 || draw.phase === "panting";
         controls.reloadButton.hidden = !gun || !alive;
+        controls.aimButton.hidden = !gun || !alive;
+        if (!alive) controls.stopAiming();
         hint.hidden = coarse || controls.locked || view !== "play";
 
         const pose = {
             time: now, x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: walker.speed,
-            draw: draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
+            draw: gun ? aim : draw.phase === "drawing" ? draw.amount : 0, stage: draw.stage, left: settings().hand === "left",
             wounds: wounds.bits, resting: wounds.resting,
         };
         // mine, a little more often than it's sent, while I'm alive
@@ -1019,6 +1034,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             if (host) check();
         },
         remove() {
+            Rig.held = null;
             for (const stop of unlisten) stop();
             stopBow();
             stopQuality();

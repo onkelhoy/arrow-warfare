@@ -54,6 +54,19 @@ export class Controls {
     readonly reloadButton: HTMLButtonElement;
     /** A gun instead of the bow: clicks fire rather than pick up. */
     gun = false;
+    /** The aim button, touch only, with a gun: it switches aiming on and off. */
+    readonly aimButton: HTMLButtonElement;
+    /** Aiming: the right mouse button held, or the aim button switched on. */
+    get aiming() {
+        return this.rightHeld || this.aimOn;
+    }
+    private rightHeld = false;
+    private aimOn = false;
+    /** Aiming off (dead, reloading done by the game itself). */
+    stopAiming() {
+        this.aimOn = false;
+        this.aimButton.toggleAttribute("on", false);
+    }
 
     constructor(root: HTMLElement) {
         this.surface = document.createElement("div");
@@ -72,7 +85,21 @@ export class Controls {
             event.stopPropagation();
             this.reloaded++;
         });
-        root.append(this.surface, this.joystick, this.bow, this.reloadButton);
+        this.aimButton = document.createElement("button");
+        this.aimButton.type = "button";
+        this.aimButton.className = "aw-play-reload aw-play-aim";
+        this.aimButton.hidden = true;
+        this.aimButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/></svg>`;
+        this.aimButton.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.aimOn = !this.aimOn;
+            this.aimButton.toggleAttribute("on", this.aimOn);
+        });
+        root.append(this.surface, this.joystick, this.bow, this.reloadButton, this.aimButton);
+        this.surface.addEventListener("contextmenu", this.handlemenu);
+        document.addEventListener("mousedown", this.handlebutton);
+        document.addEventListener("mouseup", this.handlebutton);
 
         this.surface.addEventListener("pointerdown", this.handledown);
         this.surface.addEventListener("pointermove", this.handlemove);
@@ -101,6 +128,12 @@ export class Controls {
         this.reloadButton.style.top = place.y < .5
             ? `calc(${place.y * 100}% + ${place.size * .5 + 12}px)`
             : `calc(${place.y * 100}% - ${place.size * .5 + small + 12}px)`;
+        // the aim button level with the trigger, towards the middle
+        this.aimButton.style.setProperty("--size", `${small}px`);
+        this.aimButton.style.left = place.x > .5
+            ? `calc(${place.x * 100}% - ${place.size * .5 + small + 14}px)`
+            : `calc(${place.x * 100}% + ${place.size * .5 + 14}px)`;
+        this.aimButton.style.top = `calc(${place.y * 100}% - ${small / 2}px)`;
     }
 
     /** Trigger presses since the last call, with a gun. Counted, so a tap quicker than a frame still fires. */
@@ -172,6 +205,10 @@ export class Controls {
         this.joystick.remove();
         this.bow.remove();
         this.reloadButton.remove();
+        this.aimButton.remove();
+        this.surface.removeEventListener("contextmenu", this.handlemenu);
+        document.removeEventListener("mousedown", this.handlebutton);
+        document.removeEventListener("mouseup", this.handlebutton);
     }
 
     private handledown = (event: PointerEvent) => {
@@ -272,10 +309,19 @@ export class Controls {
     release() {
         this.keys.clear();
         this.space = false;
+        this.rightHeld = false;
         this.joystick.reset();
     }
 
     private handleblur = () => this.release();
+
+    private handlemenu = (event: Event) => event.preventDefault();
+
+    /** The right mouse button held aims (with the mouse locked). */
+    private handlebutton = (event: MouseEvent) => {
+        if (event.button !== 2) return;
+        this.rightHeld = event.type === "mousedown" && this.locked;
+    }
 
     /** Typing in a box: its keyups never reach `handlekey`, so a held key would stick. */
     private handlefocus = (event: FocusEvent) => {
