@@ -23,6 +23,7 @@ function example(): GameState {
             { id: "c", name: "bob", colour: 2, skin: 0, ready: false, team: null, ping: 310 },
             { id: "d", name: "cleo", colour: 3, skin: 4, ready: false, team: null, ping: 80 },
         ],
+        played: [],
         teams: [{ id: "t1", colour: 5, ideas: [{ id: "i1", by: "a", text: "The Pointy Ones", votes: ["b"] }] }],
         results: {
             winner: { kind: "team", id: "t1" },

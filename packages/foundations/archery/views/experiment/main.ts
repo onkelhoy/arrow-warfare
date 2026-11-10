@@ -2,7 +2,7 @@ import { Draw, fly, launch, speedOf, type Shot } from "@arrow-warfare/archery";
 import { Field } from "@arrow-warfare/world";
 
 // a flat stand-in field: no trees, ground at 0, wide enough
-const field = { radius: 500, obstacles: [], height: () => 0 } as unknown as Field;
+const field = { radius: 500, obstacles: [], blocks: [], height: () => 0 } as unknown as Field;
 
 const flight = document.querySelector<HTMLCanvasElement>("#flight")!;
 const angle = document.querySelector<HTMLInputElement>("#angle")!;

@@ -82,6 +82,7 @@ function example(): GameState {
             { id: "d", name: "cleo", colour: 3, skin: 4, ready: true, team: null, ping: 80 },
         ],
         results: null,
+        played: [],
         teams: [{ id: "t1", colour: 5, ideas: [{ id: "i1", by: "a", text: "The Pointy Ones", votes: ["b"] }, { id: "i2", by: "b", text: "Tiny Legs", votes: [] }] }],
     };
 }
