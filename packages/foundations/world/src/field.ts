@@ -21,8 +21,10 @@ export type FieldSetting = {
 };
 
 /** Metres from the middle to the forest edge. */
-/** Metres between sides on a spawn ring, at least. */
-const SPACING = 7;
+/** Metres a spawn keeps from the forest edge, and from anything in the way. */
+const SPAWN_EDGE = 5, SPAWN_ROOM = .9;
+/** Random spots tried for each side, the one furthest from the others wins. */
+const SPAWN_CANDIDATES = 10;
 export const RADIUS: Record<MapSize, number> = { small: 28, medium: 42, large: 80 };
 /** Meadow trees per square metre. */
 const TREES: Record<TreeAmount, number> = { none: 0, few: .0025, many: .008 };
@@ -335,7 +337,9 @@ export class Field {
     }
 
     /**
-     * Where everyone starts: spread on a ring around the middle, each team together, facing in.
+     * Where everyone starts: anywhere on the map, a new place every round (the seed is), each team together.
+     * Sides are spread out: each takes the best of a few random spots, the one furthest from the sides placed
+     * so far, so it's random but nobody starts on top of an enemy. Never in a tree, a rock, a wall or a pond.
      * Players come in a fixed order (the host's list), so every phone gets the same answer.
      */
     spawns(players: { id: string; team: string | null }[]): Record<string, Spawn> {
@@ -354,30 +358,56 @@ export class Field {
             }
         }
 
-        const spawns: Record<string, Spawn> = {};
-        const start = random() * Math.PI * 2;
-        // one ring at 70%; more sides than fit `SPACING` apart (bots) fill rings further in, by their length
-        const rings = [.7, .45, .22].map(k => this.radius * k);
-        const fits = (ring: number) => Math.max(1, Math.floor(Math.PI * 2 * ring / SPACING));
-        const used = groups.length <= fits(rings[0]) ? [rings[0]] : rings;
-        const total = used.reduce((sum, ring) => sum + ring, 0);
-        let g = 0;
-        used.forEach((ring, r) => {
-            const count = r === used.length - 1 ? groups.length - g : Math.round(groups.length * ring / total);
-            const offset = start + r * .7;
-            for (let n = 0; n < count; n++, g++)
+        const edge = Math.max(4, this.radius - SPAWN_EDGE);
+        /** Room to stand: off streets and squares too when `strict` (a city has few such spots, so not always). */
+        const free = (x: number, z: number, strict: boolean) => {
+            if (Math.hypot(x, z) > edge) return false;
+            if (strict && !this.open(x, z, SPAWN_ROOM)) return false;
+            for (const o of this.obstacles) if ((o.x - x) ** 2 + (o.z - z) ** 2 < (o.radius + SPAWN_ROOM) ** 2) return false;
+            for (const pond of this.ponds) if ((pond.x - x) ** 2 + (pond.z - z) ** 2 < (pond.radius + SPAWN_ROOM + .5) ** 2) return false;
+            for (const block of this.blocks) if (inside(block, x, z, SPAWN_ROOM)) return false;
+            return true;
+        };
+        const spot = (near?: [number, number], within = 0): [number, number] => {
+            for (let tries = 0; tries < 120; tries++)
             {
-                const group = groups[g], angle = offset + n / count * Math.PI * 2;
-                group.forEach((id, i) => {
-                    // members side by side along the ring, 2.5 m apart, in rows of 8 going in
-                    const row = Math.floor(i / 8), across = Math.min(8, group.length - row * 8), here = Math.max(4, ring - row * 2.5);
-                    const along = (i % 8 - (across - 1) / 2) * 2.5 / here;
-                    let x = Math.cos(angle + along) * here, z = Math.sin(angle + along) * here;
-                    [x, z] = this.collide(x, z, .6);
-                    spawns[id] = { x, z, yaw: Math.atan2(x, z) };
-                });
+                const [dx, dz] = inDisc(random, near ? within : edge);
+                const x = (near?.[0] ?? 0) + dx, z = (near?.[1] ?? 0) + dz;
+                if (free(x, z, tries < 60)) return [x, z];
             }
-        });
+            const [x, z] = near ?? inDisc(random, edge);
+            return this.collide(x, z, .6);
+        };
+
+        const anchors: [number, number][] = [];
+        const spawns: Record<string, Spawn> = {};
+        for (const group of groups)
+        {
+            // the best of a few: furthest from every side placed so far
+            let best: [number, number] | null = null, bestGap = -1;
+            for (let n = 0; n < SPAWN_CANDIDATES; n++)
+            {
+                const here = spot();
+                const gap = anchors.reduce((least, at) => Math.min(least, Math.hypot(at[0] - here[0], at[1] - here[1])), Infinity);
+                if (gap > bestGap) [best, bestGap] = [here, gap];
+                if (gap === Infinity) break;
+            }
+            const anchor = best!;
+            anchors.push(anchor);
+            // a team round its spot, each a little apart
+            const placed: [number, number][] = [];
+            group.forEach((id, i) => {
+                let at = anchor;
+                if (i > 0) for (let tries = 0; tries < 20; tries++)
+                {
+                    at = spot(anchor, 2.5 + Math.sqrt(i) * 1.6);
+                    if (placed.every(other => Math.hypot(other[0] - at[0], other[1] - at[1]) > 1.4)) break;
+                }
+                placed.push(at);
+                // facing roughly the middle, never quite the same way
+                spawns[id] = { x: at[0], z: at[1], yaw: Math.atan2(at[0], at[1]) + (random() - .5) * 1.2 };
+            });
+        }
         return spawns;
     }
 
