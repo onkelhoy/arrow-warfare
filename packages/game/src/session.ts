@@ -320,7 +320,7 @@ export class Session {
         }, COUNTDOWN);
     }
 
-    /** The rule's bots in the players: the ones there stay (through a match), more join, extra ones go. Spread over the teams. */
+    /** The rule's bots in the players, in the lobby too: the ones there stay (and keep their team), more join, extra ones go. New ones go to the smallest team. */
     private fillBots() {
         const state = this.state!;
         const wanted = Math.max(0, Math.min(BOT_COUNTS[BOT_COUNTS.length - 1], state.rules.bots ?? 0));
@@ -339,12 +339,6 @@ export class Session {
                 skin: Math.floor(Math.random() * SKINS.length),
             });
         }
-    }
-
-    /** Back in the lobby the bots go, they come again at the next countdown. */
-    private dropBots() {
-        const state = this.state!;
-        state.players = people(state.players);
     }
 
     // the host's own controls, from the lobby page
@@ -382,6 +376,8 @@ export class Session {
         if (change.rain !== undefined) state.rules.rain = !!change.rain;
         if (change.bots !== undefined && BOT_COUNTS.includes(change.bots)) state.rules.bots = change.bots;
         if (change.difficulty && DIFFICULTIES.includes(change.difficulty)) state.rules.difficulty = change.difficulty;
+        // the bots are in the lobby too, so the host can put them in teams
+        if (change.bots !== undefined) this.fillBots();
         this.publish();
     }
 
@@ -390,7 +386,7 @@ export class Session {
         if (!room || !state || !this.isHost || state.phase === "countdown" || state.phase === "play" || state.phase === "results") return;
         state.phase = locked ? "locked" : "open";
         state.lockedAt = room.shared;
-        for (const player of state.players) player.ready = false;
+        for (const player of state.players) player.ready = !!player.bot;
         this.publish();
     }
 
@@ -479,8 +475,7 @@ export class Session {
         state.lockedAt = this.room!.shared;
         state.played = [];
         this.admitWaiting();
-        this.dropBots();
-        for (const player of state.players) player.ready = false;
+        for (const player of state.players) player.ready = !!player.bot;
         this.publish();
     }
 
