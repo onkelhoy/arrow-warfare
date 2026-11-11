@@ -14,7 +14,7 @@ export type Settings = {
     /** Where the bow button sits on a touch screen. */
     bow: BowPlace;
     /** Where a gun's trigger sits on a touch screen, aim and reload beside it. */
-    gun: BowPlace;
+    gun: GunPlace;
     /** The hand that pulls the string. Right handed holds the bow in the left hand. */
     hand: Hand;
     /** How much the phone draws: resolution, grass, rain, lamp light. */
@@ -42,15 +42,24 @@ export type BowPlace = { x: number; y: number; size: number };
 
 /** Near the top, right of the middle (not too far in on a long phone). */
 export const BOW_PLACE: BowPlace = { x: .7, y: .2, size: 76 };
-/** A gun's trigger: low, near the bottom right corner, aim and reload beside it. */
-export const GUN_PLACE: BowPlace = { x: .88, y: .8, size: 76 };
+/** Where a button beside the trigger sits: CSS pixels from the trigger's middle to its own. */
+export type Offset = { dx: number; dy: number };
+/** A gun's trigger, and the aim and reload buttons, which move with it and can each be moved on their own. */
+export type GunPlace = BowPlace & { aim: Offset; reload: Offset };
+/**
+ * A gun's trigger where a right thumb rests, in from the corner; aim to its left a thumb's width off (not
+ * pressed by mistake), reload over it.
+ */
+export const GUN_PLACE: GunPlace = { x: .8, y: .66, size: 76, aim: { dx: -122, dy: 28 }, reload: { dx: 38, dy: -96 } };
+/** The gun's old default, right in the corner: saved as is, it moves to the new one. */
+const OLD_GUN = { x: .88, y: .8 };
 /** The bow's old default: saved as is, it moves to the new one. */
 const OLD_BOW = { x: .6, y: .2 };
 export const BOW_SIZE = { min: 48, max: 140 };
 
 export const SENSITIVITY = { min: .3, max: 3 };
 
-export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1, ambience: .8 }, sensitivity: 1, bow: { ...BOW_PLACE }, gun: { ...GUN_PLACE }, hand: "right", quality: QUALITY_DEFAULT, splashes: true };
+export const DEFAULTS: Settings = { name: "", mute: false, volumes: { everything: 1, music: .6, sounds: 1, ambience: .8 }, sensitivity: 1, bow: { ...BOW_PLACE }, gun: { ...GUN_PLACE, aim: { ...GUN_PLACE.aim }, reload: { ...GUN_PLACE.reload } }, hand: "right", quality: QUALITY_DEFAULT, splashes: true };
 
 const volume = (value: unknown, fallback: number) =>
     typeof value === "number" && value >= 0 && value <= 1 ? value : fallback;
@@ -78,7 +87,7 @@ export function parseSettings(saved: string | null): Settings {
         },
         sensitivity: typeof raw?.sensitivity === "number" && raw.sensitivity >= SENSITIVITY.min && raw.sensitivity <= SENSITIVITY.max ? raw.sensitivity : 1,
         bow: raw?.bow?.x === OLD_BOW.x && raw?.bow?.y === OLD_BOW.y ? { ...BOW_PLACE, size: parseBow(raw.bow).size } : parseBow(raw?.bow),
-        gun: parseBow(raw?.gun, GUN_PLACE),
+        gun: raw?.gun?.x === OLD_GUN.x && raw?.gun?.y === OLD_GUN.y ? { ...GUN_PLACE, size: parseBow(raw.gun).size } : parseGun(raw?.gun),
         hand: raw?.hand === "left" ? "left" : "right",
         quality: QUALITIES.includes(raw?.quality as Quality) ? raw!.quality as Quality : QUALITY_DEFAULT,
         splashes: raw?.splashes !== false,
@@ -89,6 +98,14 @@ function parseBow(raw: Partial<BowPlace> | undefined, fallback = BOW_PLACE): Bow
     const fraction = (value: unknown, otherwise: number) => typeof value === "number" && value >= 0 && value <= 1 ? value : otherwise;
     const size = typeof raw?.size === "number" && raw.size >= BOW_SIZE.min && raw.size <= BOW_SIZE.max ? raw.size : fallback.size;
     return { x: fraction(raw?.x, fallback.x), y: fraction(raw?.y, fallback.y), size };
+}
+
+function parseGun(raw: Partial<GunPlace> | undefined): GunPlace {
+    const offset = (value: Partial<Offset> | undefined, fallback: Offset): Offset => {
+        const ok = (n: unknown) => typeof n === "number" && Math.abs(n) <= 600;
+        return ok(value?.dx) && ok(value?.dy) ? { dx: value!.dx!, dy: value!.dy! } : { ...fallback };
+    };
+    return { ...parseBow(raw, GUN_PLACE), aim: offset(raw?.aim, GUN_PLACE.aim), reload: offset(raw?.reload, GUN_PLACE.reload) };
 }
 
 function read() {

@@ -2,7 +2,7 @@ import "@arrow-warfare/joystick";
 import "@arrow-warfare/bow-button";
 import type { Joystick } from "@arrow-warfare/joystick";
 import type { BowButton, DrawEvent } from "@arrow-warfare/bow-button";
-import type { BowPlace } from "@arrow-warfare/core";
+import type { BowPlace, GunPlace, Offset } from "@arrow-warfare/core";
 
 /** Radians per pixel dragged on a touch screen, and per pixel of mouse movement, at sensitivity 1. */
 const TOUCH_TURN = .0065;
@@ -128,24 +128,23 @@ export class Controls {
         document.addEventListener("focusin", this.handlefocus);
     }
 
-    /** Puts the bow button where the settings say. */
-    placeBow(place: BowPlace, _width?: number) {
+    /**
+     * Puts the bow button (or a gun's trigger) where the settings say. A gun's place says where its aim and
+     * reload buttons are from the trigger, else they go beside it towards the middle.
+     */
+    placeBow(place: BowPlace | GunPlace, _width?: number) {
         this.bow.style.setProperty("--size", `${place.size}px`);
         this.bow.style.left = `calc(${place.x * 100}% - ${place.size / 2}px)`;
         this.bow.style.top = `calc(${place.y * 100}% - ${place.size / 2}px)`;
-        // the reload button beside the trigger towards the middle of the screen: under it when it's high up
         const small = Math.round(place.size * .6);
-        this.reloadButton.style.setProperty("--size", `${small}px`);
-        this.reloadButton.style.left = `calc(${place.x * 100}% - ${place.size * (place.x > .5 ? .95 : -.35)}px)`;
-        this.reloadButton.style.top = place.y < .5
-            ? `calc(${place.y * 100}% + ${place.size * .5 + 12}px)`
-            : `calc(${place.y * 100}% - ${place.size * .5 + small + 12}px)`;
-        // the aim button level with the trigger, towards the middle
-        this.aimButton.style.setProperty("--size", `${small}px`);
-        this.aimButton.style.left = place.x > .5
-            ? `calc(${place.x * 100}% - ${place.size * .5 + small + 14}px)`
-            : `calc(${place.x * 100}% + ${place.size * .5 + 14}px)`;
-        this.aimButton.style.top = `calc(${place.y * 100}% - ${small / 2}px)`;
+        const fallback = defaultOffsets(place, small);
+        const aim = "aim" in place ? place.aim : fallback.aim, reload = "reload" in place ? place.reload : fallback.reload;
+        for (const [button, offset] of [[this.aimButton, aim], [this.reloadButton, reload]] as const)
+        {
+            button.style.setProperty("--size", `${small}px`);
+            button.style.left = `calc(${place.x * 100}% + ${offset.dx - small / 2}px)`;
+            button.style.top = `calc(${place.y * 100}% + ${offset.dy - small / 2}px)`;
+        }
     }
 
     /** Trigger presses since the last call, with a gun. Counted, so a tap quicker than a frame still fires. */
@@ -363,4 +362,13 @@ export class Controls {
         this.keys.clear();
         this.space = false;
     }
+}
+
+/** Beside a trigger with no places of their own: aim level with it towards the middle, reload over or under it. */
+function defaultOffsets(place: BowPlace, small: number): { aim: Offset; reload: Offset } {
+    const inward = place.x > .5 ? -1 : 1;
+    return {
+        aim: { dx: inward * (place.size / 2 + small / 2 + 40), dy: 0 },
+        reload: { dx: inward * -.1 * place.size, dy: place.y < .5 ? place.size / 2 + small / 2 + 16 : -(place.size / 2 + small / 2 + 16) },
+    };
 }

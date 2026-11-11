@@ -290,7 +290,7 @@
     "layout": {
       "open": "Place the bow button",
       "openGun": "Place the gun buttons",
-      "gunTitle": "Drag the trigger where your thumb likes it",
+      "gunTitle": "Drag the trigger where your thumb likes it, aim and reload come along. Drag aim or reload to move just that one.",
       "title": "Drag the bow button where your thumb likes it",
       "size": "Size",
       "reset": "Reset",

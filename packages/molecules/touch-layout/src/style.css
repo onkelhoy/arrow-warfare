@@ -33,6 +33,33 @@
     }
 }
 
+/* a gun's aim and reload buttons, dragged on their own */
+.aw-layout-small {
+    --size: 46px;
+    position: absolute;
+    translate: -50% -50%;
+    display: grid;
+    place-items: center;
+    inline-size: var(--size);
+    block-size: var(--size);
+    border: 2px solid rgb(255 255 255 / 70%);
+    border-radius: 50%;
+    background: rgb(255 255 255 / 18%);
+    outline: 2px dashed rgb(255 255 255 / 50%);
+    outline-offset: 4px;
+    cursor: grab;
+
+    svg {
+        inline-size: 55%;
+        block-size: 55%;
+        fill: none;
+        stroke: white;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+}
+
 .aw-layout-bar {
     position: absolute;
     inset: auto 0 max(16px, env(safe-area-inset-bottom)) 0;

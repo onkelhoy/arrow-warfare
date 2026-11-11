@@ -290,7 +290,7 @@
     "layout": {
       "open": "Placera bågknappen",
       "openGun": "Placera vapenknapparna",
-      "gunTitle": "Dra avtryckaren dit tummen vill ha den",
+      "gunTitle": "Dra avtryckaren dit tummen vill ha den, sikte och ladda följer med. Dra sikte eller ladda för att flytta bara den.",
       "title": "Dra bågknappen dit tummen vill ha den",
       "size": "Storlek",
       "reset": "Återställ",
