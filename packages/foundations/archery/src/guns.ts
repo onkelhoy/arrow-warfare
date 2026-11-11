@@ -3,12 +3,23 @@ export type GunKind = "revolver" | "rifle";
 
 /**
  * Rounds in a full gun, seconds to reload (the length of the model's reload), the least seconds between
- * shots (the hammer, the bolt), and the kick up the view gives (radians). Spare rounds are unlimited unless
- * the rule says (`Gun.spare`): then a reload takes what's left, and a fallen player's rounds can be taken.
+ * shots (the hammer, the bolt). Spare rounds are unlimited unless the rule says (`Gun.spare`): then a reload
+ * takes what's left, and a fallen player's rounds can be taken.
+ *
+ * How it shoots: `zero` metres is where the bullet meets the sights (it drops under them further on, so far
+ * off you aim higher). `hip` and `aimed` are how far off a shot can go (radians, a cone), `moving` is added at a
+ * full walk, `bloom` for each quick shot after another (gone again at `settle` per second). The recoil: `kick`
+ * the view jumps up and springs back, `climb` of it stays (pull it back down), `side` at most to either side.
  */
-export const GUNS: Record<GunKind, { magazine: number; reload: number; interval: number; kick: number }> = {
-    revolver: { magazine: 6, reload: 1.9, interval: .4, kick: .035 },
-    rifle: { magazine: 5, reload: 1.1, interval: 1, kick: .05 },
+export const GUNS: Record<GunKind, GunSpec> = {
+    revolver: { magazine: 6, reload: 1.9, interval: .4, zero: 15, hip: .03, aimed: .004, moving: .045, bloom: .02, settle: .06, kick: .07, climb: .015, side: .025 },
+    rifle: { magazine: 5, reload: 1.1, interval: 1, zero: 30, hip: .05, aimed: .0012, moving: .07, bloom: .03, settle: .05, kick: .11, climb: .03, side: .02 },
+};
+
+export type GunSpec = {
+    magazine: number; reload: number; interval: number;
+    zero: number; hip: number; aimed: number; moving: number; bloom: number; settle: number;
+    kick: number; climb: number; side: number;
 };
 
 export type GunEvent = "shot" | "empty" | "reloaded" | null;
@@ -22,6 +33,8 @@ export class Gun {
     reloading = 0;
     /** Seconds until the next shot can go. */
     private wait = 0;
+    /** Radians the next shot can go off for the shots just before it, see `GunSpec.bloom`. */
+    bloom = 0;
 
     /** `spare` rounds on top of a full gun, 0 is unlimited. */
     constructor(readonly kind: GunKind, spare = 0) {
@@ -57,6 +70,21 @@ export class Gun {
         return "shot";
     }
 
+    /**
+     * How far off (radians, a cone) a shot goes now: `aim` 0..1 how far up at the eye, `moving` 0..1 of a
+     * full walk, `steady` 1 normally (more with a hurt arm). Call before `fired`.
+     */
+    spread(aim: number, moving: number, steady = 1) {
+        const spec = this.spec;
+        const still = spec.hip + (spec.aimed - spec.hip) * aim;
+        return (still + spec.moving * Math.min(1, moving) * (1 - aim * .75) + this.bloom) * steady;
+    }
+
+    /** A shot went: the next one quick after it goes wider. */
+    fired() {
+        this.bloom = Math.min(this.spec.bloom * 3, this.bloom + this.spec.bloom);
+    }
+
     /** Starts a reload unless the gun is full or one's under way. Returns whether it started. */
     reload() {
         if (this.reloading > 0 || this.rounds >= this.spec.magazine || this.spare <= 0) return false;
@@ -71,6 +99,7 @@ export class Gun {
 
     update(dt: number): GunEvent {
         this.wait = Math.max(0, this.wait - dt);
+        this.bloom = Math.max(0, this.bloom - this.spec.settle * dt);
         if (this.reloading <= 0) return null;
         this.reloading -= dt;
         if (this.reloading > 0) return null;

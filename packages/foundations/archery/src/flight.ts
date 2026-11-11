@@ -21,15 +21,27 @@ export type Shot = {
 export type Projectile = "arrow" | "revolver" | "rifle";
 
 /**
- * Muzzle speed (m/s), quadratic drag (per metre) and how long a shot lives (s). Real ones: a .45 revolver
- * round leaves at about 280 m/s and slows fast, a rifle's at about 850 and keeps it, so it stays flat for
- * longer (at 100 m it has dropped some 8 cm, the revolver's over 70 cm). Arrows' speed comes from the draw.
+ * Muzzle speed (m/s), quadratic drag (per metre) and how long a shot lives (s). Arrows' speed comes from the draw.
+ * Slower than real ones (a revolver's 280 m/s, a rifle's 850), on purpose: at real speed a bullet drops a few
+ * centimetres over the whole map, here it drops enough to aim over someone far off. Zeroed at `GUNS[].zero`:
+ * the revolver hits the sights at 15 m and some 45 cm under them at 50 m (1.4 m at 80), the rifle at 30 m and
+ * about 35 cm under at 100 m (1.1 m at 160, across a large map).
  */
 export const BALLISTICS: Record<Projectile, { speed: number; drag: number; life: number }> = {
     arrow: { speed: 0, drag: .0016, life: 10 },
-    revolver: { speed: 280, drag: .0023, life: 3 },
-    rifle: { speed: 850, drag: .0006, life: 3 },
+    revolver: { speed: 150, drag: .002, life: 3 },
+    rifle: { speed: 320, drag: .0006, life: 3 },
 };
+
+/**
+ * Metres a shot of `kind` has dropped under its line after `distance` metres: the drag slows it as
+ * v = v0·e^(-drag·x), so it takes t = (e^(drag·x) - 1) / (drag·v0), and falls g·t²/2 in that time.
+ */
+export function dropAt(kind: Projectile, distance: number, speed = BALLISTICS[kind].speed) {
+    const { drag } = BALLISTICS[kind];
+    const t = drag > 0 ? (Math.exp(drag * distance) - 1) / (drag * speed) : distance / speed;
+    return GRAVITY * t * t / 2;
+}
 
 /** A bullet, not an arrow: nothing to see once it stops, nothing to pick up. */
 export function isBullet(shot: Shot) {

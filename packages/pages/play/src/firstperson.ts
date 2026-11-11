@@ -27,8 +27,11 @@ const GUN_HOLD: Record<GunKind, { at: Vec3; second: Vec3 }> = {
     rifle: { at: [.13, -.19, -.2], second: [0, 0, 0] },
 };
 const GUN_CONVERGE = 40;
-/** Aimed: the grip in the middle, low enough that the sights line up under the eye. */
-const GUN_AIM: Record<GunKind, Vec3> = { revolver: [0, -.14, -.38], rifle: [0, -.135, -.3] };
+/**
+ * Aimed: the grip in the middle, so low that the front sight (`GUN_FILES[].sight`) is right in the middle of the
+ * view: (sight - grip) · scale under the eye. It was a little lower, so a shot went over what the sights were on.
+ */
+const GUN_AIM: Record<GunKind, Vec3> = { revolver: [0, -.127, -.38], rifle: [0, -.113, -.3] };
 
 /**
  * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
@@ -88,8 +91,11 @@ export class FirstPerson {
     /** 0..1 how far a gun is up at the eye, aiming. */
     aim = 0;
 
-    /** Where a gun's bullet leaves from and where it goes, in the world. */
-    muzzle: { from: Vec3; direction: Vec3 } | null = null;
+    /**
+     * Camera space (the eye at 0, looking down -z): where a gun's bullet leaves from, and the front sight.
+     * The game turns them into the world with the camera as it is when the shot goes.
+     */
+    muzzle: { from: Vec3; sight: Vec3 } | null = null;
 
     private updateGun(dt: number, camera: Camera, walk: { speed: number; stride: number; alive: boolean }, left: boolean) {
         const gun = this.gun!;
@@ -143,10 +149,7 @@ export class FirstPerson {
         });
 
         const inGun = (p: readonly number[]): Vec3 => point(this.local, [p[0], p[1], p[2]]);
-        const from = point(this.cameraMatrix, inGun(muzzle));
-        const to = point(this.cameraMatrix, [0, 0, -GUN_CONVERGE]);
-        const reach = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]) || 1;
-        this.muzzle = { from, direction: [(to[0] - from[0]) / reach, (to[1] - from[1]) / reach, (to[2] - from[2]) / reach] };
+        this.muzzle = { from: inGun(muzzle), sight: inGun(spec.sight) };
 
         // the trigger hand on the grip, the other under it (revolver) or on the fore end (rifle)
         const trigger = inGun(grip);

@@ -4,7 +4,7 @@ import type { Fanfare } from "@arrow-warfare/fanfare";
 import { mountChat } from "@arrow-warfare/chat";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
-import { BALLISTICS, Draw, Gun, heading, isBullet, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
+import { BALLISTICS, Draw, dropAt, Gun, heading, isBullet, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
 import { adopt, CHAT_LENGTH, COLOURS, people, QUALITY, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { BOTS_PER_PACKET, packBots, packPose, POSE_RATE, unpackBots, unpackPose, type Pose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
@@ -26,7 +26,7 @@ import { Others } from "./others";
 const FOV = 1.1;
 const WIDE = 1.6;
 import { Replay } from "./replay";
-import { Walker } from "./walker";
+import { WALK, Walker } from "./walker";
 import sheet from "./style.css" with { type: "css" };
 import { footing } from "./footing";
 
@@ -109,6 +109,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         <canvas class="aw-play-canvas"></canvas>
         <div class="aw-play-names"></div>
         <div class="aw-play-spirit"></div>
+        <div class="aw-play-spread" hidden></div>
         <p class="aw-play-hint">${t((options.state.rules.weapon ?? "bow") === "bow" ? "play.hint" : "play.hintGun")}</p>
         ${host ? `<pap-button class="aw-play-back" size="small" variant="outline">${t("play.back")}</pap-button>` : ""}
         <div class="aw-play-turn" role="status"><p>${t("play.turn")}</p></div>
@@ -258,6 +259,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     Rig.held = gun ? { fore: gun.kind === "rifle" ? [0, -.006, -.4] : [-.03, -.04, .01] } : null;
     /** 0..1 how far my gun is up at the eye, eased. */
     let sights = 0;
+    const spread = play.querySelector<HTMLElement>(".aw-play-spread")!;
     if (gun)
     {
         controls.gun = true;
@@ -820,22 +822,53 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         }
     };
 
-    /** My gun goes off: a bullet from the muzzle to the middle of the view. */
+    /**
+     * My gun goes off. From the hip the bullet goes from the muzzle to the middle of the view, aimed along the
+     * sights: either way it meets that line at the gun's zero, a little up for the drop, and falls under it
+     * further on. Then off by the spread: wide from the hip, more on the move and for quick shots after
+     * another, tight aimed and still. The recoil after.
+     */
     const fireGun = () => {
         if (!gun) return;
         const m = camera.worldMatrix;
-        const length = Math.hypot(m[8], m[9], m[10]) || 1;
-        const forward: Vec = [-m[8] / length, -m[9] / length, -m[10] / length];
-        const from = firstPerson.muzzle ?? { from: [m[12] + forward[0] * .3, m[13] + forward[1] * .3, m[14] + forward[2] * .3] as Vec, direction: forward };
+        const unit = (x: number, y: number, z: number): Vec => {
+            const length = Math.hypot(x, y, z) || 1;
+            return [x / length, y / length, z / length];
+        };
+        // the camera's axes in the world, and a camera space point in the world
+        const right = unit(m[0], m[1], m[2]), up = unit(m[4], m[5], m[6]), back = unit(m[8], m[9], m[10]);
+        const world = (p: readonly number[]): Vec => [
+            m[12] + right[0] * p[0] + up[0] * p[1] + back[0] * p[2],
+            m[13] + right[1] * p[0] + up[1] * p[1] + back[1] * p[2],
+            m[14] + right[2] * p[0] + up[2] * p[1] + back[2] * p[2],
+        ];
+        const spec = gun.spec, local = firstPerson.muzzle;
+        // the line looked along, camera space: the middle, or through the front sight when it's up at the eye
+        const sight = local ? unit(...local.sight) : [0, 0, -1] as Vec;
+        const line = unit(sight[0] * sights, sight[1] * sights, -1 + (sight[2] + 1) * sights);
+        const zero = spec.zero;
+        const meet = world([line[0] * zero, line[1] * zero, line[2] * zero]);
+        // it falls on the way there: aimed that much over it
+        meet[1] += dropAt(gun.kind, zero);
+        const from = local ? world(local.from) : world([0, -.1, -.3]);
+        let direction = unit(meet[0] - from[0], meet[1] - from[1], meet[2] - from[2]);
+        // off by the spread: anywhere in a cone, more often near the middle
+        const cone = gun.spread(sights, walker.speed / WALK, 1 + wounds.arms * .6);
+        const turn = Math.random() * Math.PI * 2, off = cone * Math.sqrt(Math.random());
+        const ox = Math.cos(turn) * off, oy = Math.sin(turn) * off;
+        direction = unit(direction[0] + right[0] * ox + up[0] * oy, direction[1] + right[1] * ox + up[1] * oy, direction[2] + right[2] * ox + up[2] * oy);
+        gun.fired();
         const shot: Shot = {
             id: `${me}:${++shots}`, by: me, time: net.shared(), kind: gun.kind,
-            x: from.from[0], y: from.from[1], z: from.from[2],
-            dx: from.direction[0], dy: from.direction[1], dz: from.direction[2],
+            x: from[0], y: from[1], z: from[2],
+            dx: direction[0], dy: direction[1], dz: direction[2],
             speed: BALLISTICS[gun.kind].speed,
         };
         broadcast("shoot", shot);
         firstPerson.shot();
-        walker.punch(-gun.spec.kick, .01);
+        // aimed, the shoulder takes more of it
+        const held = 1 - sights * .35;
+        walker.recoil(spec.kick * held, spec.climb * held, spec.side * held);
         sound("gunshot", undefined, .9, .95 + Math.random() * .1);
         vibrate(25);
         // empty: the reload starts by itself
@@ -956,6 +989,15 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const zoom = gun ? sights * (gun.kind === "rifle" ? .5 : .25) : 0;
         camera.fov = baseFov * (1 - zoom);
         firstPerson.aim = sights;
+        // from the hip, a ring round the middle as wide as a shot can go off; gone up at the eye (the sights say)
+        if (gun)
+        {
+            const cone = gun.spread(sights, walker.speed / WALK, 1 + wounds.arms * .6);
+            const ring = Math.tan(cone) / Math.tan(camera.fov / 2) * play.clientHeight;
+            spread.hidden = !alive || sights > .6;
+            spread.style.setProperty("--ring", `${Math.max(10, ring).toFixed(1)}px`);
+            spread.style.opacity = String(.75 * (1 - sights / .6));
+        }
         walker.limit = wounds.walk * (1 - .45 * sights);
         draw.rate = wounds.drawRate < 1 ? wounds.drawRate / KEY_DRAW : Infinity;
         draw.shake = wounds.shake;

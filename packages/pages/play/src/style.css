@@ -551,3 +551,34 @@
 .aw-play-dead .aw-chat-tabs {
     display: none;
 }
+
+/* a gun from the hip: where a shot can go, round the middle of the view */
+.aw-play-spread {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--ring, 20px);
+    height: var(--ring, 20px);
+    transform: translate(-50%, -50%);
+    border: 1.5px solid rgb(255 255 255 / 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 2px rgb(0 0 0 / 50%), inset 0 0 2px rgb(0 0 0 / 50%);
+    pointer-events: none;
+    transition: width .08s, height .08s;
+}
+
+.aw-play-spread::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: white;
+}
+
+.aw-play-spread[hidden] {
+    display: none;
+}

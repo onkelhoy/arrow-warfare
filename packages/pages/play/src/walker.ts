@@ -161,6 +161,17 @@ export class Walker {
 
     private punchZoom = 0;
 
+    /**
+     * A gun's recoil: the view jumps up by `kick` and springs back (positive pitch looks up), `climb` of it stays
+     * where it went, to be pulled back down, and it goes up to `side` to either side.
+     */
+    recoil(kick: number, climb: number, side: number) {
+        this.punch(kick, .01);
+        this.punchSide = (Math.random() - .5) * 2 * side / Math.max(1e-4, kick);
+        this.pitch = Math.max(-PITCH, Math.min(PITCH, this.pitch + climb));
+        this.yaw += (Math.random() - .5) * side;
+    }
+
     /** Puts the camera at my eyes, with the bow's sway and any shake on top. */
     place(camera: Camera, draw: Draw) {
         const bob = this.posture === "hop"
