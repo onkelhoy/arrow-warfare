@@ -398,9 +398,10 @@ export class Field {
             const placed: [number, number][] = [];
             group.forEach((id, i) => {
                 let at = anchor;
-                if (i > 0) for (let tries = 0; tries < 20; tries++)
+                // further out the longer it takes (a crowded street)
+                if (i > 0) for (let tries = 0; tries < 24; tries++)
                 {
-                    at = spot(anchor, 2.5 + Math.sqrt(i) * 1.6);
+                    at = spot(anchor, (2.5 + Math.sqrt(i) * 1.6) * (1 + tries / 8));
                     if (placed.every(other => Math.hypot(other[0] - at[0], other[1] - at[1]) > 1.4)) break;
                 }
                 placed.push(at);
