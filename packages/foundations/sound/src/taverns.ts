@@ -1,14 +1,13 @@
-import type { Voice } from "@papit/audio";
 import type { Sound, Vec } from "./sound";
 
-/** Metres: a tavern's song starts to be heard here. */
+/** Metres: walking closer than this, a tavern's song takes the music over. */
 const REACH = 9;
-/** The first eighth of the reach: the game's music drops fast to about half, the tavern comes in a little louder. */
-const EDGE = REACH / 8;
-/** Closer than this it's the tavern alone: about the tavern's walls (3.5 m from its middle at most). */
+/** And further than this it gives it back (a little more, so the edge doesn't flicker). */
+const LEAVE = REACH + 1.5;
+/** Closer than this it's at full: about the tavern's walls (3.5 m from its middle at most). */
 const INSIDE = 4;
-/** How much of the game's music is left past the edge, and how loud the tavern is there. */
-const HALF_MUSIC = .5, EDGE_TAVERN = .6;
+/** How loud the tavern's song is at the edge of its reach. */
+const EDGE_TAVERN = .35;
 /** Seconds between looking for the nearest tavern. */
 const PICK = .5;
 /** Metres another tavern must be nearer than the one playing before the song moves to it. */
@@ -21,15 +20,15 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 /**
  * The taverns' music (`tavern` in `songs.json`): one song at a time for the whole game, on the shared clock, so
  * every phone hears the same song at the same place in it, and walking away and back picks it up where the
- * time has got to. It plays from the nearest tavern in reach (one voice, moved when another is clearly nearer),
- * so between two taverns it's still the one song. The game's music stays: at the edge of the reach it drops to
- * about half while the tavern comes in a little louder, then they blend slowly, the tavern alone only right at
- * it. `clock` is the shared time in ms. Call `update` every frame with where the ears are.
+ * time has got to. Phones play one song at a time, so near a tavern its song takes the music over (the game's
+ * song pauses and goes on where it was after), heard from the nearest tavern in reach and louder closer in.
+ * `clock` is the shared time in ms. Call `update` every frame with where the ears are.
  */
 export class Taverns {
     private songs: Promise<{ name: string; length: number }[]>;
-    private playing: { at: Vec; voice: Voice; name: string; started: number; offset: number } | null = null;
-    private starting = false;
+    /** The tavern the song is heard from, while one has the music. */
+    private at: Vec | null = null;
+    private asked: string | null = null;
     private next = 0;
     private stopped = false;
 
@@ -45,47 +44,46 @@ export class Taverns {
     update(dt: number, ears: Vec) {
         if (this.stopped || !this.places.length || !this.sound.running) return;
         const distance = (at: Vec) => Math.hypot(at[0] - ears[0], at[1] - ears[1], at[2] - ears[2]);
-        const near = this.playing ? distance(this.playing.at) : Infinity;
-        const [music, tavern] = levels(near);
-        this.sound.duck(1 - music);
-        this.playing?.voice.fadeTo(tavern, { seconds: .3 });
+        if (this.at) this.sound.tavernVolume(level(distance(this.at)), this.at);
 
         this.next -= dt;
         if (this.next > 0) return;
         this.next = PICK;
         let nearest: Vec | null = null;
-        for (const at of this.places) if (distance(at) < REACH + 2 && (!nearest || distance(at) < distance(nearest))) nearest = at;
-        if (!nearest)
+        for (const at of this.places) if (!nearest || distance(at) < distance(nearest)) nearest = at;
+        const near = this.at ? distance(this.at) : Infinity;
+        if (!nearest || (this.at ? near > LEAVE && distance(nearest) > REACH : distance(nearest) > REACH))
         {
-            if (this.playing && near > REACH + 4) this.end();
+            if (this.at) this.end();
             return;
         }
-        if (!this.playing)
-        {
-            if (!this.starting) void this.start(nearest);
-            return;
-        }
-        // the song moves to a tavern clearly nearer, without starting over
-        if (nearest !== this.playing.at && distance(nearest) < near - SWITCH)
-        {
-            this.playing.at = nearest;
-            this.playing.voice.setPosition({ x: nearest[0], y: nearest[1], z: nearest[2] });
-        }
-        // put back on the clock if it's run off (a stall, a hidden tab), or on to the next song
-        void this.songs.then(songs => {
-            const playing = this.playing;
-            if (!playing) return;
-            const now = this.now(songs);
-            const ran = playing.offset + (performance.now() - playing.started) / 1000;
-            if (!now || now.name !== playing.name || Math.abs(now.offset - ran) > DRIFT) this.restart(playing.at);
-        });
+        // in reach, or a tavern clearly nearer: the song is heard from there, without starting over
+        if (!this.at || (nearest !== this.at && distance(nearest) < near - SWITCH)) this.at = nearest;
+        void this.songs.then(songs => this.keep(songs));
     }
 
     stop() {
         this.stopped = true;
-        this.playing?.voice.stop({ seconds: 1.5 });
-        this.playing = null;
-        this.sound.duck(0);
+        this.end();
+    }
+
+    /** The song the clock is at, asked for (once), and put back on the clock if it's run off (a stall, a hidden tab). */
+    private async keep(songs: { name: string; length: number }[]) {
+        if (!this.at || this.stopped) return;
+        const now = this.now(songs);
+        if (!now) return;
+        const playing = this.sound.tavernPlaying;
+        if (playing?.song === now.name)
+        {
+            if (Math.abs(playing.at - now.offset) > DRIFT) this.sound.tavernSeek(now.offset);
+            return;
+        }
+        // asked for already, on its way
+        if (this.asked === now.name) return;
+        this.asked = now.name;
+        const url = await this.sound.songUrl(now.name);
+        if (!url || !this.at || this.stopped || this.asked !== now.name) return;
+        this.sound.tavern({ song: now.name, url, offset: () => this.now(songs)?.name === now.name ? this.now(songs)!.offset : now.offset });
     }
 
     /** The song and the second in it the shared clock is at: the songs one after the other, round and round. */
@@ -102,45 +100,16 @@ export class Taverns {
     }
 
     private end() {
-        this.playing?.voice.stop({ seconds: 2 });
-        this.playing = null;
-    }
-
-    private restart(at: Vec) {
-        this.end();
-        void this.start(at);
-    }
-
-    private async start(at: Vec) {
-        this.starting = true;
-        const songs = await this.songs;
-        const now = this.now(songs);
-        const id = now ? await this.sound.song(now.name) : null;
-        this.starting = false;
-        if (!id || !now || this.stopped || this.playing) return;
-        // the clock moved on while it loaded
-        const offset = this.now(songs)?.name === now.name ? this.now(songs)!.offset : now.offset;
-        const voice = this.sound.mixer.play(id, {
-            bus: "tavern", volume: 0, offset,
-            // placed for its direction only, how loud it is follows `levels`
-            spatial: { position: { x: at[0], y: at[1], z: at[2] }, refDistance: 1, rolloff: 0, panningModel: "equalpower" },
-        });
-        voice.onended = () => {
-            if (this.playing?.voice !== voice) return;
-            this.playing = null;
-        };
-        this.playing = { at, voice, name: now.name, started: performance.now(), offset };
+        this.at = null;
+        this.asked = null;
+        this.sound.tavern(null);
     }
 }
 
-/** How loud the game's music and the tavern are `distance` metres from the tavern playing, 0..1 each. */
-function levels(distance: number): [number, number] {
-    if (distance >= REACH) return [1, 0];
-    if (distance > REACH - EDGE)
-    {
-        const t = smooth((REACH - distance) / EDGE);
-        return [1 - (1 - HALF_MUSIC) * t, EDGE_TAVERN * t];
-    }
-    const t = smooth(Math.max(0, Math.min(1, (REACH - EDGE - distance) / (REACH - EDGE - INSIDE))));
-    return [HALF_MUSIC * (1 - t), EDGE_TAVERN + (1 - EDGE_TAVERN) * t];
+/** How loud the tavern's song is `distance` metres from the tavern playing, 0..1. */
+function level(distance: number) {
+    if (distance >= LEAVE) return 0;
+    if (distance >= REACH) return EDGE_TAVERN * (LEAVE - distance) / (LEAVE - REACH);
+    const t = smooth(Math.max(0, Math.min(1, (REACH - distance) / (REACH - INSIDE))));
+    return EDGE_TAVERN + (1 - EDGE_TAVERN) * t;
 }

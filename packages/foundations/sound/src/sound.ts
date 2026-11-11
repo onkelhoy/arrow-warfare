@@ -33,10 +33,7 @@ export class Sound {
     private muted = false;
     private dipped = false;
     private hushed = false;
-    /** 0..1, how far the music is pulled down for a tavern's song close by. */
-    private ducked = 0;
-    private streams = new Map<string, Promise<string | null>>();
-    private urls = new Map<string, string>();
+    private urls = new Map<string, Promise<string | null>>();
     private songLengths = new Map<string, Promise<number>>();
     private wanted: PlaylistName | null = null;
 
@@ -50,6 +47,8 @@ export class Sound {
         const wake = () => {
             const context = this.mixer.context as AudioContext;
             if (context.state !== "running" && this.mixer.state !== "closed") this.unlock();
+            // the music's element too: a phone only starts it from a tap
+            this.playlists?.wake();
         };
         for (const type of ["touchend", "click", "keydown"]) window.addEventListener(type, wake, true);
     }
@@ -141,35 +140,28 @@ export class Sound {
     }
 
     /**
-     * A song streamed rather than decoded (they're long), for a voice of its own: resolves to its id for
-     * `mixer.play`, or null. Fetched as a blob first so it plays on the static site too (see `Playlists`).
+     * A song fetched as a blob (so it plays on the static site too, see `Playlists`), kept: resolves to its
+     * url, or null.
      */
-    song(name: string) {
-        let found = this.streams.get(name);
+    songUrl(name: string) {
+        let found = this.urls.get(name);
         if (!found)
         {
             found = fetch(`${this.songs}/${encodeURIComponent(name)}${/\.\w+$/.test(name) ? "" : ".mp3"}`)
-                .then(async response => {
-                    if (!response.ok) return null;
-                    const id = `song:${name}`, url = URL.createObjectURL(await response.blob());
-                    this.urls.set(name, url);
-                    await this.mixer.load(id, url, { stream: true });
-                    return id;
-                })
+                .then(async response => response.ok ? URL.createObjectURL(await response.blob()) : null)
                 .catch(() => null);
-            this.streams.set(name, found);
+            this.urls.set(name, found);
         }
         return found;
     }
 
-    /** Seconds a streamed song lasts (fetching it, see `song`), 0 when it can't be read. */
+    /** Seconds a song lasts (fetching it, see `songUrl`), 0 when it can't be read. */
     songLength(name: string) {
         let found = this.songLengths.get(name);
         if (!found)
         {
-            found = this.song(name).then(id => {
-                const url = this.urls.get(name);
-                if (!id || !url) return 0;
+            found = this.songUrl(name).then(url => {
+                if (!url) return 0;
                 return new Promise<number>(done => {
                     const element = new Audio();
                     element.preload = "metadata";
@@ -183,12 +175,28 @@ export class Sound {
         return found;
     }
 
-    /** Pulls the game's music down by `amount` (0..1, 1 is silent) while a tavern's song plays close by. */
-    duck(amount: number) {
-        const next = Math.max(0, Math.min(1, amount));
-        if (Math.abs(next - this.ducked) < .02) return;
-        this.ducked = next;
-        this.mixer.bus("music").fadeTo(this.musicLevel(), { seconds: .4 });
+    /**
+     * A tavern's song takes the music over (one song at a time, phones can't play two), `null` gives it back
+     * to the playlist, which goes on where it was. See `Playlists.tavern`.
+     */
+    tavern(song: Parameters<Playlists["tavern"]>[0]) {
+        this.playlists?.tavern(song);
+    }
+
+    /** How loud the tavern's song is (0..1) and where it's heard from. */
+    tavernVolume(volume: number, at?: Vec) {
+        this.playlists?.tavernVolume(volume, at ? { x: at[0], y: at[1], z: at[2] } : undefined);
+    }
+
+    /** Puts the tavern's song at `seconds` (back on the shared clock). */
+    tavernSeek(seconds: number) {
+        this.playlists?.tavernSeek(seconds);
+    }
+
+    /** The tavern's song playing now and the second it's at, or null. */
+    get tavernPlaying() {
+        const song = this.playlists?.tavernSong, at = this.playlists?.tavernAt;
+        return song && at != null ? { song, at } : null;
     }
 
     /** Pulls the music and the ambience down, for slow motion, and lets them back up. */
@@ -205,10 +213,10 @@ export class Sound {
     }
 
     private musicLevel() {
-        return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1) * (1 - this.ducked);
+        return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1);
     }
 
-    /** Taverns' songs are music too, but not pulled down by them. */
+    /** Taverns' songs are music too, on their own bus. */
     private tavernLevel() {
         return this.hushed ? 0 : this.volumes.music * (this.dipped ? MUSIC_DIP : 1);
     }
@@ -225,7 +233,7 @@ export class Sound {
     /** The songs start once audio runs, an `<audio>` element won't play before a tap. */
     private started() {
         if (this.playlists || this.mixer.state !== "running") return;
-        this.playlists = new Playlists(this.mixer.context as AudioContext, this.mixer.bus("music").gain, this.songs);
+        this.playlists = new Playlists(this.mixer.context as AudioContext, this.mixer.bus("music").gain, this.mixer.bus("tavern").gain, this.songs);
         this.playlists.play(this.wanted);
     }
 
