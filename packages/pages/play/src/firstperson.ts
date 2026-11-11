@@ -27,11 +27,8 @@ const GUN_HOLD: Record<GunKind, { at: Vec3; second: Vec3 }> = {
     rifle: { at: [.13, -.19, -.2], second: [0, 0, 0] },
 };
 const GUN_CONVERGE = 40;
-/**
- * Aimed: the grip in the middle, so low that the front sight (`GUN_FILES[].sight`) is right in the middle of the
- * view: (sight - grip) · scale under the eye. It was a little lower, so a shot went over what the sights were on.
- */
-const GUN_AIM: Record<GunKind, Vec3> = { revolver: [0, -.127, -.38], rifle: [0, -.113, -.3] };
+/** Aimed: the grip in the middle, under the eye. Then moved a little more so the sights line up (`updateGun`). */
+const GUN_AIM: Record<GunKind, Vec3> = { revolver: [0, -.14, -.38], rifle: [0, -.135, -.3] };
 
 /**
  * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
@@ -127,7 +124,10 @@ export class FirstPerson {
         // the muzzle at the middle of the view, far ahead; the kick tips it up
         const scale = spec.scale;
         const grip = spec.grip, muzzle = spec.muzzle;
-        const aimYaw = Math.atan2(at[0], GUN_CONVERGE), aimPitch = Math.atan2(-at[1], GUN_CONVERGE);
+        // aimed, it's the sights that point at the middle: tipped down to the line from the rear notch to the front
+        // sight (they're not level with the bore), and moved so that line runs straight out of the eye
+        const tilt = Math.atan2(spec.sight[1] - spec.rear[1], spec.rear[2] - spec.sight[2]);
+        const aimYaw = Math.atan2(at[0], GUN_CONVERGE) * (1 - a), aimPitch = Math.atan2(-at[1], GUN_CONVERGE) * (1 - a) - tilt * a;
         const yaw = aimYaw, pitch = aimPitch + this.kick * this.kick * .25 + down * .5, roll = down * -.6 * side;
         // place: the grip point at `at`
         compose(this.local, 0, 0, 0, 0, yaw, pitch, roll, scale);
@@ -135,6 +135,13 @@ export class FirstPerson {
         const gy = this.local[1] * grip[0] + this.local[5] * grip[1] + this.local[9] * grip[2];
         const gz = this.local[2] * grip[0] + this.local[6] * grip[1] + this.local[10] * grip[2];
         compose(this.local, 0, at[0] - gx, at[1] - gy, at[2] - gz, yaw, pitch, roll, scale);
+        if (a > 0)
+        {
+            const rear = point(this.local, [spec.rear[0], spec.rear[1], spec.rear[2]]);
+            at[0] -= rear[0] * a;
+            at[1] -= rear[1] * a;
+            compose(this.local, 0, at[0] - gx, at[1] - gy, at[2] - gz, yaw, pitch, roll, scale);
+        }
         this.cameraMatrix = camera.worldMatrix;
         multiply(this.gunMatrix, this.cameraMatrix, this.local);
 
