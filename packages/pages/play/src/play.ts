@@ -686,7 +686,6 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 // a strong shot lands harder, a kill harder still
                 const power = powerOf(arrow.shot.speed);
                 const size = lethal ? 1 : .5;
-                hud.hit(lethal);
                 walker.punch((.01 + .018 * power) * size, (.02 + .04 * power) * size);
                 vibrate(lethal ? [20 + Math.round(25 * power), 40, 40 + Math.round(60 * power)] : 20 + Math.round(20 * power));
                 if (lethal) sound("kill", undefined, .6 + .4 * power);

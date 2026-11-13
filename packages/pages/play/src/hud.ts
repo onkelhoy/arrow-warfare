@@ -6,13 +6,11 @@ const FEED = 4;
 const FEED_TIME = 7000;
 
 /**
- * What's drawn over the meadow. Kept very light, a redesign comes later: no crosshair, only a marker on a
- * hit (red on a kill), the arrows left, who's left, a feed of kills, banners, the tunnel vision, and with
+ * What's drawn over the meadow. Kept very light, a redesign comes later: no crosshair and no hit marker, the arrows left, who's left, a feed of kills, banners, the tunnel vision, and with
  * injuries: the damage vignette, a little body with the wounds, the energy and a button to pull arrows out.
  */
 export class Hud {
     readonly element: HTMLElement;
-    private marker: HTMLElement;
     private hand: HTMLElement;
     private quiver: HTMLElement;
     private killCount: HTMLElement;
@@ -35,7 +33,6 @@ export class Hud {
         this.element.innerHTML = `
             <div class="aw-hud-damage" hidden></div>
             <div class="aw-hud-tunnel" hidden></div>
-            <div class="aw-hud-marker"><i></i><i></i><i></i><i></i></div>
             <svg class="aw-hud-hand" hidden viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5v-6a1.5 1.5 0 0 1 3 0V11m0-5.5a1.5 1.5 0 0 1 3 0V12m0-4.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-4.7-2.3L3.5 16a1.6 1.6 0 0 1 2.4-2.1L8 16"/></svg>
             <div class="aw-hud-left" aria-live="polite"></div>
             <ol class="aw-hud-feed" aria-live="polite"></ol>
@@ -59,7 +56,6 @@ export class Hud {
         `;
         root.append(this.element);
         const find = (selector: string) => this.element.querySelector<HTMLElement>(selector)!;
-        this.marker = find(".aw-hud-marker");
         this.hand = find(".aw-hud-hand");
         this.quiver = find(".aw-hud-quiver");
         this.killCount = find(".aw-hud-kills");
@@ -186,14 +182,6 @@ export class Hud {
         if (text === this.shown.left) return;
         this.shown.left = text;
         this.left.textContent = text;
-    }
-
-    /** The marker in the middle, red for a kill, white for a wound. */
-    hit(kill: boolean) {
-        this.marker.classList.remove("show", "kill");
-        void this.marker.offsetWidth;
-        this.marker.classList.add("show");
-        this.marker.classList.toggle("kill", kill);
     }
 
     /** The hand in the middle, on a computer, when an arrow can be picked up there. */
