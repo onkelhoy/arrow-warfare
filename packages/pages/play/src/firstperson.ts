@@ -29,6 +29,8 @@ const GUN_HOLD: Record<GunKind, { at: Vec3; second: Vec3 }> = {
 const GUN_CONVERGE = 40;
 /** Aimed: the grip in the middle, under the eye. Then moved a little more so the sights line up (`updateGun`). */
 const GUN_AIM: Record<GunKind, Vec3> = { revolver: [0, -.14, -.38], rifle: [0, -.135, -.3] };
+/** Aimed, how far (metres) the rear sits under the eye, so I look down over it at the front sight on the middle. */
+const GUN_PEEK: Record<GunKind, number> = { revolver: 0, rifle: .014 };
 
 /**
  * My own bow and hands in front of the camera, drawn last so they never go into a tree. The string comes
@@ -126,7 +128,9 @@ export class FirstPerson {
         const grip = spec.grip, muzzle = spec.muzzle;
         // aimed, it's the sights that point at the middle: tipped down to the line from the rear notch to the front
         // sight (they're not level with the bore), and moved so that line runs straight out of the eye
-        const tilt = Math.atan2(spec.sight[1] - spec.rear[1], spec.rear[2] - spec.sight[2]);
+        const span = Math.hypot(spec.sight[1] - spec.rear[1], spec.rear[2] - spec.sight[2]) * scale;
+        const peek = GUN_PEEK[gun.kind];
+        const tilt = Math.atan2(spec.sight[1] - spec.rear[1], spec.rear[2] - spec.sight[2]) - Math.atan2(peek, span);
         const aimYaw = Math.atan2(at[0], GUN_CONVERGE) * (1 - a), aimPitch = Math.atan2(-at[1], GUN_CONVERGE) * (1 - a) - tilt * a;
         const yaw = aimYaw, pitch = aimPitch + this.kick * this.kick * .25 + down * .5, roll = down * -.6 * side;
         // place: the grip point at `at`
@@ -137,7 +141,9 @@ export class FirstPerson {
         compose(this.local, 0, at[0] - gx, at[1] - gy, at[2] - gz, yaw, pitch, roll, scale);
         if (a > 0)
         {
-            const rear = point(this.local, [spec.rear[0], spec.rear[1], spec.rear[2]]);
+            // the front sight on the middle when peeking over the rear, else the rear on the eye
+            const on = peek > 0 ? spec.sight : spec.rear;
+            const rear = point(this.local, [on[0], on[1], on[2]]);
             at[0] -= rear[0] * a;
             at[1] -= rear[1] * a;
             compose(this.local, 0, at[0] - gx, at[1] - gy, at[2] - gz, yaw, pitch, roll, scale);
