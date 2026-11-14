@@ -109,7 +109,6 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         <canvas class="aw-play-canvas"></canvas>
         <div class="aw-play-names"></div>
         <div class="aw-play-spirit"></div>
-        <div class="aw-play-spread" hidden></div>
         <p class="aw-play-hint">${t((options.state.rules.weapon ?? "bow") === "bow" ? "play.hint" : "play.hintGun")}</p>
         ${host ? `<pap-button class="aw-play-back" size="small" variant="outline">${t("play.back")}</pap-button>` : ""}
         <div class="aw-play-turn" role="status"><p>${t("play.turn")}</p></div>
@@ -259,7 +258,6 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     Rig.held = gun ? { fore: gun.kind === "rifle" ? [0, -.006, -.4] : [-.03, -.04, .01] } : null;
     /** 0..1 how far my gun is up at the eye, eased. */
     let sights = 0;
-    const spread = play.querySelector<HTMLElement>(".aw-play-spread")!;
     if (gun)
     {
         controls.gun = true;
@@ -989,15 +987,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         const zoom = gun ? sights * (gun.kind === "rifle" ? .5 : .25) : 0;
         camera.fov = baseFov * (1 - zoom);
         firstPerson.aim = sights;
-        // from the hip, a ring round the middle as wide as a shot can go off; gone up at the eye (the sights say)
-        if (gun)
-        {
-            const cone = gun.spread(sights, walker.speed / WALK, 1 + wounds.arms * .6);
-            const ring = Math.tan(cone) / Math.tan(camera.fov / 2) * play.clientHeight;
-            spread.hidden = !alive || sights > .6;
-            spread.style.setProperty("--ring", `${Math.max(10, ring).toFixed(1)}px`);
-            spread.style.opacity = String(.75 * (1 - sights / .6));
-        }
+        // no crosshair: no ring for the spread either, the sights are the only aim
         walker.limit = wounds.walk * (1 - .45 * sights);
         draw.rate = wounds.drawRate < 1 ? wounds.drawRate / KEY_DRAW : Infinity;
         draw.shake = wounds.shake;
