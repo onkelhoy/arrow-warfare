@@ -2,16 +2,45 @@ import { fly, heading, isBullet, launch, powerOf, STEP, type Shot, type Vec } fr
 import type { Pose } from "@arrow-warfare/net";
 import type { Renderer, Vec3 } from "@arrow-warfare/render";
 import { Bodies, Rig, type Blow } from "@arrow-warfare/rig";
-import type { Field } from "@arrow-warfare/world";
+import { BODY, type Field } from "@arrow-warfare/world";
 import type { Camera } from "@papit/game-engine";
 
 import type { Arrows } from "./arrows";
 import type { Blood } from "./blood";
 import type { HitRecord, Replay } from "./replay";
 import { footing } from "./footing";
+import { SIT_EYE } from "./walker";
 
-/** A flight shorter than this (ms) has no flyby. */
-const FLYBY_LEAST = 380;
+/**
+ * The kill cam's timing, to tune it in one place. Seconds are real (on screen), ms are the round's.
+ * 1. the shooter's own eyes, real time, up to just before the shot
+ * 2. the release from a cinematic angle, slowing down
+ * 3. riding above and behind the arrow or bullet (skipped for a short shot)
+ * 4. the hit, slowest of all, and the body going down
+ */
+export const KILLCAM = {
+    /** ms of the shooter's view before the shot (less if this phone has less of them). */
+    lead: 5000,
+    /** ms before the shot that the eyes cut to the release. */
+    cut: 350,
+    /** Seconds of the release, and ms of the round it shows after the shot (at most). */
+    release: 2.6,
+    releaseAfter: 120,
+    /** Metres: a shot closer than this has no ride along, one camera from the release to the hit. */
+    close: 8,
+    /** Metres a second the ride along shows the flight at: a bullet far slower than an arrow. */
+    arrowShown: 14,
+    bulletShown: 7,
+    /** Seconds the ride along lasts, at least and at most. */
+    rideLeast: 1.6,
+    rideMost: 6,
+    /** The camera over the projectile: metres behind it and above it. */
+    rideBehind: 1.3,
+    rideAbove: .5,
+    /** Seconds of the hit and the fall, and ms of the round after the hit it shows. */
+    strike: 6,
+    strikeAfter: 2200,
+};
 
 type Look = { clothes: Vec3; skin: Vec3 };
 export type SoundName = "twang" | "whoosh" | "body" | "kill" | "grunt" | "gunshot" | "heartbeat";
@@ -28,11 +57,13 @@ export type FilmWorld = {
     /** Someone the replay has nothing on: where they're drawn now. */
     fallback(id: string): Pose | null;
     sound(name: SoundName, at: Vec | undefined, volume: number, rate: number): void;
+    /** The shooter's bow or gun and hands in front of the camera, while the film looks through their eyes. Null hides them. */
+    hands?: { show(id: string | null, pose: Pose | null, dt: number): void; shot(): void };
 };
 
 /** A stretch of the film: `real` seconds showing shared ms `from` to `to`, and where the camera is. */
 type Shot_ = {
-    name: "release" | "flyby" | "follow" | "strike";
+    name: "eyes" | "release" | "flyby" | "follow" | "strike";
     real: number;
     from: number;
     to: number;
@@ -101,6 +132,7 @@ export class Film {
         this.mode = mode;
         this.shots = [];
         this.cues = [];
+        this.eyesOf = null;
         this.index = 0;
         this.clock = 0;
         this.rigs.clear();
@@ -149,43 +181,64 @@ export class Film {
         }
         else if (shot && shooter && path.length > 1)
         {
+            const by = shot.by;
             const flight = strike - shot.time;
             const yaw = shooter.yaw;
             const forward: Vec = [-Math.sin(yaw), 0, -Math.cos(yaw)], right: Vec = [Math.cos(yaw), 0, -Math.sin(yaw)];
             const hand = shooter.left ? -1 : 1;
             const body: Vec = [shooter.x, shooter.y, shooter.z];
-            // in front, on the bow side, low, closing in a little
-            const look = add(add(body, [0, .95, 0]), forward, .35);
-            const far = ground(add(add(add(body, forward, 1.9), right, -1.25 * hand), [0, .75, 0]));
-            start = shot.time - 750;
-            // never past the hit: a bullet (or a short arrow) is there within a few ms
-            const leave = Math.max(shot.time + 5, Math.min(shot.time + 120, strike - 30));
-            this.shots.push({ name: "release", real: 1.7, from: start, to: leave, ease: u => Math.sin(u * Math.PI / 2), camera: (_, u) => ({ eye: mix(far, look, u * .22), look }) });
-            this.cues.push({ time: shot.time, play: () => this.sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], 1) });
 
-            let from = leave;
-            if (flight >= FLYBY_LEAST)
+            // 1. through their eyes, real time, as far back as this phone has them
+            const since = Math.max(replay.since(by), shot.time - KILLCAM.lead);
+            const cut = shot.time - KILLCAM.cut;
+            if (cut - since > 400 && replay.at(by, since))
             {
-                const pass = shot.time + flight * .5;
-                const middle = arrowAt(pass);
-                const across = side(middle.direction);
-                const eye = ground(add(add(add(middle.tip, middle.direction, 1.6), across, 1.3), [0, -.15, 0]));
-                const to = pass + 260;
-                this.shots.push({ name: "flyby", real: Math.max(.9, Math.min(1.6, (to - from) / 1000 / .28)), from, to, camera: time => ({ eye, look: arrowAt(time).tip }) });
-                this.cues.push({ time: pass, play: () => this.sound("whoosh", eye, 1) });
-                from = to;
-            }
-            if (strike - 60 - from > 80)
-            {
+                this.eyesOf = by;
                 this.shots.push({
-                    name: "follow", real: Math.max(.7, Math.min(1.5, (strike - 60 - from) / 1000 / .35)), from, to: strike - 60,
+                    name: "eyes", real: (cut - since) / 1000, from: since, to: cut,
                     camera: time => {
-                        const now = arrowAt(time);
-                        const across = side(now.direction);
-                        return { eye: add(add(add(now.tip, now.direction, -1.7), [0, .2, 0]), across, .16), look: add(now.tip, now.direction, 5) };
+                        const pose = replay.at(by, time) ?? shooter;
+                        const low = pose.resting || (pose.wounds & 12) === 12;
+                        const eye: Vec = [pose.x, pose.y + (low ? SIT_EYE : BODY.eye), pose.z];
+                        const c = Math.cos(pose.pitch);
+                        return { eye, look: [eye[0] - Math.sin(pose.yaw) * c * 10, eye[1] + Math.sin(pose.pitch) * 10, eye[2] - Math.cos(pose.yaw) * c * 10] };
                     },
                 });
             }
+            start = this.shots.length ? since : shot.time - 750;
+
+            // 2. the release: in front, on the bow side, low, closing in a little, slowing down
+            const look = add(add(body, [0, .95, 0]), forward, .35);
+            const far = ground(add(add(add(body, forward, 1.9), right, -1.25 * hand), [0, .75, 0]));
+            const reach = Math.hypot(at[0] - shot.x, at[1] - shot.y, at[2] - shot.z);
+            const close = reach < KILLCAM.close;
+            // never past the hit: a bullet (or a short arrow) is there within a few ms
+            const leave = close ? strike - 60 : Math.max(shot.time + 5, Math.min(shot.time + KILLCAM.releaseAfter, strike - 30));
+            const releaseFrom = this.shots.length ? cut : start;
+            this.shots.push({ name: "release", real: KILLCAM.release * (close ? 1.3 : 1), from: releaseFrom, to: leave, ease: u => Math.sin(u * Math.PI / 2), camera: (_, u) => ({ eye: mix(far, look, u * .22), look: close ? mix(look, at, u * .6) : look }) });
+            this.cues.push({ time: shot.time, play: () => {
+                this.sound(isBullet(shot) ? "gunshot" : "twang", [shot.x, shot.y, shot.z], 1);
+                this.world.hands?.shot();
+            } });
+
+            // 3. riding over it, looking down along its way to them; a bullet shown much slower than an arrow
+            if (!close && strike - 60 - leave > 0)
+            {
+                const shown = isBullet(shot) ? KILLCAM.bulletShown : KILLCAM.arrowShown;
+                const real = Math.max(KILLCAM.rideLeast, Math.min(KILLCAM.rideMost, reach / shown));
+                this.shots.push({
+                    name: "follow", real, from: leave, to: strike - 60,
+                    camera: time => {
+                        const now = arrowAt(time);
+                        // closing in, the camera comes down behind it so the one it's going to fills the view
+                        const left = Math.min(1, Math.hypot(at[0] - now.tip[0], at[2] - now.tip[2]) / 6);
+                        const eye = add(add(now.tip, now.direction, -KILLCAM.rideBehind), [0, KILLCAM.rideAbove * (.4 + .6 * left), 0]);
+                        return { eye, look: mix(add(now.tip, now.direction, 6), at, 1 - left) };
+                    },
+                });
+                this.cues.push({ time: leave + (strike - leave) * .4, play: () => this.sound("whoosh", undefined, .9) });
+            }
+            void flight;
         }
 
         // the strike: from the side, the arrow going in and the body going down, slowest at the hit
@@ -207,7 +260,7 @@ export class Film {
         // and never faster than real time at the end
         const last = this.shots[this.shots.length - 1];
         this.shots.push({
-            name: "strike", real: 3.2, from: Math.max(start, strike - 60, last?.to ?? -Infinity), to: strike + 2000, ease: u => .15 * u + .85 * u ** 1.7,
+            name: "strike", real: KILLCAM.strike, from: Math.max(start, strike - 60, last?.to ?? -Infinity), to: strike + KILLCAM.strikeAfter, ease: u => .06 * u + .94 * u ** 2.6,
             camera: (_, u) => {
                 // a slow turn around the hit
                 const turn = u * .4, c = Math.cos(turn), s = Math.sin(turn);
@@ -236,7 +289,7 @@ export class Film {
         // the drops of every hit in the film, as it happens
         for (const other of replay.hits.values())
         {
-            if (other.time <= this.shots[0].from || other.time > strike + 2000) continue;
+            if (other.time <= this.shots[0].from || other.time > strike + KILLCAM.strikeAfter) continue;
             this.cues.push({ time: other.time, play: () => this.spray(other, shot && other.arrow === shot.id ? strength : .5) });
         }
         this.cues.sort((a, b) => a.time - b.time);
@@ -254,8 +307,12 @@ export class Film {
         return this.shots[this.index]?.name ?? "";
     }
 
+    /** Whose eyes the film looks through in its first part. */
+    private eyesOf: string | null = null;
+
     skip() {
         this.done = true;
+        this.world.hands?.show(null, null, 0);
         if (!this.hold) this.bodies.draw([]);
     }
 
@@ -284,6 +341,9 @@ export class Film {
         this.pose(step / 1000);
         const { eye, look } = shot.camera(this.time, u);
         aim(this.world.camera, eye, look);
+        // through the shooter's eyes: their bow or gun in front, their body not drawn
+        const eyes = shot.name === "eyes" ? this.eyesOf : null;
+        this.world.hands?.show(eyes, eyes ? this.world.replay.at(eyes, this.time) : null, dt);
         this.world.arrows.drawAt(this.time, this.world.replay.shots.values(), this.world.replay.hits, id => this.rigs.get(id) ?? null, eye);
     }
 
@@ -302,8 +362,10 @@ export class Film {
         const time = this.time;
         const ids = new Set([...replay.players, this.victim, this.killer]);
         const shown: Parameters<Bodies["draw"]>[0] = [];
+        const inside = this.part === "eyes" ? this.eyesOf : null;
         for (const id of ids)
         {
+            if (id === inside) continue;
             const look = this.world.lookOf(id);
             let pose = replay.at(id, time) ?? this.world.fallback(id);
             if (!pose || !look) continue;

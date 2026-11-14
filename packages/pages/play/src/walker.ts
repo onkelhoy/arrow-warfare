@@ -15,7 +15,7 @@ const STEPS = .85;
 /** Lying on the ground, dead. */
 const DEAD_EYE = .35;
 /** Sitting, rested or with both legs hurt. */
-const SIT_EYE = .66;
+export const SIT_EYE = .66;
 /** Metres per second up or down a ladder, and falling. */
 const CLIMB = 2.4;
 const GRAVITY = 18;

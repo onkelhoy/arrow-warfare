@@ -4,7 +4,7 @@ import type { Pose } from "@arrow-warfare/net";
 import { sample } from "./others";
 
 /** Seconds of the round every phone keeps, for the kill cam. */
-export const KEEP = 8;
+export const KEEP = 12;
 
 /** An arrow going into someone, with the shared ms it happened at. `point`, `direction` are in the part's space. */
 export type HitRecord = {

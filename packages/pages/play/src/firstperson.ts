@@ -54,7 +54,8 @@ export class FirstPerson {
     private piece = mat4();
     private gunMatrix = mat4();
 
-    constructor(private renderer: Renderer, private skin: Vec3, private clothes: Vec3, private feathers: Vec3) {
+    /** The colours can change: the kill cam's hands are whoever shot. */
+    constructor(private renderer: Renderer, public skin: Vec3, public clothes: Vec3, public feathers: Vec3) {
         const front = { capacity: 6, dynamic: true, front: true };
         this.bow = renderer.batch(bow(), front);
         this.string = renderer.batch(beam(3), front);

@@ -4,7 +4,7 @@ import type { Fanfare } from "@arrow-warfare/fanfare";
 import { mountChat } from "@arrow-warfare/chat";
 import { Camera, GameEngine, GameObject } from "@papit/game-engine";
 import { effect } from "@papit/signals";
-import { BALLISTICS, Draw, dropAt, Gun, heading, isBullet, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
+import { BALLISTICS, Draw, type DrawPhase, dropAt, Gun, heading, isBullet, KEY_DRAW, LETHAL, powerOf, speedOf, standing, Tally, Wounds, ZONES, type BodyPlace, type DrawEvent, type Shot, type Vec, type Zone } from "@arrow-warfare/archery";
 import { adopt, CHAT_LENGTH, COLOURS, people, QUALITY, settings, SKINS, t, teamName, wears, type GameState, type Results } from "@arrow-warfare/core";
 import { BOTS_PER_PACKET, packBots, packPose, POSE_RATE, unpackBots, unpackPose, type Pose } from "@arrow-warfare/net";
 import { Renderer, rgb, type Vec3 } from "@arrow-warfare/render";
@@ -277,6 +277,10 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 others.useGun(mesh, scale, grip);
                 film.useGun(mesh, scale, grip);
             });
+            // the kill cam's own, for looking through the shooter's eyes
+            loadGun(gun.kind).then(theirs => {
+                if (theirs && playing) filmHands.arm(gun.kind, theirs);
+            });
         });
     }
     let shots = 0;
@@ -374,8 +378,35 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         time: net.shared(), x: walker.x, y: walker.y, z: walker.z, yaw: walker.yaw, pitch: walker.pitch, speed: 0,
         draw: 0, stage: 0, left: settings().hand === "left", wounds: wounds.bits, resting: wounds.resting,
     });
+    // the shooter's bow or gun and hands, while the kill cam looks through their eyes
+    const filmHands = new FirstPerson(renderer, mySkin, colourOf(me), colourOf(me));
+    filmHands.hidden = true;
+    let filmStride = 0;
+    const filmDraw = { phase: "idle" as DrawPhase, amount: 0, tired: 0 };
+    const hands = {
+        show(id: string | null, pose: Pose | null, dt: number) {
+            const look = id ? lookOf(id) : null;
+            if (!id || !pose || !look)
+            {
+                if (filmHands.hidden) return;
+                filmHands.hidden = true;
+                filmHands.update(0, camera, filmDraw as Draw, { speed: 0, stride: 0, alive: true }, 0);
+                return;
+            }
+            filmHands.hidden = false;
+            filmHands.skin = look.skin;
+            filmHands.clothes = filmHands.feathers = look.clothes;
+            // a gun sends how far it's up at the eye as its draw
+            filmHands.aim = gun ? pose.draw : 0;
+            filmDraw.phase = !gun && pose.draw > 0 ? "drawing" : "idle";
+            filmDraw.amount = gun ? 0 : pose.draw;
+            filmStride += pose.speed * dt * Math.PI / .85;
+            filmHands.update(dt, camera, filmDraw as Draw, { speed: pose.speed, stride: filmStride, alive: true }, 1, pose.left);
+        },
+        shot: () => filmHands.shot(),
+    };
     const film = new Film({
-        renderer, field, camera, replay, arrows, blood, lookOf,
+        renderer, field, camera, replay, arrows, blood, lookOf, hands,
         fallback: id => id === me ? myPose() : others.poseOf(id),
         sound: (name, at, volume, rate) => sound(name, at, volume, rate),
     });
@@ -1507,6 +1538,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             blood.destroy();
             impacts.destroy();
             firstPerson.destroy();
+            filmHands.destroy();
             hud.destroy();
             engine.remove(driver);
             engine.remove(meadow);

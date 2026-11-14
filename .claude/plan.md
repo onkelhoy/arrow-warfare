@@ -13,6 +13,6 @@ On `main`. Lives, bot take-over, killcam rework: confirmed, in progress.
 1. [x] Lives option and respawning.
 2. [x] Take over teammate bots, with the queue.
 3. [x] HUD: lives left, "took over" in the feed, queue place.
-4. [ ] Killcam phase 1: shooter's view (aim in the pose, KEEP 10 s).
-5. [ ] Killcam phases 2-4.
-6. [ ] Killcam tuning constants together.
+4. [x] Killcam phase 1: shooter's view (aim in the pose, KEEP 10 s).
+5. [x] Killcam phases 2-4.
+6. [x] Killcam tuning constants together.
