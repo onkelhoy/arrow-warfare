@@ -84,6 +84,10 @@ const SPIRIT = 1.5;
 const FAR_BOTS = 45;
 /** The most arrows a dead player drops. */
 const MAX_DROP = 10;
+/** ms from a bot's death to its respawn, with lives left. */
+const BOT_RESPAWN = 6000;
+/** ms the host waits for a dead player to say their kill cam is over before it respawns them anyway. */
+const READY_LATEST = 30_000;
 
 /** `point` and `direction` are in the hit part's own space, `at` is where in the world. */
 type Hit = { arrow: string; victim: string; zone: Zone; part: string; point: Vec; direction: Vec; place: BodyPlace; at: Vec; distance: number; time: number };
@@ -278,6 +282,19 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
     let shots = 0;
     const dead = new Set<string>();
     let over = false;
+    // lives: each death takes one, with one left the dead come back. Out of them, a player can take over a bot of their team
+    const maxLives = Math.max(1, state.rules.lives ?? 1);
+    const takeovers = state.rules.takeover === true;
+    /** Lives left after the deaths so far, as the host says. */
+    const livesLeft = new Map<string, number>();
+    const lives = (id: string) => livesLeft.get(id) ?? maxLives;
+    /** Out for good: dead with no life left. The rest of the dead are coming back. */
+    const outs = () => [...dead].filter(id => lives(id) <= 0);
+    /** The host's: players out of lives waiting for a bot of their team, and the timers that bring the dead back. */
+    const waiting = new Set<string>();
+    const comebacks = new Map<string, ReturnType<typeof setTimeout>>();
+    /** My kill cam is over and I said so (or need not). */
+    let readySent = false;
     const start = state.go || net.shared();
     const tally = new Tally(start);
     // a round that starts with one side (testing alone) never ends by itself
@@ -426,6 +443,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             return finale();
         }
         if (walker.alive) return setView("play");
+        // my own kill cam is over: the host can bring me back
+        if (victim === me && !readySent)
+        {
+            readySent = true;
+            net.send([state.host], "ready", {});
+            if (lives(me) > 0) hud.say(t("hud.respawning"));
+        }
         watch(killer !== victim && !dead.has(killer) ? killer : null);
     };
 
@@ -694,21 +718,62 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
                 if (player(shooter)) tally.hit(shooter, hit.distance, false);
                 hud.line(`${tag(shooter)} ${t(shooter === victim ? "hud.hitSelf" : "hud.hit")} ${shooter === victim ? "" : tag(victim)} ${t(`hud.zone.${hit.zone}`)}`);
             }
-            else if (host && !dead.has(victim) && !over) broadcast("death", { id: victim, by: shooter, zone: hit.zone, distance: hit.distance, arrow: hit.arrow });
+            else if (host && !dead.has(victim) && !over) broadcast("death", { id: victim, by: shooter, zone: hit.zone, distance: hit.distance, arrow: hit.arrow, lives: lives(victim) - 1 });
         }),
 
-        net.on("death", ({ id, by, zone, distance, arrow }, sender) => {
+        net.on("death", ({ id, by, zone, distance, arrow, lives: left }, sender) => {
             if (sender !== state.host || dead.has(id)) return;
             dead.add(id);
+            livesLeft.set(id, Number.isFinite(left) ? Math.max(0, left) : 0);
             replay.death({ id, by, arrow: String(arrow ?? ""), time: replay.hits.get(arrow)?.time ?? net.shared() });
             tally.death(id, net.shared());
             if (player(by)) tally.hit(by, Number(distance) || 0, true);
             if (by === me && id !== me) kills++;
             hud.line(`${tag(by)} ${t(by === id ? "hud.shotSelf" : "hud.shot")} ${by === id ? "" : tag(id)} ${t(`hud.zone.${zone}`)}`);
-            if (id === me) hud.say(t(by === me ? "hud.youSelf" : "hud.youDied", { name: player(by)?.name ?? "?" }), "lose");
+            if (id === me)
+            {
+                const more = lives(me) > 0 ? ` · ${t(lives(me) === 1 ? "hud.lifeLeft" : "hud.livesLeft", { count: String(lives(me)) })}` : "";
+                hud.say(t(by === me ? "hud.youSelf" : "hud.youDied", { name: player(by)?.name ?? "?" }) + more, "lose");
+                readySent = false;
+            }
+            if (host && !over)
+            {
+                // a bot comes back by itself, a player once their kill cam is over (or after a while)
+                const bot = !!player(id)?.bot;
+                if (!bot || lives(id) > 0) comebacks.set(id, setTimeout(() => ready(id), bot ? BOT_RESPAWN : READY_LATEST));
+            }
             // the one I watch went down: I see it as they did, then follow who got them
             if (id === watching && view === "watch") startFilm(id, by, String(arrow ?? ""));
             if (host) check();
+        }),
+
+        net.on("ready", (_payload, sender) => {
+            if (host && player(sender) && !player(sender)!.bot) ready(sender);
+        }),
+
+        net.on("respawn", ({ id, x, z, yaw }, sender) => {
+            if (sender !== state.host || !player(id) || ![x, z, yaw].every(Number.isFinite)) return;
+            revive(id, { x, z, yaw });
+            hud.line(`${tag(id)} ${t("hud.respawned")}`);
+        }),
+
+        net.on("takeover", ({ id, bot, x, z, yaw, arrows: left, rounds, spare, wounds: bits }, sender) => {
+            if (sender !== state.host || !player(id) || !player(bot)?.bot || ![x, z, yaw].every(Number.isFinite)) return;
+            // the bot leaves the field without a body, the player stands where it stood with what it had
+            dead.add(bot);
+            livesLeft.set(bot, 0);
+            tally.death(bot, net.shared());
+            others.vanish(bot);
+            stashes.delete(bot);
+            for (const arrow of arrows.all.values()) if (arrow.rest?.in === "body" && arrow.rest.id === bot) arrows.remove(arrow.shot.id);
+            revive(id, { x, z, yaw }, { arrows: left, rounds, spare, wounds: bits });
+            hud.line(`${tag(id)} ${t("hud.tookOver")} ${tag(bot)}`);
+            if (watching === bot) watch(id);
+        }),
+
+        net.on("queued", ({ count }, sender) => {
+            if (sender !== state.host || walker.alive || over) return;
+            hud.say(t("hud.queue", { count: String(Math.max(1, Number(count) || 1)) }));
         }),
 
         net.on("deadchat", ({ text }, sender) => {
@@ -784,14 +849,104 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         clearTimeout(settle);
         settle = setTimeout(() => {
             if (over || sides <= 1) return;
-            const left = standing(state.players, [...dead]);
+            const left = standing(state.players, outs());
             if (left.length > 1) return;
-            const results = tally.results(state.players, net.shared());
+            for (const timer of comebacks.values()) clearTimeout(timer);
+            comebacks.clear();
+            const results = tally.results(state.players, net.shared(), outs());
             const last = [...replay.deaths.values()].sort((a, b) => b.time - a.time)[0];
             broadcast("over", { winner: results.winner, last: last?.id ?? null });
             // the last kill cam and the winners' circle first
             ending = setTimeout(() => options.onEnd?.(results), results.winner ? FINAL_SHOW : SHOW_WINNER + 6000);
         }, SETTLE);
+    };
+
+    /** The host: `id` is ready to come back. A life left: a spot by the team. Else maybe a bot to take over. */
+    const ready = (id: string) => {
+        clearTimeout(comebacks.get(id));
+        comebacks.delete(id);
+        if (!host || over || !dead.has(id) || !player(id)) return;
+        if (lives(id) > 0)
+        {
+            const team = player(id)!.team;
+            const friends: [number, number][] = [], enemies: [number, number][] = [];
+            for (const other of state.players)
+            {
+                if (other.id === id || dead.has(other.id)) continue;
+                const pose = other.id === me ? myPose() : bots?.has(other.id) ? bots.pose(other.id, net.shared()) : others.poseOf(other.id);
+                if (!pose) continue;
+                (team && other.team === team ? friends : enemies).push([pose.x, pose.z]);
+            }
+            const spot = field.respawn(friends, enemies);
+            broadcast("respawn", { id, x: spot.x, z: spot.z, yaw: spot.yaw });
+            return;
+        }
+        if (!takeovers || player(id)!.bot || !player(id)!.team) return;
+        waiting.add(id);
+        assign();
+    };
+
+    /** The host: waiting players get the living bots of their team, picked at random when more wait than there are. */
+    const assign = () => {
+        if (!host || over || !bots) return;
+        for (const id of [...waiting]) if (!player(id) || !dead.has(id)) waiting.delete(id);
+        const teams = new Set([...waiting].map(id => player(id)!.team));
+        for (const team of teams)
+        {
+            const queue = [...waiting].filter(id => player(id)!.team === team);
+            const free = bots.living.filter(bot => bot.team === team && !dead.has(bot.id));
+            while (queue.length && free.length)
+            {
+                const id = queue.splice(Math.floor(Math.random() * queue.length), 1)[0];
+                const bot = free.splice(Math.floor(Math.random() * free.length), 1)[0];
+                const had = bots.release(bot.id);
+                if (!had) continue;
+                waiting.delete(id);
+                // unlimited goes as -1, JSON has no Infinity
+                const finite = (n: number) => Number.isFinite(n) ? n : -1;
+                broadcast("takeover", { id, bot: bot.id, x: had.x, z: had.z, yaw: had.yaw, arrows: finite(had.arrows), rounds: had.rounds, spare: finite(had.spare), wounds: had.wounds });
+            }
+            queue.forEach(id => net.send([id], "queued", { count: queue.length }));
+        }
+    };
+
+    /** `id` is back in the round at `spawn`: healed, their old body and the arrows in it gone. `kit` is a bot's, taken over. */
+    const revive = (id: string, spawn: { x: number; z: number; yaw: number }, kit?: { arrows: number; rounds: number; spare: number; wounds: number }) => {
+        if (!dead.has(id)) return;
+        dead.delete(id);
+        waiting.delete(id);
+        tally.revive(id, net.shared());
+        for (const arrow of arrows.all.values()) if (arrow.rest?.in === "body" && arrow.rest.id === id) arrows.remove(arrow.shot.id);
+        stashes.delete(id);
+        asked.delete(id);
+        const infinite = (n: unknown) => typeof n !== "number" || n < 0 ? Infinity : n;
+        if (id !== me)
+        {
+            others.revive(id, spawn, net.shared());
+            if (host && bots?.has(id))
+            {
+                bots.revive(id, { x: spawn.x, z: spawn.z, yaw: spawn.yaw });
+                assign();
+            }
+            return;
+        }
+        walker.respawn({ x: spawn.x, z: spawn.z, yaw: spawn.yaw });
+        wounds.heal();
+        if (kit && Number.isInteger(kit.wounds)) wounds.bits = kit.wounds & 63;
+        myBlow = null;
+        if (gun)
+        {
+            gun.cancel();
+            gun.rounds = kit ? Math.max(0, Math.min(gun.spec.magazine, kit.rounds | 0)) : gun.spec.magazine;
+            gun.spare = kit ? infinite(kit.spare) : local || !(state.rules.ammo > 0) ? Infinity : state.rules.ammo;
+        }
+        else quiver = kit ? infinite(kit.arrows) : state.rules.arrows > 0 && !local ? state.rules.arrows : Infinity;
+        readySent = false;
+        controls.free = false;
+        queued = null;
+        hud.say("");
+        setView("play");
+        sound("pickup");
     };
 
     /** My bow lets go: an arrow from my eyes along where I look, sway and all. */
@@ -1193,12 +1348,13 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
         if (gun) hud.rounds(gun.rounds, gun.spec.magazine, gun.reloading > 0, gun.spare);
         else hud.arrows(quiver);
         hud.kills(kills);
+        hud.lives(maxLives > 1 ? lives(me) : -1);
         hud.tired(draw.tunnel);
         hud.damage(wounds.hits);
         hud.wounds(wounds.bits, injuries);
         hud.energy(wounds.energy, wounds.resting);
         hud.pull(alive && draw.phase !== "drawing" ? arrows.countIn(me, taken) : 0);
-        const left = standing(state.players, [...dead]).length;
+        const left = standing(state.players, outs()).length;
         hud.standing(t("hud.left", { count: String(left) }));
         controls.bow.hidden = !alive;
         const stickHidden = !walker.alive || view !== "play";
@@ -1337,6 +1493,7 @@ export function mountPlay(root: HTMLElement, options: PlayOptions) {
             wake?.release().catch(() => undefined);
             clearTimeout(settle);
             clearTimeout(ending);
+            for (const timer of comebacks.values()) clearTimeout(timer);
             resizing.disconnect();
             engine.stop();
             controls.destroy();

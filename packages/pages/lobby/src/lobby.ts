@@ -2,7 +2,7 @@ import "@papit/button";
 import "@papit/input";
 import "@papit/tabs";
 import { mountChat } from "@arrow-warfare/chat";
-import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, WEAPONS, AMMO, wears, BOT_COUNTS, BOTS_WARN, DIFFICULTIES, type Difficulty, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
+import { adopt, useTheme, ARROWS_DEFAULT, COLOURS, DAMAGES, escape, FORCE_AFTER, MAP_KINDS, MAP_SIZES, MAX_LIMIT, NAME_IDEA_LENGTH, ROUNDS, LIVES, RULES_DEFAULT, t, teamName, TIMES, TREE_AMOUNTS, WEAK_PING, WEAPONS, AMMO, wears, BOT_COUNTS, BOTS_WARN, DIFFICULTIES, type Difficulty, type ChatLine, type Damage, type GameState, type MapKind, type MapSize, type Player, type Rules, type TimeOfDay, type TreeAmount, type Weapon } from "@arrow-warfare/core";
 import { inviteBlock } from "@arrow-warfare/invite-dialog";
 
 import sheet from "./style.css" with { type: "css" };
@@ -105,6 +105,12 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
                     <label>${t("rules.rounds")} <select name="rounds">
                         ${ROUNDS.map(rounds => `<option value="${rounds}">${t(`rules.roundsOf.${rounds}`)}</option>`).join("")}
                     </select></label>
+                    <label>${t("rules.lives")} <select name="lives">
+                        ${LIVES.map(lives => `<option value="${lives}">${t(lives === 1 ? "rules.livesOne" : "rules.livesOf", { count: String(lives) })}</option>`).join("")}
+                    </select></label>
+                    <label>${t("rules.takeover")} <select name="takeover">
+                        <option value="off">${t("rules.takeoverOff")}</option><option value="on">${t("rules.takeoverOn")}</option>
+                    </select></label>
                     <label>${t("rules.friendly")} <select name="friendly">
                         <option value="on">${t("rules.friendlyOn")}</option><option value="off">${t("rules.friendlyOff")}</option>
                     </select></label>
@@ -183,6 +189,10 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
     const friendly = find<HTMLSelectElement>("select[name=friendly]");
     rounds.addEventListener("change", () => actions.rules({ rounds: Number(rounds.value) }));
     friendly.addEventListener("change", () => actions.rules({ friendly: friendly.value === "on" }));
+    const lives = find<HTMLSelectElement>("select[name=lives]");
+    const takeover = find<HTMLSelectElement>("select[name=takeover]");
+    lives.addEventListener("change", () => actions.rules({ lives: Number(lives.value) }));
+    takeover.addEventListener("change", () => actions.rules({ takeover: takeover.value === "on" }));
     const tags = find<HTMLSelectElement>("select[name=tags]");
     tags.addEventListener("change", () => actions.rules({ tags: tags.value === "on" }));
     const rain = find<HTMLInputElement>("input[name=rain]");
@@ -331,7 +341,7 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         showTab("invite", !locked);
         showTab("teams", locked);
 
-        for (const field of [gameName, password, max, weapon, ammo, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, friendly, tags, rain, bots, difficulty]) field.toggleAttribute("disabled", !host);
+        for (const field of [gameName, password, max, weapon, ammo, arrows, map, trees, size, ...amounts.map(one => one.select), damage, time, rounds, lives, takeover, friendly, tags, rain, bots, difficulty]) field.toggleAttribute("disabled", !host);
         set(gameName, state.name);
         if (!host) set(password, state.password ? "••••" : "");
         set(max, String(state.max));
@@ -349,6 +359,8 @@ export function mountLobby(root: HTMLElement, me: string, actions: LobbyActions)
         set(time, state.rules.time ?? RULES_DEFAULT.time);
         set(rounds, String(state.rules.rounds ?? 1));
         set(friendly, state.rules.friendly === false ? "off" : "on");
+        set(lives, String(state.rules.lives ?? 1));
+        set(takeover, state.rules.takeover ? "on" : "off");
         set(tags, state.rules.tags === false ? "off" : "on");
         rain.checked = state.rules.rain === true;
         set(bots, String(state.rules.bots ?? 0));

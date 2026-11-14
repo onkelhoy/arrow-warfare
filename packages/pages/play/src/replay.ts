@@ -50,8 +50,9 @@ export class Replay {
         if (!this.hits.has(hit.arrow)) this.hits.set(hit.arrow, hit);
     }
 
+    /** The latest death of each: with lives, someone can die more than once. */
     death(death: DeathRecord) {
-        if (!this.deaths.has(death.id)) this.deaths.set(death.id, death);
+        this.deaths.set(death.id, death);
     }
 
     /** Where `id` was at shared ms `time`, null if this phone never heard from them. */

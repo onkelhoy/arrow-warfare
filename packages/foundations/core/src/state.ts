@@ -68,6 +68,10 @@ export type Rules = {
     /** Bots the host plays, on top of the players. */
     bots: number;
     difficulty: Difficulty;
+    /** Lives each, 1 is the classic one death and out. Each one left is a respawn. */
+    lives: number;
+    /** Teams: out of lives, a player takes over a bot of their team (a queue if there are too few). */
+    takeover: boolean;
 };
 
 export const TREE_AMOUNTS: TreeAmount[] = ["none", "few", "many"];
@@ -79,6 +83,7 @@ export const MAP_KINDS: MapKind[] = ["field", "farm", "city"];
 
 export const DAMAGES: Damage[] = ["arcade", "injuries"];
 export const ROUNDS = [1, 3, 5];
+export const LIVES = [1, 2, 3, 5, 10];
 export const DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard"];
 /** Bot counts to choose from, up to `BOT_LIMIT`. */
 export const BOT_COUNTS = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100];
@@ -87,7 +92,7 @@ export const BOT_LIMIT = 100;
 export const BOTS_WARN = 30;
 export const TIMES: TimeOfDay[] = ["clock", "night", "dawn", "noon", "sunset"];
 
-export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, tags: true, rain: false, bots: 0, difficulty: "normal" };
+export const RULES_DEFAULT: Rules = { weapon: "bow", arrows: 0, ammo: 0, trees: "few", size: "medium", map: "field", props: "few", buildings: "few", towers: "none", damage: "injuries", time: "clock", rounds: 1, friendly: true, tags: true, rain: false, bots: 0, difficulty: "normal", lives: 1, takeover: false };
 
 export type GameState = {
     host: string;

@@ -65,6 +65,20 @@ export class Walker {
         this.y = field.floor(this.x, this.z);
     }
 
+    /** Standing again at `spawn` (a respawn, a bot taken over). */
+    respawn(spawn: Spawn) {
+        this.x = spawn.x;
+        this.z = spawn.z;
+        this.yaw = spawn.yaw;
+        this.pitch = 0;
+        this.y = this.field.floor(this.x, this.z);
+        this.vx = this.vy = this.vz = this.speed = 0;
+        this.pendingYaw = this.pendingPitch = 0;
+        this.fallen = 0;
+        this.climbing = false;
+        this.alive = true;
+    }
+
     update(dt: number, controls: Controls, sensitivity: number, draw: Draw) {
         this.clock += dt;
         const [turnX, turnY] = controls.look(sensitivity * draw.look);

@@ -108,7 +108,8 @@ export class Film {
         this.ends.clear();
         for (const other of replay.hits.values())
         {
-            if (!other.lethal || this.ends.has(other.victim)) continue;
+            // the one up to this strike (with lives, someone can fall more than once)
+            if (!other.lethal || (this.ends.has(other.victim) && other.time > hit.time)) continue;
             // what threw them: the arrow's way as it went in, and its power
             const by = replay.shots.get(other.arrow);
             const flown = by ? this.path(by, other.time) : [];

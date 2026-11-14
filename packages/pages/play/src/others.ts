@@ -27,6 +27,8 @@ type Other = {
     corpse: BodyPlace | null;
     /** What threw them. */
     blow: Blow | null;
+    /** Taken over by a player: not drawn, not followed, no body left. */
+    gone?: boolean;
     /** Metres walked, for footsteps. */
     walked: number;
     /** The pose drawn, a dead body keeps its last. */
@@ -99,7 +101,7 @@ export class Others {
 
     receive(id: string, pose: Pose) {
         const other = this.others.get(id);
-        if (!other || other.corpse) return;
+        if (!other || other.corpse || other.gone) return;
         const poses = other.poses;
         // late ones are dropped, the channel doesn't keep order
         if (pose.time <= poses[poses.length - 1].time) return;
@@ -113,6 +115,29 @@ export class Others {
         if (!other || other.corpse) return;
         other.corpse = { x: place.x, y: place.y, z: place.z, yaw: place.yaw };
         other.blow = blow;
+        other.label.hidden = true;
+    }
+
+    /** Back in the round at `spawn` (a respawn): the body that lay there goes, wounds healed. */
+    revive(id: string, spawn: Spawn, time: number) {
+        const other = this.others.get(id);
+        if (!other) return;
+        const pose: Pose = { time, x: spawn.x, y: this.field.floor(spawn.x, spawn.z), z: spawn.z, yaw: spawn.yaw, pitch: 0, speed: 0, draw: 0, stage: 0, left: other.last.left, wounds: 0, resting: false };
+        other.corpse = null;
+        other.blow = null;
+        other.wounds = 0;
+        other.gone = false;
+        other.poses = [pose];
+        other.last = pose;
+        other.label.hidden = false;
+        other.rig = footing(this.field);
+    }
+
+    /** Gone from the field (a bot a player took over). */
+    vanish(id: string) {
+        const other = this.others.get(id);
+        if (!other) return;
+        other.gone = true;
         other.label.hidden = true;
     }
 
@@ -130,14 +155,14 @@ export class Others {
     /** The living, as drawn: for the view, where my phone judges everyone. */
     get living() {
         const living: { id: string; rig: Rig }[] = [];
-        for (const other of this.others.values()) if (!other.corpse) living.push({ id: other.id, rig: other.rig });
+        for (const other of this.others.values()) if (!other.corpse && !other.gone) living.push({ id: other.id, rig: other.rig });
         return living;
     }
 
     /** Where someone is drawn now, null for someone not here. */
     poseOf(id: string): Pose | null {
         const other = this.others.get(id);
-        if (!other) return null;
+        if (!other || other.gone) return null;
         return other.corpse ? { ...other.last, ...other.corpse } : other.last;
     }
 
@@ -160,6 +185,7 @@ export class Others {
         for (const other of this.others.values())
         {
             n++;
+            if (other.gone) continue;
             if (!other.corpse) other.last = this.override.get(other.id) ?? sample(other.poses, at);
             const pose = other.last;
             const place = other.corpse ?? pose;

@@ -387,7 +387,7 @@
     gap: 16px;
 }
 
-.aw-hud-quiver, .aw-hud-kills {
+.aw-hud-quiver, .aw-hud-kills, .aw-hud-lives {
     font-size: 15px;
 
     b {

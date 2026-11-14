@@ -159,7 +159,13 @@
         "normal": "Normal",
         "hard": "Svår"
       },
-      "botsWarn": "Fler än {count} bottar kan få en värdtelefon att hacka, en dator klarar det bättre."
+      "botsWarn": "Fler än {count} bottar kan få en värdtelefon att hacka, en dator klarar det bättre.",
+      "lives": "Liv",
+      "livesOne": "Ett, ute när du blir träffad",
+      "livesOf": "{count}, återuppstå tills de är slut",
+      "takeover": "Ta över lagets bottar",
+      "takeoverOff": "Av",
+      "takeoverOn": "På: utan liv, spela vidare som en bot i ditt lag"
     },
     "colour": {
       "red": "röd",
@@ -266,7 +272,15 @@
       "pickArrow": "Plocka upp pilen",
       "pickAmmo": "Plocka upp skott",
       "noAmmo": "Slut på skott",
-      "pickClick": "klicka"
+      "pickClick": "klicka",
+      "life": "liv",
+      "lives": "liv",
+      "lifeLeft": "{count} liv kvar",
+      "livesLeft": "{count} liv kvar",
+      "respawning": "Tillbaka strax…",
+      "respawned": "är tillbaka",
+      "tookOver": "tog över",
+      "queue": "Väntar på en bot i ditt lag ({count} väntar)"
     },
     "results": {
       "title": "Rundan är slut",

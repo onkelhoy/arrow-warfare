@@ -102,6 +102,27 @@ class Bot {
         this.aimYaw = this.yaw;
     }
 
+    /** Back at `spawn` with a full quiver (or gun), healed, knowing nothing. */
+    revive(spawn: Spawn) {
+        this.x = spawn.x;
+        this.z = spawn.z;
+        this.yaw = this.aimYaw = spawn.yaw;
+        this.y = this.field.floor(spawn.x, spawn.z);
+        this.vx = this.vz = this.speed = this.pitch = this.draw = 0;
+        this.drawing = false;
+        this.alive = true;
+        this.wounds.heal();
+        this.wounds.bits = 0;
+        this.quiver = this.rules.arrows > 0 ? this.rules.arrows : Infinity;
+        if (this.gun) { this.gun.spare = this.rules.ammo > 0 ? this.rules.ammo : Infinity; this.gun.rounds = this.gun.spec.magazine; }
+        this.mode = "wander";
+        this.goal = null;
+        this.target = null;
+        this.known.clear();
+        this.tracks.clear();
+        this.aimAt = null;
+    }
+
     get low() {
         return this.wounds.posture === "sit";
     }
@@ -518,6 +539,20 @@ export class Bots {
         bot.hurt(zone);
         if (by !== id) bot.alarm(by, from[0], from[2], this.world.now());
         return null;
+    }
+
+    /** Back in the round at `spawn`. */
+    revive(id: string, spawn: Spawn) {
+        this.byId.get(id)?.revive(spawn);
+    }
+
+    /** A player takes this one over: no longer played here. What it had, for the player. */
+    release(id: string) {
+        const bot = this.byId.get(id);
+        if (!bot || !bot.alive) return null;
+        this.byId.delete(id);
+        this.list = this.list.filter(other => other !== bot);
+        return { x: bot.x, z: bot.z, yaw: bot.yaw, arrows: bot.gun ? 0 : bot.quiver, rounds: bot.gun ? bot.gun.rounds : 0, spare: bot.gun ? bot.gun.spare : 0, wounds: bot.wounds.bits };
     }
 
     /** A shot went by near the bots: the ones it passed near know about the shooter. */

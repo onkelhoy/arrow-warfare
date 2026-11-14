@@ -159,7 +159,13 @@
         "normal": "Normal",
         "hard": "Hard"
       },
-      "botsWarn": "More than {count} bots can make a phone host stutter, a laptop copes better."
+      "botsWarn": "More than {count} bots can make a phone host stutter, a laptop copes better.",
+      "lives": "Lives",
+      "livesOne": "One, out when shot",
+      "livesOf": "{count}, respawn until they're used",
+      "takeover": "Take over teammate bots",
+      "takeoverOff": "Off",
+      "takeoverOn": "On: out of lives, play on as a bot of your team"
     },
     "colour": {
       "red": "red",
@@ -266,7 +272,15 @@
       "pickArrow": "Pick up arrow",
       "pickAmmo": "Pick up ammo",
       "noAmmo": "Out of ammo",
-      "pickClick": "click"
+      "pickClick": "click",
+      "life": "life",
+      "lives": "lives",
+      "lifeLeft": "{count} life left",
+      "livesLeft": "{count} lives left",
+      "respawning": "Back in a moment…",
+      "respawned": "is back",
+      "tookOver": "took over",
+      "queue": "Waiting for a bot of your team ({count} waiting)"
     },
     "results": {
       "title": "Round over",

@@ -1,4 +1,4 @@
-import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_KINDS, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, WEAPONS, AMMO, wears, people, BOT_NAMES, BOT_COUNTS, DIFFICULTIES, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
+import { CHAT_LENGTH, cleanName, COLOURS, COUNTDOWN, FORCE_AFTER, DAMAGES, MAX_DEFAULT, MAP_KINDS, MAP_SIZES, matchResults, MAX_LIMIT, ROUNDS, LIVES, roundWins, NAME_IDEA_LENGTH, pickUnused, RULES_DEFAULT, SKINS, TIMES, TREE_AMOUNTS, WEAPONS, AMMO, wears, people, BOT_NAMES, BOT_COUNTS, DIFFICULTIES, type ChatLine, type GameState, type Player, type Results, type Rules } from "@arrow-warfare/core";
 import { forget, gameId, HOST_CHECK, HOST_WAIT, inviteLink, JOIN_GAP, newCode, RECONNECT, remember, Room, ROOM_MEDIA, touch, UNKNOWN_FOR, type Info, type Invite, type Lobby, type Registry } from "@arrow-warfare/net";
 import type { Network } from "@papit/webrtc";
 
@@ -372,6 +372,8 @@ export class Session {
         if (change.time && TIMES.includes(change.time)) state.rules.time = change.time;
         if (change.rounds !== undefined && ROUNDS.includes(change.rounds)) state.rules.rounds = change.rounds;
         if (change.friendly !== undefined) state.rules.friendly = !!change.friendly;
+        if (change.lives !== undefined && LIVES.includes(change.lives)) state.rules.lives = change.lives;
+        if (change.takeover !== undefined) state.rules.takeover = !!change.takeover;
         if (change.tags !== undefined) state.rules.tags = !!change.tags;
         if (change.rain !== undefined) state.rules.rain = !!change.rain;
         if (change.bots !== undefined && BOT_COUNTS.includes(change.bots)) state.rules.bots = change.bots;

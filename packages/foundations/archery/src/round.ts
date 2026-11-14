@@ -16,6 +16,9 @@ export function standing(players: Who[], dead: string[]) {
 export class Tally {
     private stats = new Map<string, PlayerStats>();
     private died = new Map<string, number>();
+    /** ms lived in lives already over, and when the current one began. */
+    private lived = new Map<string, number>();
+    private since = new Map<string, number>();
 
     constructor(private start: number) { }
 
@@ -50,11 +53,20 @@ export class Tally {
     }
 
     death(id: string, at: number) {
-        if (!this.died.has(id)) this.died.set(id, at);
+        if (this.died.has(id)) return;
+        this.died.set(id, at);
+        this.lived.set(id, (this.lived.get(id) ?? 0) + at - (this.since.get(id) ?? this.start));
     }
 
-    results(players: Who[], end: number): Results {
-        const dead = [...this.died.keys()];
+    /** Back in the round (a respawn, a bot taken over). */
+    revive(id: string, at: number) {
+        if (!this.died.delete(id)) return;
+        this.since.set(id, at);
+    }
+
+    /** `out`: who's out for good, by default everyone dead now. */
+    results(players: Who[], end: number, out?: string[]): Results {
+        const dead = out ?? [...this.died.keys()];
         const sides = standing(players, dead);
         const side = sides.length === 1 ? sides[0] : null;
         const winner: Results["winner"] = !side ? null : side.startsWith("player:") ? { kind: "player", id: side.slice(7) } : { kind: "team", id: side };
@@ -63,7 +75,7 @@ export class Tally {
             duration: Math.round(end - this.start),
             players: players.map(player => {
                 const stats = { ...this.of(player.id) };
-                stats.alive = Math.round((this.died.get(player.id) ?? end) - this.start);
+                stats.alive = Math.round((this.lived.get(player.id) ?? 0) + (this.died.has(player.id) ? 0 : end - (this.since.get(player.id) ?? this.start)));
                 stats.won = !!side && (player.team ?? `player:${player.id}`) === side;
                 return stats;
             }),

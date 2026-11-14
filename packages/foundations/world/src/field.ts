@@ -412,6 +412,38 @@ export class Field {
         return spawns;
     }
 
+    /**
+     * One spot to come back at mid round: clear to stand, by a living teammate when there is one (4-10 m
+     * off), else anywhere, the best of a few as far from the enemies as it can be.
+     */
+    respawn(friends: [number, number][], enemies: [number, number][], random = Math.random): Spawn {
+        const edge = Math.max(4, this.radius - SPAWN_EDGE);
+        // off streets and squares too at first (a city has few such spots)
+        const free = (x: number, z: number, strict: boolean) => {
+            if (Math.hypot(x, z) > edge || (strict && !this.open(x, z, SPAWN_ROOM))) return false;
+            for (const o of this.obstacles) if ((o.x - x) ** 2 + (o.z - z) ** 2 < (o.radius + SPAWN_ROOM) ** 2) return false;
+            for (const pond of this.ponds) if ((pond.x - x) ** 2 + (pond.z - z) ** 2 < (pond.radius + SPAWN_ROOM + .5) ** 2) return false;
+            for (const block of this.blocks) if (inside(block, x, z, SPAWN_ROOM)) return false;
+            return true;
+        };
+        const gap = (x: number, z: number) => enemies.reduce((least, at) => Math.min(least, Math.hypot(at[0] - x, at[1] - z)), Infinity);
+        let best: [number, number] | null = null, bestGap = -1;
+        for (let tries = 0; tries < 160; tries++)
+        {
+            const friend = friends.length ? friends[Math.floor(random() * friends.length)] : null;
+            const [dx, dz] = friend ? inDisc(random, 10) : inDisc(random, edge);
+            if (friend && Math.hypot(dx, dz) < 4) continue;
+            const x = (friend?.[0] ?? 0) + dx, z = (friend?.[1] ?? 0) + dz;
+            if (!free(x, z, tries < 80)) continue;
+            const g = gap(x, z);
+            if (g > bestGap) [best, bestGap] = [[x, z], g];
+            if (friend ? g > 25 : tries > 40) break;
+        }
+        const [x, z] = best ?? this.collide(friends[0]?.[0] ?? 0, friends[0]?.[1] ?? 0, .6);
+        // facing away from the nearest enemy's side: towards the middle
+        return { x, z, yaw: Math.atan2(x, z) + (random() - .5) * .8 };
+    }
+
     private tree(random: () => number, x: number, z: number, grow = 1): Tree {
         return { x, z, kind: Math.floor(random() * 3), variant: Math.floor(random() * VARIANTS), yaw: random() * Math.PI * 2, scale: (.85 + random() * .4) * grow };
     }
