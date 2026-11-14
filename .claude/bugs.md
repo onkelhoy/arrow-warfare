@@ -8,3 +8,6 @@ The canvas was sized on `window.resize`, which phones fire before the layout set
 
 ## Tavern music sometimes silent on phones
 iOS plays one media element at a time and starts one only from a tap. The tavern's song was a second `<audio>` (papit `mixer.load(..., { stream: true })`) started from the frame loop, next to the playlist's. Fix: all music goes through one element (`packages/foundations/sound/src/playlists.ts`): near a tavern its song takes the music over, the game's song pauses and goes on after. Every tap retries `play()` if the phone stopped it. No more blending both songs at the edge.
+
+## QR scanner blank on iPhone (suspected)
+Asks for camera permission, then nothing. Suspect: `@papit/audio` mixer sets `navigator.audioSession.type = "playback"`, which blocks camera capture on iOS. Workaround: `aw-qr-scanner` sets it to `"auto"` while the camera runs and restores it on stop. Not confirmed on a device yet. Report to papit if confirmed.

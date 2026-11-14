@@ -11,6 +11,10 @@ const MAX_SIDE = 640;
 
 type Decode = typeof import("./vendor/jsqr").default;
 
+// iOS: a "playback" audio session (the papit mixer sets it) keeps the camera from starting, so it's "auto" while scanning
+type Session = { type: string };
+const session = () => (navigator as Navigator & { audioSession?: Session }).audioSession;
+
 /**
  * Reads QR codes with the camera (the rear one on a phone). The camera runs only while `active` is
  * set, and is released as soon as it's cleared or the element leaves the page. Frames stay in the
@@ -45,6 +49,7 @@ export class QrScanner extends CustomElement {
     private canvas: HTMLCanvasElement | null = null;
     // a stop while the camera is still starting
     private run = 0;
+    private sessionType: string | null = null;
 
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -61,6 +66,13 @@ export class QrScanner extends CustomElement {
         {
             this.emitError("missing");
             return;
+        }
+
+        const audio = session();
+        if (audio && this.sessionType === null && audio.type !== "auto")
+        {
+            this.sessionType = audio.type;
+            audio.type = "auto";
         }
 
         try
@@ -101,6 +113,9 @@ export class QrScanner extends CustomElement {
         this.stream?.getTracks().forEach(track => track.stop());
         this.stream = null;
         if (this.video) this.video.srcObject = null;
+        const audio = session();
+        if (audio && this.sessionType !== null) audio.type = this.sessionType;
+        this.sessionType = null;
     }
 
     private look(run: number, decode: Decode) {
